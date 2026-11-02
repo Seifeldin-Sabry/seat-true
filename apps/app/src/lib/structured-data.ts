@@ -134,6 +134,25 @@ export function definedTermSet(
   };
 }
 
+export function itemList(
+  name: string,
+  items: { name: string; path: string; description: string }[],
+): JsonLd {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name,
+    numberOfItems: items.length,
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      description: item.description,
+      item: absoluteUrl(item.path),
+    })),
+  };
+}
+
 /** `</script>` inside JSON would end the tag early; escape every `<`. */
 export function jsonLdScript(data: JsonLd) {
   return {

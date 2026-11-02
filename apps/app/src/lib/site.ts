@@ -96,26 +96,59 @@ export const sitePages = {
     primaryKeyword: "m365 reconciliation spreadsheet alternative",
     secondaryKeyword: "msp license margin",
   },
-  forPax8: {
-    path: "/for/pax8-msps",
-    title: "Pax8 billing reconciliation for MSPs · SeatTrue",
+  forMsps: {
+    path: "/for/msps",
+    title: "Microsoft 365 billing software for MSPs · SeatTrue",
     description:
-      "For MSPs buying Microsoft 365 through Pax8: match each month's Pax8 bill to client invoices on seats and price × markup, before invoices go out.",
-    eyebrow: "For Pax8 partners",
-    headline: "Reconcile the Pax8 bill before you invoice",
+      "For MSPs reselling Microsoft 365: check every seat and price on the distributor bill against what each client is invoiced, before invoices go out.",
+    eyebrow: "For MSPs",
+    headline: "Bill every Microsoft seat you pay for",
     updatedAt: "2026-11-02",
-    primaryKeyword: "pax8 billing reconciliation tool",
+    primaryKeyword: "microsoft 365 billing software for msps",
+    secondaryKeyword: "msp license margin",
+  },
+  forFinance: {
+    path: "/for/msp-finance-and-billing-teams",
+    title: "Month-end M365 reconciliation for MSP billing teams",
+    description:
+      "For the person who closes the month at an MSP: one exceptions inbox for Microsoft 365, each with a dollar figure and an audit trail, before invoicing.",
+    eyebrow: "For MSP finance and billing teams",
+    headline: "Close the Microsoft month without the spreadsheet",
+    updatedAt: "2026-11-02",
+    primaryKeyword: "msp billing team reconciliation",
+    secondaryKeyword: "pax8 billing reconciliation",
+  },
+  forSmall: {
+    path: "/for/small-msps",
+    title: "Microsoft 365 reconciliation for small MSPs · SeatTrue",
+    description:
+      "For MSPs with 1 to 20 staff, where the owner does the billing: a monthly Microsoft 365 check that takes minutes, at a flat $149 a month.",
+    eyebrow: "For small MSPs (1–20 staff)",
+    headline: "Billing is one of your ten jobs. Make it a short one.",
+    updatedAt: "2026-11-02",
+    primaryKeyword: "small msp microsoft 365 billing",
+    secondaryKeyword: "msp license margin",
+  },
+  forGrowing: {
+    path: "/for/growing-msps",
+    title: "Billing approvals for growing MSPs · SeatTrue",
+    description:
+      "For MSPs with several techs touching licences: techs flag, admins approve, owners set markups. One audit trail for every Microsoft 365 billing call.",
+    eyebrow: "For growing MSPs",
+    headline: "Techs add seats. Someone has to approve the bill.",
+    updatedAt: "2026-11-02",
+    primaryKeyword: "msp billing approval workflow",
     secondaryKeyword: "nce seat management",
   },
-  forHalo: {
-    path: "/for/halopsa-msps",
-    title: "HaloPSA + Pax8 license reconciliation · SeatTrue",
+  integrations: {
+    path: "/integrations",
+    title: "SeatTrue integrations: Pax8, Partner Center and more",
     description:
-      "For HaloPSA shops reselling Microsoft 365 through Pax8: check the price and markup the quantity sync leaves alone. Works from CSV exports today.",
-    eyebrow: "For HaloPSA MSPs",
-    headline: "The price check your Halo sync doesn't do",
+      "What SeatTrue reads today (Pax8 and Partner Center CSV imports) and what's coming: distributor APIs, PSA syncs and an MCP server.",
+    eyebrow: "Integrations",
+    headline: "Works with your existing tools",
     updatedAt: "2026-11-02",
-    primaryKeyword: "halopsa pax8 billing",
+    primaryKeyword: "msp billing reconciliation integrations",
     secondaryKeyword: "pax8 billing reconciliation",
   },
 } satisfies Record<string, SitePage>;
@@ -156,7 +189,8 @@ export const refundPolicy =
 /** Blog → product link mesh: each post points at the closest compare or for-page. */
 export function pagesForPost(slug: string): SitePageKey[] {
   if (slug.includes("gradient")) return ["compareGradient", "pricing"];
-  if (slug.includes("psa-sync")) return ["comparePsaSync", "forHalo"];
+  if (slug.includes("psa-sync")) return ["comparePsaSync", "integrations"];
+  if (slug.includes("close-checklist")) return ["forFinance", "pricing"];
   if (slug.includes("spreadsheet")) return ["compareSpreadsheet", "pricing"];
-  return ["forPax8", "pricing"];
+  return ["forMsps", "pricing"];
 }

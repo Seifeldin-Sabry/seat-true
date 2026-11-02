@@ -14,6 +14,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
         <Wordmark />
         <nav className="st-nav" aria-label="Site">
           <Link to="/pricing">Pricing</Link>
+          <Link to="/integrations">Integrations</Link>
           <Link to="/blog">Blog</Link>
           <Link to="/glossary">Glossary</Link>
           <Link to="/login" search={{ redirect: "/app" }}>
@@ -31,6 +32,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
             <h2>Product</h2>
             <a href="/#audit">Free margin audit</a>
             <Link to="/pricing">Pricing</Link>
+            <Link to="/integrations">Integrations</Link>
             <Link to="/login" search={{ redirect: "/app" }}>
               Sign in
             </Link>
@@ -55,11 +57,20 @@ export function SiteShell({ children }: { children: ReactNode }) {
           </div>
           <div>
             <h2>For</h2>
-            <Link to="/for/$audience" params={{ audience: "pax8-msps" }}>
-              Pax8 partners
+            <Link to="/for/$audience" params={{ audience: "msps" }}>
+              MSPs
             </Link>
-            <Link to="/for/$audience" params={{ audience: "halopsa-msps" }}>
-              HaloPSA MSPs
+            <Link
+              to="/for/$audience"
+              params={{ audience: "msp-finance-and-billing-teams" }}
+            >
+              Finance and billing teams
+            </Link>
+            <Link to="/for/$audience" params={{ audience: "small-msps" }}>
+              Small MSPs
+            </Link>
+            <Link to="/for/$audience" params={{ audience: "growing-msps" }}>
+              Growing MSPs
             </Link>
           </div>
           <div>

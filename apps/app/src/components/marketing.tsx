@@ -128,3 +128,11 @@ export function FurtherReading({
     </section>
   );
 }
+
+export function StatusBadge({ live }: { live: boolean }) {
+  return (
+    <span className={live ? "st-badge st-badge-live" : "st-badge"}>
+      {live ? "Live" : "Coming soon"}
+    </span>
+  );
+}

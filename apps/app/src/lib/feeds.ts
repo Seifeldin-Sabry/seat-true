@@ -1,6 +1,7 @@
 import { brand } from "@seattrue/ui";
 import type { Post, PostMeta } from "./content/blog";
 import { glossary } from "./content/glossary";
+import { integrationPath, integrations } from "./integrations";
 import { absoluteUrl, plans, refundPolicy, sitePages } from "./site";
 
 /**
@@ -30,6 +31,10 @@ export function sitemapXml(posts: PostMeta[]): string {
     ...Object.values(sitePages).map((page) => ({
       loc: absoluteUrl(page.path),
       lastmod: page.path === "/blog" ? newestPost : page.updatedAt,
+    })),
+    ...integrations.map((integration) => ({
+      loc: absoluteUrl(integrationPath(integration.slug)),
+      lastmod: sitePages.integrations.updatedAt,
     })),
     ...posts.map((post) => ({
       loc: absoluteUrl(`/blog/${post.slug}`),
@@ -93,12 +98,13 @@ It raises five kinds of exception, each with a monthly dollar figure: unbilled s
 
 ## Who it's for
 
-MSPs that resell Microsoft 365 through Pax8 and bill clients from a PSA such as HaloPSA, ConnectWise or Autotask. Roles: owners, admins (ops/finance) and technicians.
+MSPs that resell Microsoft 365: owners of small MSPs (1–20 staff) who do the billing themselves, finance and billing teams who close the month, and growing MSPs where several technicians add licences and someone has to approve the bill. Roles: owner (markups, clients, billing), admin (ops/finance: resolves exceptions, mappings, invites, audit log) and technician (uploads, flags, comments).
 
 ## How it works today
 
 - Input: CSV exports (Pax8 billing export; Partner Center reconciliation files also work). No API access needed; it never writes to Pax8 or the PSA.
-- A Pax8 API connection and HaloPSA sync are planned, not live.
+- Live integrations: Pax8 billing CSV import and Microsoft Partner Center reconciliation CSV import (one importer, tested).
+- Coming soon, not live: Pax8 API, Partner Center API, Giacom, Sherweb, ConnectWise PSA, Autotask PSA and HaloPSA syncs, and a SeatTrue MCP server.
 - Sign-in requires a company email address.
 
 ## Pricing
@@ -120,8 +126,12 @@ ${plans.map((plan) => `- ${plan.name}: $${plan.priceUsd}/month flat. ${plan.summ
 - Compare with Gradient Reconcile: ${absoluteUrl("/compare/gradient")}
 - Compare with a Pax8-to-PSA sync: ${absoluteUrl("/compare/pax8-psa-sync")}
 - Compare with a spreadsheet: ${absoluteUrl("/compare/spreadsheet")}
-- For Pax8 MSPs: ${absoluteUrl("/for/pax8-msps")}
-- For HaloPSA MSPs: ${absoluteUrl("/for/halopsa-msps")}
+- For MSPs: ${absoluteUrl(sitePages.forMsps.path)}
+- For MSP finance and billing teams: ${absoluteUrl(sitePages.forFinance.path)}
+- For small MSPs (1–20 staff): ${absoluteUrl(sitePages.forSmall.path)}
+- For growing MSPs: ${absoluteUrl(sitePages.forGrowing.path)}
+- Integrations: ${absoluteUrl(sitePages.integrations.path)}
+${integrations.map((integration) => `  - ${integration.name} (${integration.method}, ${integration.status === "live" ? "Live" : "Coming soon"}): ${absoluteUrl(integrationPath(integration.slug))}`).join("\n")}
 - Glossary: ${absoluteUrl("/glossary")}
 - Blog RSS: ${absoluteUrl("/rss.xml")}
 `;

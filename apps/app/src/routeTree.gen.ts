@@ -33,6 +33,8 @@ import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as CompareCompetitorRouteImport } from './routes/compare.$competitor'
 import { Route as ForAudienceRouteImport } from './routes/for.$audience'
+import { Route as IntegrationsIndexRouteImport } from './routes/integrations.index'
+import { Route as IntegrationsSlugRouteImport } from './routes/integrations.$slug'
 import { Route as OgSplatRouteImport } from './routes/og.$'
 import { Route as AppClientsClientIdRouteImport } from './routes/app.clients.$clientId'
 
@@ -157,6 +159,16 @@ const ForAudienceRoute = ForAudienceRouteImport.update({
   path: '/for/$audience',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IntegrationsIndexRoute = IntegrationsIndexRouteImport.update({
+  id: '/integrations/',
+  path: '/integrations/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrationsSlugRoute = IntegrationsSlugRouteImport.update({
+  id: '/integrations/$slug',
+  path: '/integrations/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OgSplatRoute = OgSplatRouteImport.update({
   id: '/og/$',
   path: '/og/$',
@@ -191,9 +203,11 @@ export interface FileRoutesByFullPath {
   '/blog/$slug': typeof BlogSlugRoute
   '/compare/$competitor': typeof CompareCompetitorRoute
   '/for/$audience': typeof ForAudienceRoute
+  '/integrations/$slug': typeof IntegrationsSlugRoute
   '/og/$': typeof OgSplatRoute
   '/app/': typeof AppIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/integrations/': typeof IntegrationsIndexRoute
   '/app/clients/$clientId': typeof AppClientsClientIdRoute
 }
 export interface FileRoutesByTo {
@@ -219,9 +233,11 @@ export interface FileRoutesByTo {
   '/blog/$slug': typeof BlogSlugRoute
   '/compare/$competitor': typeof CompareCompetitorRoute
   '/for/$audience': typeof ForAudienceRoute
+  '/integrations/$slug': typeof IntegrationsSlugRoute
   '/og/$': typeof OgSplatRoute
   '/app': typeof AppIndexRoute
   '/blog': typeof BlogIndexRoute
+  '/integrations': typeof IntegrationsIndexRoute
   '/app/clients/$clientId': typeof AppClientsClientIdRoute
 }
 export interface FileRoutesById {
@@ -248,9 +264,11 @@ export interface FileRoutesById {
   '/blog/$slug': typeof BlogSlugRoute
   '/compare/$competitor': typeof CompareCompetitorRoute
   '/for/$audience': typeof ForAudienceRoute
+  '/integrations/$slug': typeof IntegrationsSlugRoute
   '/og/$': typeof OgSplatRoute
   '/app/': typeof AppIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/integrations/': typeof IntegrationsIndexRoute
   '/app/clients/$clientId': typeof AppClientsClientIdRoute
 }
 export interface FileRouteTypes {
@@ -278,9 +296,11 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/compare/$competitor'
     | '/for/$audience'
+    | '/integrations/$slug'
     | '/og/$'
     | '/app/'
     | '/blog/'
+    | '/integrations/'
     | '/app/clients/$clientId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -306,9 +326,11 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/compare/$competitor'
     | '/for/$audience'
+    | '/integrations/$slug'
     | '/og/$'
     | '/app'
     | '/blog'
+    | '/integrations'
     | '/app/clients/$clientId'
   id:
     | '__root__'
@@ -334,9 +356,11 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/compare/$competitor'
     | '/for/$audience'
+    | '/integrations/$slug'
     | '/og/$'
     | '/app/'
     | '/blog/'
+    | '/integrations/'
     | '/app/clients/$clientId'
   fileRoutesById: FileRoutesById
 }
@@ -363,9 +387,11 @@ export interface RootRouteChildren {
   BlogSlugRoute: typeof BlogSlugRoute
   CompareCompetitorRoute: typeof CompareCompetitorRoute
   ForAudienceRoute: typeof ForAudienceRoute
+  IntegrationsSlugRoute: typeof IntegrationsSlugRoute
   OgSplatRoute: typeof OgSplatRoute
   AppIndexRoute: typeof AppIndexRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  IntegrationsIndexRoute: typeof IntegrationsIndexRoute
   AppClientsClientIdRoute: typeof AppClientsClientIdRoute
 }
 
@@ -539,6 +565,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForAudienceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/integrations/': {
+      id: '/integrations/'
+      path: '/integrations'
+      fullPath: '/integrations/'
+      preLoaderRoute: typeof IntegrationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrations/$slug': {
+      id: '/integrations/$slug'
+      path: '/integrations/$slug'
+      fullPath: '/integrations/$slug'
+      preLoaderRoute: typeof IntegrationsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/og/$': {
       id: '/og/$'
       path: '/og/$'
@@ -579,9 +619,11 @@ const rootRouteChildren: RootRouteChildren = {
   BlogSlugRoute: BlogSlugRoute,
   CompareCompetitorRoute: CompareCompetitorRoute,
   ForAudienceRoute: ForAudienceRoute,
+  IntegrationsSlugRoute: IntegrationsSlugRoute,
   OgSplatRoute: OgSplatRoute,
   AppIndexRoute: AppIndexRoute,
   BlogIndexRoute: BlogIndexRoute,
+  IntegrationsIndexRoute: IntegrationsIndexRoute,
   AppClientsClientIdRoute: AppClientsClientIdRoute,
 }
 export const routeTree = rootRouteImport

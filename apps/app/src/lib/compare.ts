@@ -176,7 +176,7 @@ export const comparisons: Record<string, Comparison> = {
       "reconcile-pax8-bill-against-psa-invoices",
     ],
     terms: ["stale-price", "ghost-licence", "customer-mapping"],
-    pages: ["forHalo", "compareGradient"],
+    pages: ["integrations", "compareGradient"],
   },
   spreadsheet: {
     key: "compareSpreadsheet",
@@ -228,6 +228,6 @@ export const comparisons: Record<string, Comparison> = {
       "m365-billing-close-checklist",
     ],
     terms: ["billing-close", "customer-mapping", "effective-unit-price"],
-    pages: ["pricing", "forPax8"],
+    pages: ["pricing", "forSmall"],
   },
 };

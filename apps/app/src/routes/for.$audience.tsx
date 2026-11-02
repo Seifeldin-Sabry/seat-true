@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import {
   AuditCta,
   FurtherReading,
@@ -10,6 +10,7 @@ import { SiteShell } from "../components/site-chrome";
 import { audiences } from "../lib/audiences";
 import { getLivePostLinks } from "../lib/content/blog-fns";
 import { sitePages } from "../lib/site";
+import { faqPage } from "../lib/structured-data";
 
 export const Route = createFileRoute("/for/$audience")({
   loader: async ({ params }) => {
@@ -20,9 +21,11 @@ export const Route = createFileRoute("/for/$audience")({
     const audience = audiences[params.audience];
     if (!audience) return {};
     const page = sitePages[audience.key];
-    return sitePageHead(audience.key, [
-      { name: page.eyebrow, path: page.path },
-    ]);
+    return sitePageHead(
+      audience.key,
+      [{ name: page.eyebrow, path: page.path }],
+      [faqPage(audience.faq)],
+    );
   },
   component: AudiencePage,
 });
@@ -45,7 +48,7 @@ function AudiencePage() {
 
       <section className="st-section st-section-tight" aria-labelledby="leaks">
         <h2 id="leaks" className="st-h2-small">
-          Where the margin goes
+          {audience.problemsTitle}
         </h2>
         <div className="st-leaks">
           {audience.problems.map((problem) => (
@@ -59,7 +62,7 @@ function AudiencePage() {
 
       <section className="st-section st-section-tight" aria-labelledby="how">
         <h2 id="how" className="st-h2-small">
-          How it works
+          {audience.stepsTitle}
         </h2>
         <ol className="st-steps">
           {audience.steps.map((step) => (
@@ -70,8 +73,24 @@ function AudiencePage() {
           ))}
         </ol>
         <p className="st-fair">
-          <strong>What's live today.</strong> {audience.status}
+          <strong>Works with your existing tools.</strong> Bring the distributor
+          bill as a CSV export; nothing to install and nothing written back.{" "}
+          <Link to="/integrations">See integrations</Link>.
         </p>
+      </section>
+
+      <section className="st-section st-section-tight" aria-labelledby="faq">
+        <h2 id="faq" className="st-h2-small">
+          Questions
+        </h2>
+        <div className="st-faq">
+          {audience.faq.map((item) => (
+            <details key={item.q}>
+              <summary>{item.q}</summary>
+              <p>{item.a}</p>
+            </details>
+          ))}
+        </div>
       </section>
 
       <Sources sources={audience.sources} />

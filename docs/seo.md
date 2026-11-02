@@ -12,8 +12,11 @@ One primary and one secondary keyword per page, chosen by search intent. Pages a
 |---|---|---|---|
 | `/` | Commercial | microsoft 365 license reconciliation for msps | msp license margin |
 | `/pricing` | Transactional | msp billing reconciliation software pricing | msp license margin |
-| `/for/pax8-msps` | Commercial | pax8 billing reconciliation tool | nce seat management |
-| `/for/halopsa-msps` | Commercial | halopsa pax8 billing | pax8 billing reconciliation |
+| `/for/msps` | Commercial | microsoft 365 billing software for msps | msp license margin |
+| `/for/msp-finance-and-billing-teams` | Commercial | msp billing team reconciliation | pax8 billing reconciliation |
+| `/for/small-msps` | Commercial | small msp microsoft 365 billing | msp license margin |
+| `/for/growing-msps` | Commercial | msp billing approval workflow | nce seat management |
+| `/integrations` | Commercial / navigational | msp billing reconciliation integrations | pax8 billing reconciliation |
 | `/compare/gradient` | Commercial investigation | gradient msp alternative | microsoft 365 license reconciliation for msps |
 | `/compare/pax8-psa-sync` | Commercial investigation | pax8 psa sync price check | pax8 billing reconciliation |
 | `/compare/spreadsheet` | Commercial investigation | m365 reconciliation spreadsheet alternative | msp license margin |
@@ -37,6 +40,10 @@ One primary and one secondary keyword per page, chosen by search intent. Pages a
 | 15 Dec | `/blog/m365-renewal-price-review-checklist` | Checklist | microsoft 365 renewal price check | msp license margin |
 | 17 Dec | `/blog/how-seattrue-calculates-license-leakage` | Methodology | how to calculate license leakage | msp license margin |
 
+**/for pages are about who, not which tools.** Each one covers a buyer segment (all MSPs, finance/billing teams, small MSPs, growing MSPs with Owner/Admin/Tech roles). Tools appear only as "works with your existing tools", linking `/integrations`. Copy in `apps/app/src/lib/audiences.ts`.
+
+**Integrations:** `/integrations` plus `/integrations/<slug>` detail pages, from `apps/app/src/lib/integrations.ts`. Live only when the code ships and tests it: today the Pax8 billing CSV and Partner Center reconciliation CSV, both read by `packages/recon/src/pax8-csv.ts` and covered by `packages/recon/src/reconcile.test.ts`. Everything else is "Coming soon", no dates. A test in `structured-data.test.ts` pins the live list; changing it means pointing at new code and tests. Detail pages are in the sitemap and llms.txt, have per-integration OG cards (`/og/integration/<slug>.png`) and a BreadcrumbList; the index carries an ItemList.
+
 **Watch for cannibalisation:** the three comparison posts overlap with the `/compare/*` pages. The pages target the "alternative / price check" query and link to the post once it's live; if Search Console shows them competing, make the post the canonical deep dive and trim the page.
 
 ## What's in place
@@ -45,9 +52,9 @@ One primary and one secondary keyword per page, chosen by search intent. Pages a
 - **Per-page meta (server-rendered):** unique `<title>` ≤ 60 chars and description ≤ 155 (tested), canonical, Open Graph and Twitter `summary_large_image`, RSS `alternate` link.
 - **OG images:** generated per page and per post at `/og/page/<key>.png` and `/og/blog/<slug>.png` (satori + resvg, 1200×630, cached in memory). Scheduled posts have no image until live.
 - **noindex:** every `/app/*` route (incl. billing), sign in, sign up, forgot/reset password, accept invite, 404. `robots.txt` disallows `/app` and `/api`.
-- **Structured data:** Organization, WebSite, SoftwareApplication with two Offers (Solo $149, Team $249, USD per month) and FAQPage on `/`; SoftwareApplication + FAQPage on `/pricing`; BlogPosting (with `dateModified`), BreadcrumbList and FAQPage on posts; DefinedTermSet on `/glossary`; BreadcrumbList on every other page. No ratings, reviews or invented numbers. Required properties per type are checked in `apps/app/src/lib/structured-data.test.ts`.
+- **Structured data:** Organization, WebSite, SoftwareApplication with two Offers (Solo $149, Team $249, USD per month) and FAQPage on `/`; SoftwareApplication + FAQPage on `/pricing`; BlogPosting (with `dateModified`), BreadcrumbList and FAQPage on posts; DefinedTermSet on `/glossary`; FAQPage on each `/for/*` page; ItemList on `/integrations`; BreadcrumbList on every other page. No ratings, reviews or invented numbers. Required properties per type are checked in `apps/app/src/lib/structured-data.test.ts`.
 - **Feeds:** `/sitemap.xml` (with `lastmod`), `/rss.xml`, `/llms.txt`, `/llms-full.txt`, `/robots.txt` (GPTBot, ClaudeBot, PerplexityBot and Google-Extended allowed). All built per request from live posts only.
-- **Link mesh:** footer links every compare, for-page and learn page; each post links to its closest compare/for page, related posts and glossary terms; compare, for and pricing pages link to live posts and glossary entries.
+- **Link mesh:** header links `/integrations`; footer links every compare, for-page, integrations and learn page; each post links to its closest compare/for page, related posts and glossary terms; compare, for and pricing pages link to live posts and glossary entries.
 - **Performance:** self-hosted fonts (fontsource, latin subset), headline face preloaded, metric-matched Arial fallback for Inter (no layout shift on swap), Brotli/gzip pre-compressed assets, gzip on HTML and feeds (`apps/app/src/server.ts`), no raster images on marketing pages, markdown/YAML/OG libraries stay server-only.
 
 ## Lighthouse (production build, 2 Nov 2026)
@@ -62,7 +69,7 @@ One primary and one secondary keyword per page, chosen by search intent. Pages a
 | one post | 92 / 100 / 100 / 100 | 100 / 100 / 100 / 100 |
 | `/glossary` | 95 / 100 / 100 / 100 | 100 / 100 / 100 / 100 |
 | `/compare/gradient` | 95 / 100 / 100 / 100 | 100 / 100 / 100 / 100 |
-| `/for/pax8-msps` | 94 / 100 / 100 / 100 | 100 / 100 / 100 / 100 |
+| `/for/pax8-msps` (since replaced by `/for/*` segment pages; not re-measured) | 94 / 100 / 100 / 100 | 100 / 100 / 100 / 100 |
 
 The post was measured with a temporary copy of `reconcile-pax8-bill-against-psa-invoices` dated in the past (no post is live before 10 Nov); the copy was not committed.
 

@@ -118,7 +118,7 @@ function PricingPage() {
       </section>
 
       <FurtherReading
-        pages={["compareGradient", "compareSpreadsheet", "forPax8"]}
+        pages={["compareGradient", "compareSpreadsheet", "forSmall"]}
         posts={[
           "how-seattrue-calculates-license-leakage",
           "what-is-license-leakage",

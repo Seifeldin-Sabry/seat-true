@@ -1,6 +1,7 @@
 import { brand } from "@seattrue/ui";
 import { createFileRoute } from "@tanstack/react-router";
 import { livePost } from "../lib/content/posts.server";
+import { integrationBySlug } from "../lib/integrations";
 import { type SitePageKey, sitePages } from "../lib/site";
 import { type OgCard, renderOgImage } from "../server/og-image";
 
@@ -14,6 +15,17 @@ function cardFor(path: string): OgCard | null {
     return {
       eyebrow: site.eyebrow,
       title: site.headline,
+      footer: new URL(brand.siteUrl).host,
+    };
+  }
+  const integrationSlug = /^integration\/([a-z0-9-]+)\.png$/.exec(path)?.[1];
+  const integration = integrationSlug
+    ? integrationBySlug.get(integrationSlug)
+    : undefined;
+  if (integration) {
+    return {
+      eyebrow: `Integrations · ${integration.status === "live" ? "Live" : "Coming soon"}`,
+      title: integration.name,
       footer: new URL(brand.siteUrl).host,
     };
   }

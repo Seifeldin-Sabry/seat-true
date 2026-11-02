@@ -3,12 +3,14 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parsePost } from "./content/blog";
 import { glossary } from "./content/glossary";
+import { integrationPath, integrations } from "./integrations";
 import { sitePages } from "./site";
 import {
   article,
   breadcrumbs,
   definedTermSet,
   faqPage,
+  itemList,
   jsonLdScript,
   organization,
   softwareApplication,
@@ -32,6 +34,7 @@ const required: Record<string, string[]> = {
   Question: ["name", "acceptedAnswer"],
   Answer: ["text"],
   BreadcrumbList: ["itemListElement"],
+  ItemList: ["itemListElement"],
   ListItem: ["position", "name", "item"],
   BlogPosting: [
     "headline",
@@ -98,6 +101,17 @@ describe("JSON-LD", () => {
     ],
     ["article", article(post, "https://seattrue.com/og/blog/x.png")],
     ["glossary", definedTermSet(glossary)],
+    [
+      "integrations",
+      itemList(
+        "SeatTrue integrations",
+        integrations.map((integration) => ({
+          name: integration.name,
+          path: integrationPath(integration.slug),
+          description: integration.pulls,
+        })),
+      ),
+    ],
   ];
 
   for (const [name, doc] of docs) {
@@ -150,5 +164,41 @@ describe("site pages", () => {
     expect(new Set(pages.map((page) => page.primaryKeyword)).size).toBe(
       pages.length,
     );
+  });
+});
+
+describe("integrations", () => {
+  test("detail titles ≤ 60 and descriptions ≤ 155, slugs unique", () => {
+    for (const integration of integrations) {
+      expect({
+        slug: integration.slug,
+        title: integration.title.length <= 60,
+        description: integration.description.length <= 155,
+      }).toEqual({ slug: integration.slug, title: true, description: true });
+    }
+    expect(new Set(integrations.map((i) => i.slug)).size).toBe(
+      integrations.length,
+    );
+  });
+
+  // Live = shipped and tested in packages/recon (pax8-csv.ts). Changing this
+  // list means pointing at new code and tests, not editing copy.
+  test("only the tested CSV importer is marked live", () => {
+    const live = integrations.filter((i) => i.status === "live");
+    expect(live.map((i) => [i.slug, i.method])).toEqual([
+      ["pax8-csv", "CSV import"],
+      ["partner-center-csv", "CSV import"],
+    ]);
+    for (const integration of integrations) {
+      const isLive = integration.status === "live";
+      expect({
+        slug: integration.slug,
+        steps: integration.setup.length > 0,
+      }).toEqual({ slug: integration.slug, steps: isLive });
+      expect({
+        slug: integration.slug,
+        meanwhile: !!integration.meanwhile,
+      }).toEqual({ slug: integration.slug, meanwhile: !isLive });
+    }
   });
 });
