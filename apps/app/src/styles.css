@@ -1307,6 +1307,8 @@ body {
   gap: 6px;
 }
 .recon-select {
+  /* Long product names would otherwise stretch the table on phones. */
+  max-width: 220px;
   height: 36px;
   padding: 0 10px;
   border: 1px solid var(--input);
@@ -2083,6 +2085,9 @@ body {
 
 .inline-form > .markup-field {
   flex: 0 0 120px;
+}
+.add-client-form > .field-group:not(.markup-field) {
+  flex: 1 1 200px;
 }
 
 .signout-button {

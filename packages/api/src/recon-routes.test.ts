@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { PlanLimitError } from "./plan-limits";
 import { createReconRoutes } from "./recon-routes";
 import { CsvRejectedError, type ReconService } from "./reconciliation";
 import { testGuard, testWorkspace } from "./testing";
@@ -99,4 +100,53 @@ test("billing CSV upload: auth, Pax8-upload permission, per-row errors", async (
     ).status,
   ).toBe(200);
   expect(calls).toEqual([upload.csv, "bad"]);
+});
+
+test("add client: owner only, plan-limited, actor passed for the audit log", async () => {
+  const created: unknown[] = [];
+  let full = false;
+  const recon = {
+    createClient: async (_org: string, input: unknown, actor: unknown) => {
+      created.push({ input, actor });
+      return { id: "c1", name: "Acme" };
+    },
+  } as unknown as ReconService;
+  const routesFor = (role: "owner" | "admin" | "tech") =>
+    createReconRoutes({
+      recon,
+      guard: testGuard(testWorkspace(role)),
+      allowedOrigins: [origin],
+      assertCanAddClient: async () => {
+        if (full) throw new PlanLimitError("Solo covers 150 clients.");
+      },
+    });
+  const body = { name: "Acme", psaId: "CW-1", markupPct: 18 };
+  for (const role of ["admin", "tech"] as const)
+    expect(
+      (
+        await routesFor(role).handle(
+          billingRequest("/recon/clients", "POST", body),
+        )
+      ).status,
+    ).toBe(403);
+  expect(
+    (
+      await routesFor("owner").handle(
+        billingRequest("/recon/clients", "POST", body),
+      )
+    ).status,
+  ).toBe(201);
+  expect(created).toEqual([
+    {
+      input: body,
+      actor: { userId: "user-test", email: "user-test@northbeam-it.com" },
+    },
+  ]);
+  full = true;
+  const limited = await routesFor("owner").handle(
+    billingRequest("/recon/clients", "POST", body),
+  );
+  expect(limited.status).toBe(402);
+  expect((await limited.json()).error.code).toBe("PLAN_LIMIT");
+  expect(created).toHaveLength(1);
 });

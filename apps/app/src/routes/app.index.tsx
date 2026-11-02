@@ -1,8 +1,8 @@
-import { Badge, Button } from "@seattrue/ui";
+import { Badge, Button, Input, Label } from "@seattrue/ui";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { FileSpreadsheet, FileUp, LoaderCircle, Sparkles } from "lucide-react";
-import { useRef, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { AppShell } from "../components/app-shell";
 import { requireWorkspaceMember } from "../lib/auth-navigation";
 import { exceptionKindLabels, formatCents } from "../lib/format";
@@ -13,6 +13,7 @@ import {
 } from "../lib/recon-api";
 import {
   overviewQueryOptions,
+  useCreateClient,
   useLoadDemo,
   useUploadBilling,
   useUploadRun,
@@ -377,6 +378,8 @@ function OverviewPage() {
             </section>
           </>
         )}
+        {can("client", "create") && <AddClientForm />}
+
         {waitlist.data && (
           <section
             className="recon-panel"
@@ -402,5 +405,70 @@ function OverviewPage() {
         )}
       </main>
     </AppShell>
+  );
+}
+
+/** Owner-only: name, PSA ID, markup. The API checks the plan's client limit. */
+function AddClientForm() {
+  const create = useCreateClient();
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = new FormData(form);
+    const name = String(values.get("name") ?? "").trim();
+    const psaId = String(values.get("psaId") ?? "").trim();
+    const markupPct = Number(values.get("markupPct"));
+    create.mutate(
+      { name, markupPct, ...(psaId ? { psaId } : {}) },
+      { onSuccess: () => form.reset() },
+    );
+  }
+
+  return (
+    <section
+      className="recon-panel"
+      aria-labelledby="add-client-title"
+      style={{ marginTop: 16 }}
+    >
+      <h2 id="add-client-title">Add client</h2>
+      <form className="inline-form add-client-form" onSubmit={submit}>
+        <div className="field-group">
+          <Label htmlFor="client-name">Name</Label>
+          <Input id="client-name" name="name" required maxLength={160} />
+        </div>
+        <div className="field-group">
+          <Label htmlFor="client-psa-id">PSA ID (optional)</Label>
+          <Input id="client-psa-id" name="psaId" maxLength={64} />
+        </div>
+        <div className="field-group markup-field">
+          <Label htmlFor="client-markup">Markup %</Label>
+          <Input
+            id="client-markup"
+            name="markupPct"
+            type="number"
+            min={0}
+            max={500}
+            step="0.01"
+            defaultValue="20"
+            required
+          />
+        </div>
+        <Button type="submit" disabled={create.isPending}>
+          Add client
+        </Button>
+      </form>
+      {create.error && (
+        <p className="dialog-error" role="alert">
+          {create.error.message}
+        </p>
+      )}
+      {create.data && !create.isPending && (
+        <p role="status">
+          Added {create.data.name}.{" "}
+          <Link to="/app/mappings">Map its Pax8 customer</Link>.
+        </p>
+      )}
+    </section>
   );
 }

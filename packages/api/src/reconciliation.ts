@@ -310,9 +310,11 @@ export type ReconService = {
   ): Promise<RunDto>;
   loadDemo(organizationId: string): Promise<RunDto>;
   joinWaitlist(input: WaitlistInput): Promise<void>;
+  /** Audit-logged as client.create. */
   createClient(
     organizationId: string,
     input: ClientInput,
+    actor?: Actor,
   ): Promise<ClientSummaryDto>;
   /** Null when the client isn't in the workspace. */
   setArchived(
@@ -1420,17 +1422,32 @@ export function createReconService(db: Database): ReconService {
       );
     },
 
-    async createClient(organizationId, input) {
-      const [row] = await db
-        .insert(clients)
-        .values({
+    async createClient(organizationId, input, actor = null) {
+      const row = await db.transaction(async (tx) => {
+        const [inserted] = await tx
+          .insert(clients)
+          .values({
+            organizationId,
+            name: input.name.trim(),
+            psaId: input.psaId?.trim() || null,
+            markupBps: Math.round(input.markupPct * 100),
+          })
+          .returning();
+        if (!inserted) throw new Error("Client insert returned no row");
+        await recordAudit(tx, {
           organizationId,
-          name: input.name.trim(),
-          psaId: input.psaId?.trim() || null,
-          markupBps: Math.round(input.markupPct * 100),
-        })
-        .returning();
-      if (!row) throw new Error("Client insert returned no row");
+          actor,
+          action: "client.create",
+          targetType: "client",
+          targetId: inserted.id,
+          after: {
+            name: inserted.name,
+            psaId: inserted.psaId,
+            markupPct: inserted.markupBps / 100,
+          },
+        });
+        return inserted;
+      });
       const [summary] = summarize([row], [], null, []);
       if (!summary) throw new Error("Client summary missing");
       return summary;

@@ -490,7 +490,14 @@ export function createReconRoutes({
               return status(402, planLimit(error));
             throw error;
           }
-          return status(201, await recon.createClient(organizationId, body));
+          return status(
+            201,
+            await recon.createClient(
+              organizationId,
+              body,
+              actorOf(access.workspace),
+            ),
+          );
         },
         {
           body: t.Object(

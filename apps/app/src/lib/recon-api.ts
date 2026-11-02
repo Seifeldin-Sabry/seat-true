@@ -128,7 +128,11 @@ export async function mapBillingClient(input: {
   if (error) throw new Error(apiErrorMessage(error, "Could not save mapping."));
 }
 
-export async function createClient(input: { name: string; markupPct: number }) {
+export async function createClient(input: {
+  name: string;
+  psaId?: string;
+  markupPct: number;
+}) {
   const api = getApiClient();
   const { data, error } = await api.recon.clients.post(input);
   if (error) throw new Error(apiErrorMessage(error, "Could not add client."));

@@ -397,6 +397,7 @@ integrationTest(
       ).map((row) => row.action);
       expect(actions).toContain("billing.import");
       expect(actions).toContain("billing.lines_edit");
+      expect(actions).toContain("client.create");
     } finally {
       await db.delete(organization).where(eq(organization.id, orgId));
       await db.delete(user).where(eq(user.id, orgId));
