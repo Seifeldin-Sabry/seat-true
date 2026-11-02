@@ -283,8 +283,9 @@ Volumes are not measured yet. Check them in Search Console and the free tools fr
 | /compare/gradient | gradient reconcile alternative | gradient msp pricing | Commercial (vs) |
 | /compare/pax8-psa-sync | pax8 psa sync | pax8 halopsa / connectwise integration price | Commercial |
 | /compare/spreadsheet | m365 billing reconciliation spreadsheet | — | Commercial |
-| /for/halopsa | halopsa pax8 billing | halo microsoft 365 billing | Commercial |
-| /for/connectwise | connectwise pax8 reconciliation | unsynced subscriptions pax8 | Commercial |
+| /for/msps | MSP microsoft 365 billing | msp license reconciliation | Commercial |
+| /for/msp-finance-and-billing-teams | msp billing reconciliation | msp invoice audit microsoft | Commercial |
+| /integrations/halopsa, /integrations/connectwise | halopsa pax8 billing; connectwise pax8 reconciliation | unsynced subscriptions pax8 | Commercial |
 | /audit | pax8 billing reconciliation | free M365 billing audit | Transactional |
 | /glossary/* | what is NCE; license leakage; ghost licence; NCE seat management | — | Informational |
 
