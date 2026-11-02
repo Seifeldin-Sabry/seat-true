@@ -8,7 +8,7 @@ primary_region = "iad"
   [build.args]
     VITE_API_ORIGIN = "https://api.example.com"
     VITE_APP_ORIGIN = "https://app.example.com"
-    VITE_WEB_ORIGIN = "https://example.com"
+    VITE_WEB_ORIGIN = "https://app.example.com"
 
 [env]
   API_ORIGIN = "https://api.example.com"

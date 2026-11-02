@@ -18,10 +18,13 @@ export const Route = createRootRouteWithContext<{
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: `Projects · ${brand.name}` },
+      {
+        title: `${brand.name} · Find the license leak before the invoice goes out`,
+      },
       {
         name: "description",
-        content: `A clear place to organize projects in ${brand.name}.`,
+        content:
+          "SeatTrue checks every Microsoft 365 line on your Pax8 bill against what you invoice each client, at cost plus your agreed markup.",
       },
     ],
   }),

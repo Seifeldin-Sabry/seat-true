@@ -1,9 +1,7 @@
 import { treaty } from "@elysia/eden";
-import type { App, ProjectDto } from "@seattrue/api/contract";
+import type { App } from "@seattrue/api/contract";
 import { createIsomorphicFn } from "@tanstack/react-start";
 import { httpOrigin } from "./http-origin";
-
-export type Project = ProjectDto;
 
 const apiOrigin = createIsomorphicFn()
   .server(() =>
@@ -33,7 +31,7 @@ export async function getApiClient() {
   });
 }
 
-function apiErrorMessage(error: unknown, fallback: string): string {
+export function apiErrorMessage(error: unknown, fallback: string): string {
   if (error && typeof error === "object") {
     const value = "value" in error ? error.value : error;
     if (value && typeof value === "object") {
@@ -50,45 +48,4 @@ function apiErrorMessage(error: unknown, fallback: string): string {
   }
 
   return fallback;
-}
-
-export async function listProjects(): Promise<Project[]> {
-  const api = await getApiClient();
-  const { data, error } = await api.projects.get();
-  if (error)
-    throw new Error(apiErrorMessage(error, "Could not load projects."));
-  if (!data) throw new Error("Projects response was empty.");
-  return data.projects;
-}
-
-export async function createProject(input: {
-  name: string;
-  description?: string;
-}): Promise<Project> {
-  const api = await getApiClient();
-  const { data, error } = await api.projects.post(input);
-  if (error)
-    throw new Error(apiErrorMessage(error, "Could not create project."));
-  if (!data) throw new Error("Create response was empty.");
-  return data;
-}
-
-export async function updateProject(
-  id: string,
-  input: { name?: string; description?: string },
-): Promise<Project> {
-  const api = await getApiClient();
-  const { data, error } = await api.projects({ id }).patch(input);
-  if (error)
-    throw new Error(apiErrorMessage(error, "Could not update project."));
-  if (!data) throw new Error("Update response was empty.");
-  return data;
-}
-
-export async function deleteProject(id: string): Promise<void> {
-  const api = await getApiClient();
-  const { data, error } = await api.projects({ id }).delete();
-  if (error)
-    throw new Error(apiErrorMessage(error, "Could not delete project."));
-  if (!data?.success) throw new Error("Delete response was empty.");
 }

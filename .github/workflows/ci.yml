@@ -70,5 +70,3 @@ jobs:
         run: flyctl deploy --remote-only -c fly.api.toml
       - name: Deploy product app
         run: flyctl deploy --remote-only -c fly.app.toml
-      - name: Deploy landing site
-        run: flyctl deploy --remote-only -c fly.web.toml

@@ -1,3 +1,7 @@
+import {
+  isWorkEmail,
+  WORK_EMAIL_REQUIRED_MESSAGE,
+} from "@seattrue/auth-policy";
 import { Elysia, t } from "elysia";
 import { CsvRejectedError, type ReconService } from "./reconciliation";
 
@@ -184,6 +188,14 @@ export function createReconRoutes({
         "/waitlist",
         async ({ request, body, status }) => {
           if (!isTrusted(request)) return status(403, invalidOrigin);
+          if (!isWorkEmail(body.email)) {
+            return status(422, {
+              error: {
+                code: "WORK_EMAIL_REQUIRED" as const,
+                message: WORK_EMAIL_REQUIRED_MESSAGE,
+              },
+            });
+          }
           await recon.joinWaitlist(body);
           return status(201, { joined: true as const });
         },

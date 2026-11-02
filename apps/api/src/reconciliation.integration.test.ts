@@ -160,6 +160,11 @@ integrationTest("routes enforce auth, origin and CSV validation", async () => {
     expect(
       (await call("POST", "/waitlist", { email: "not-an-email" })).status,
     ).toBe(422);
+    const personal = await call("POST", "/waitlist", {
+      email: "owner@gmail.com",
+    });
+    expect(personal.status).toBe(422);
+    expect((await personal.json()).error.code).toBe("WORK_EMAIL_REQUIRED");
     const joined = await call("POST", "/waitlist", {
       email,
       company: "Acme MSP",

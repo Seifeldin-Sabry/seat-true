@@ -9,6 +9,7 @@ type LoginSearch = {
   verified?: boolean;
   reset?: boolean;
   verificationError?: boolean;
+  oauthError?: boolean;
 };
 
 export const Route = createFileRoute("/login")({
@@ -19,6 +20,10 @@ export const Route = createFileRoute("/login")({
     ...(search.error === "invalid_token" ||
     isSearchFlagTrue(search.verificationError)
       ? { verificationError: true }
+      : {}),
+    // Better Auth returns OAuth failures (incl. the work-email hook) as ?error=.
+    ...(typeof search.error === "string" && search.error !== "invalid_token"
+      ? { oauthError: true }
       : {}),
   }),
   head: () => ({
@@ -35,7 +40,8 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const { redirect, verified, reset, verificationError } = Route.useSearch();
+  const { redirect, verified, reset, verificationError, oauthError } =
+    Route.useSearch();
   return (
     <AuthScreen
       mode="login"
@@ -43,6 +49,7 @@ function LoginPage() {
       verified={verified === true}
       reset={reset === true}
       verificationError={verificationError === true}
+      oauthError={oauthError === true}
     />
   );
 }

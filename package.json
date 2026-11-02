@@ -8,14 +8,12 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "dotenvx run -f .env -- turbo dev --filter=@seattrue/api --filter=@seattrue/app --filter=@seattrue/web",
+    "dev": "dotenvx run -f .env -- turbo dev --filter=@seattrue/api --filter=@seattrue/app",
     "dev:api": "dotenvx run -f .env -- turbo dev --filter=@seattrue/api",
     "dev:app": "dotenvx run -f .env -- turbo dev --filter=@seattrue/app",
-    "dev:web": "dotenvx run -f .env -- turbo dev --filter=@seattrue/web",
     "build": "dotenvx run -f .env -- turbo build",
     "start:api": "NODE_ENV=production dotenvx run -f .env -- bun run --no-env-file --cwd apps/api start",
     "start:app": "NODE_ENV=production dotenvx run -f .env -- bun run --no-env-file --cwd apps/app start",
-    "start:web": "PORT=${PORT:-3002} NODE_ENV=production dotenvx run -f .env -- bun run --no-env-file --cwd apps/web start",
     "lint": "biome check .",
     "format": "biome format --write .",
     "format:check": "biome format .",

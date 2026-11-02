@@ -4,8 +4,10 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowUpRight,
   CreditCard,
-  FolderKanban,
+  Gauge,
+  Inbox,
   Layers3,
+  Link2,
   LogOut,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -13,6 +15,11 @@ import { useState } from "react";
 import { authClient } from "../lib/auth-client";
 
 const iconStroke = 1.8;
+const primaryLinks = [
+  { to: "/app", label: "Overview", Icon: Gauge },
+  { to: "/app/exceptions", label: "Exceptions", Icon: Inbox },
+  { to: "/app/mappings", label: "Mappings", Icon: Link2 },
+] as const;
 
 export function AppShell({
   children,
@@ -49,7 +56,7 @@ export function AppShell({
         <div className="sidebar-main">
           <Link
             className="brand-lockup"
-            to="/"
+            to="/app"
             aria-label={`${brand.name} workspace home`}
           >
             <span className="brand-mark" aria-hidden="true">
@@ -60,19 +67,18 @@ export function AppShell({
 
           <div className="sidebar-section-label">Workspace</div>
           <nav aria-label="Primary" className="sidebar-navigation">
-            <Link
-              className="sidebar-link"
-              activeProps={{ className: "sidebar-link sidebar-link-active" }}
-              activeOptions={{ exact: true }}
-              to="/"
-            >
-              <FolderKanban
-                size={18}
-                strokeWidth={iconStroke}
-                aria-hidden="true"
-              />
-              <span>Projects</span>
-            </Link>
+            {primaryLinks.map(({ to, label, Icon }) => (
+              <Link
+                key={to}
+                className="sidebar-link"
+                activeProps={{ className: "sidebar-link sidebar-link-active" }}
+                activeOptions={{ exact: to === "/app" }}
+                to={to}
+              >
+                <Icon size={18} strokeWidth={iconStroke} aria-hidden="true" />
+                <span>{label}</span>
+              </Link>
+            ))}
             <Link
               className="sidebar-link"
               activeProps={{ className: "sidebar-link sidebar-link-active" }}
@@ -138,13 +144,16 @@ export function AppShell({
           </a>
         </header>
         <nav className="mobile-nav" aria-label="Primary">
-          <Link
-            to="/"
-            activeOptions={{ exact: true }}
-            activeProps={{ className: "mobile-nav-active" }}
-          >
-            Projects
-          </Link>
+          {primaryLinks.map(({ to, label }) => (
+            <Link
+              key={to}
+              to={to}
+              activeOptions={{ exact: to === "/app" }}
+              activeProps={{ className: "mobile-nav-active" }}
+            >
+              {label}
+            </Link>
+          ))}
           <Link to="/billing" activeProps={{ className: "mobile-nav-active" }}>
             Billing
           </Link>

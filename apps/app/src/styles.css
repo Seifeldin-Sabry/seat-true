@@ -1136,3 +1136,384 @@ body {
     animation: none;
   }
 }
+
+/* ── Public landing (/) ─────────────────────────────────────────────── */
+.lp {
+  min-height: 100dvh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--type-body);
+}
+.lp-header,
+.lp-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px var(--space-page);
+}
+.lp-footer {
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.lp-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--foreground);
+  font-family: var(--type-display);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  text-decoration: none;
+}
+.lp-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+.lp-nav {
+  display: flex;
+  gap: 22px;
+  font-size: 15px;
+}
+.lp-nav a,
+.lp-footer a {
+  color: inherit;
+  text-decoration: none;
+}
+.lp-nav a:hover,
+.lp-footer a:hover {
+  color: var(--primary);
+}
+.lp-hero,
+.lp-section,
+.lp-audit {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 var(--space-page);
+}
+.lp-hero {
+  padding-top: clamp(48px, 9vw, 120px);
+  padding-bottom: clamp(48px, 7vw, 96px);
+}
+.lp-kicker {
+  color: var(--primary);
+  font-family: var(--type-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.lp-hero h1 {
+  max-width: 15ch;
+  margin: 18px 0 22px;
+  font-family: var(--type-display);
+  font-size: clamp(2.6rem, 6vw, 4.8rem);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 0.98;
+}
+.lp-lede {
+  max-width: 60ch;
+  color: var(--muted-foreground);
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+  line-height: 1.55;
+}
+.lp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 34px;
+}
+.lp-primary,
+.lp-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 20px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  text-decoration: none;
+}
+.lp-primary {
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+.lp-secondary {
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.lp-proof {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 18px;
+  margin-top: 56px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.lp-proof dt {
+  color: var(--muted-foreground);
+  font-family: var(--type-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.lp-proof dd {
+  margin: 6px 0 0;
+  font-weight: 600;
+}
+.lp-section {
+  padding-top: clamp(40px, 6vw, 80px);
+  padding-bottom: clamp(40px, 6vw, 80px);
+}
+.lp-section h2,
+.lp-audit h2 {
+  margin-bottom: 26px;
+  font-family: var(--type-display);
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+.lp-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  padding: 0;
+  list-style: none;
+}
+.lp-cards li {
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--card);
+}
+.lp-cards h3 {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.lp-cards p,
+.lp-steps li {
+  color: var(--muted-foreground);
+  line-height: 1.55;
+}
+.lp-steps {
+  display: grid;
+  gap: 12px;
+  padding-left: 1.3em;
+  max-width: 70ch;
+}
+.lp-table-wrap {
+  overflow-x: auto;
+}
+.lp-table,
+.recon-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.lp-table th,
+.lp-table td,
+.recon-table th,
+.recon-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+.lp-table thead th,
+.recon-table thead th {
+  color: var(--muted-foreground);
+  font-family: var(--type-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.lp-table td:last-child {
+  color: var(--primary);
+}
+.lp-audit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 32px;
+  margin-top: clamp(24px, 4vw, 48px);
+  margin-bottom: clamp(48px, 8vw, 96px);
+  padding-top: 36px;
+  padding-bottom: 36px;
+  border-radius: calc(var(--radius) + 8px);
+  background: var(--accent);
+}
+.lp-audit p {
+  color: var(--accent-foreground);
+  line-height: 1.55;
+}
+.lp-form {
+  display: grid;
+  gap: 14px;
+}
+.lp-field {
+  display: grid;
+  gap: 6px;
+}
+.lp-error {
+  color: var(--destructive);
+}
+.lp-done {
+  align-self: center;
+  font-weight: 600;
+}
+@media (max-width: 640px) {
+  .lp-nav a:not(:last-child) {
+    display: none;
+  }
+}
+
+/* ── Reconciliation workspace (/app) ───────────────────────────────── */
+.recon-headline {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.recon-stat {
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--card);
+}
+.recon-stat-primary {
+  color: var(--primary-foreground);
+  border-color: transparent;
+  background: var(--primary);
+}
+.recon-stat-label {
+  font-family: var(--type-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+.recon-stat-value {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--type-display);
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.recon-stat-note {
+  margin-top: 6px;
+  font-size: 14px;
+  opacity: 0.85;
+}
+.recon-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.recon-panel {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--card);
+}
+.recon-panel h2 {
+  margin-bottom: 14px;
+  font-family: var(--type-display);
+  font-size: 18px;
+  font-weight: 600;
+}
+.recon-panel p {
+  color: var(--muted-foreground);
+  line-height: 1.5;
+}
+.recon-kinds {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+}
+.recon-kinds li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.recon-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+.recon-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--card);
+}
+.recon-table td.num,
+.recon-table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.recon-table a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+.recon-table tr.is-resolved td {
+  opacity: 0.55;
+}
+.recon-summary {
+  max-width: 46ch;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.recon-filters {
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.recon-filters button {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 14px;
+  cursor: pointer;
+}
+.recon-filters button[aria-pressed="true"] {
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+  background: var(--primary);
+}
+.recon-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.recon-select {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+@media (max-width: 860px) {
+  .recon-headline,
+  .recon-grid {
+    grid-template-columns: 1fr;
+  }
+}

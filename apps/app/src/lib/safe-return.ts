@@ -7,5 +7,5 @@ export function normalizeReturnTo(value: unknown): string {
   ) {
     return value;
   }
-  return "/";
+  return "/app";
 }

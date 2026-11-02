@@ -18,11 +18,6 @@
         "VITE_WEB_ORIGIN"
       ]
     },
-    "@seattrue/web#build": {
-      "dependsOn": ["^build"],
-      "outputs": [".output/**", ".tanstack/**"],
-      "env": ["VITE_APP_ORIGIN", "VITE_WEB_ORIGIN"]
-    },
     "dev": {
       "cache": false,
       "persistent": true
@@ -52,7 +47,9 @@
         "STRIPE_SECRET_KEY",
         "STRIPE_WEBHOOK_SECRET",
         "STRIPE_SUBSCRIPTION_PRICE_ID",
-        "STRIPE_ONE_TIME_PRICE_ID"
+        "STRIPE_ONE_TIME_PRICE_ID",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET"
       ]
     },
     "@seattrue/app#dev": {
@@ -65,11 +62,6 @@
         "VITE_API_ORIGIN",
         "VITE_WEB_ORIGIN"
       ]
-    },
-    "@seattrue/web#dev": {
-      "cache": false,
-      "persistent": true,
-      "env": ["VITE_APP_ORIGIN", "VITE_WEB_ORIGIN"]
     },
     "typecheck": {
       "dependsOn": ["^typecheck"],
@@ -97,7 +89,9 @@
         "STRIPE_SECRET_KEY",
         "STRIPE_WEBHOOK_SECRET",
         "STRIPE_SUBSCRIPTION_PRICE_ID",
-        "STRIPE_ONE_TIME_PRICE_ID"
+        "STRIPE_ONE_TIME_PRICE_ID",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET"
       ]
     },
     "db:generate": {

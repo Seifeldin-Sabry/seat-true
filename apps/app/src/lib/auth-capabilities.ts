@@ -1,7 +1,10 @@
 import { queryOptions } from "@tanstack/react-query";
 import { getApiClient } from "./api";
 
-async function getAuthCapabilities(): Promise<{ emailEnabled: boolean }> {
+async function getAuthCapabilities(): Promise<{
+  emailEnabled: boolean;
+  googleEnabled: boolean;
+}> {
   const api = await getApiClient();
   const { data, error } = await api.auth.capabilities.get();
   if (error || !data) {

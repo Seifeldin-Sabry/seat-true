@@ -17,7 +17,10 @@ type AuthScreenProps = {
   verified?: boolean;
   reset?: boolean;
   verificationError?: boolean;
+  oauthError?: boolean;
 };
+
+const workEmailMessage = "Please use your work email";
 
 export function AuthScreen({
   mode,
@@ -25,6 +28,7 @@ export function AuthScreen({
   verified = false,
   reset = false,
   verificationError = false,
+  oauthError = false,
 }: AuthScreenProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -42,6 +46,27 @@ export function AuthScreen({
   const isSignup = mode === "signup";
   const destination = normalizeReturnTo(redirect);
   const emailEnabled = capabilities.data?.emailEnabled === true;
+  const googleEnabled = capabilities.data?.googleEnabled === true;
+
+  async function continueWithGoogle() {
+    if (isPending) return;
+    setIsPending(true);
+    setFormError(null);
+    try {
+      const result = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: new URL(destination, brand.appUrl).href,
+        errorCallbackURL: new URL("/login", brand.appUrl).href,
+      });
+      if (result.error) {
+        setFormError(result.error.message || workEmailMessage);
+        setIsPending(false);
+      }
+    } catch {
+      setFormError("Connection failed. Check your connection and try again.");
+      setIsPending(false);
+    }
+  }
 
   async function resendVerification() {
     if (!verificationEmail || isPending) return;
@@ -234,6 +259,12 @@ export function AuthScreen({
           Password updated. Sign in with your new password.
         </p>
       )}
+      {oauthError && (
+        <p className="auth-form-error" role="alert">
+          Google sign-in did not complete. {workEmailMessage}: personal Google
+          accounts are not accepted.
+        </p>
+      )}
       {verificationError && (
         <p className="auth-form-error" role="alert">
           Verification link is invalid or expired. Sign in to request a new
@@ -259,14 +290,14 @@ export function AuthScreen({
         )}
 
         <div className="auth-field">
-          <Label htmlFor="auth-email">Email address</Label>
+          <Label htmlFor="auth-email">Work email</Label>
           <Input
             id="auth-email"
             name="email"
             type="email"
             autoComplete="email"
             inputMode="email"
-            placeholder="name@example.com"
+            placeholder="name@company.com"
             required
             disabled={isPending}
           />
@@ -379,6 +410,24 @@ export function AuthScreen({
           {!isPending && <ArrowRight size={18} aria-hidden="true" />}
         </Button>
       </form>
+
+      {googleEnabled && (
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="auth-submit"
+          onClick={() => void continueWithGoogle()}
+          disabled={isPending}
+        >
+          Continue with Google Workspace
+        </Button>
+      )}
+
+      <p className="auth-field-hint">
+        Work email only. Personal Gmail, Outlook, iCloud and similar addresses
+        are not accepted.
+      </p>
 
       <p className="auth-switch-copy">
         {isSignup ? "Already have an account?" : `New to ${brand.name}?`}{" "}

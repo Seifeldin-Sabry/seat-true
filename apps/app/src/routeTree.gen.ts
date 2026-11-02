@@ -15,6 +15,10 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppExceptionsRouteImport } from './routes/app.exceptions'
+import { Route as AppMappingsRouteImport } from './routes/app.mappings'
+import { Route as AppClientsClientIdRouteImport } from './routes/app.clients.$clientId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +50,26 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/app/',
+  path: '/app/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppExceptionsRoute = AppExceptionsRouteImport.update({
+  id: '/app/exceptions',
+  path: '/app/exceptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppMappingsRoute = AppMappingsRouteImport.update({
+  id: '/app/mappings',
+  path: '/app/mappings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppClientsClientIdRoute = AppClientsClientIdRouteImport.update({
+  id: '/app/clients/$clientId',
+  path: '/app/clients/$clientId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +78,10 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/app/exceptions': typeof AppExceptionsRoute
+  '/app/mappings': typeof AppMappingsRoute
+  '/app/': typeof AppIndexRoute
+  '/app/clients/$clientId': typeof AppClientsClientIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +90,10 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/app/exceptions': typeof AppExceptionsRoute
+  '/app/mappings': typeof AppMappingsRoute
+  '/app': typeof AppIndexRoute
+  '/app/clients/$clientId': typeof AppClientsClientIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +103,10 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/app/exceptions': typeof AppExceptionsRoute
+  '/app/mappings': typeof AppMappingsRoute
+  '/app/': typeof AppIndexRoute
+  '/app/clients/$clientId': typeof AppClientsClientIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +117,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/app/exceptions'
+    | '/app/mappings'
+    | '/app/'
+    | '/app/clients/$clientId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +129,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/app/exceptions'
+    | '/app/mappings'
+    | '/app'
+    | '/app/clients/$clientId'
   id:
     | '__root__'
     | '/'
@@ -97,6 +141,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/app/exceptions'
+    | '/app/mappings'
+    | '/app/'
+    | '/app/clients/$clientId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +154,10 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  AppExceptionsRoute: typeof AppExceptionsRoute
+  AppMappingsRoute: typeof AppMappingsRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppClientsClientIdRoute: typeof AppClientsClientIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -152,6 +204,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/': {
+      id: '/app/'
+      path: '/app'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/exceptions': {
+      id: '/app/exceptions'
+      path: '/app/exceptions'
+      fullPath: '/app/exceptions'
+      preLoaderRoute: typeof AppExceptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/mappings': {
+      id: '/app/mappings'
+      path: '/app/mappings'
+      fullPath: '/app/mappings'
+      preLoaderRoute: typeof AppMappingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/clients/$clientId': {
+      id: '/app/clients/$clientId'
+      path: '/app/clients/$clientId'
+      fullPath: '/app/clients/$clientId'
+      preLoaderRoute: typeof AppClientsClientIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -162,6 +242,10 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  AppExceptionsRoute: AppExceptionsRoute,
+  AppMappingsRoute: AppMappingsRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppClientsClientIdRoute: AppClientsClientIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
