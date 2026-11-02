@@ -12,6 +12,7 @@ import {
   listExceptions,
   loadDemo,
   saveMapping,
+  setClientArchived,
   setExceptionStatus,
   uploadRun,
 } from "./recon-api";
@@ -80,6 +81,14 @@ export function useSaveMapping() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: saveMapping,
+    onSuccess: () => invalidateRecon(queryClient),
+  });
+}
+
+export function useSetClientArchived() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: setClientArchived,
     onSuccess: () => invalidateRecon(queryClient),
   });
 }

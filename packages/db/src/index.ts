@@ -10,6 +10,7 @@ export {
   account,
   agreementLines,
   billingCustomers,
+  billingPlanChanges,
   billingPurchases,
   billingSubscriptions,
   billingWebhookEvents,

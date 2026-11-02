@@ -3,7 +3,12 @@ import {
   WORK_EMAIL_REQUIRED_MESSAGE,
 } from "@seattrue/auth-policy";
 import { Elysia, t } from "elysia";
-import { CsvRejectedError, type ReconService } from "./reconciliation";
+import { PlanLimitError } from "./plan-limits";
+import {
+  ClientLockedError,
+  CsvRejectedError,
+  type ReconService,
+} from "./reconciliation";
 
 type ReconUser = { id: string };
 
@@ -11,6 +16,8 @@ export type ReconRoutesOptions = {
   recon: ReconService;
   /** False when the workspace's subscription has lapsed (read-only, nothing deleted). */
   canWrite?: (userId: string) => Promise<boolean>;
+  /** Throws PlanLimitError when another active client would exceed the plan. */
+  assertCanAddClient?: (userId: string) => Promise<void>;
   getUser: (headers: Headers) => Promise<ReconUser | null>;
   allowedOrigins: string[];
 };
@@ -28,6 +35,18 @@ const readOnly = {
       "Your subscription is inactive. Your data is safe; update billing to make changes.",
   },
 };
+function planLimit(error: PlanLimitError) {
+  return {
+    error: {
+      code: "PLAN_LIMIT" as const,
+      message: error.message,
+      upgradeUrl: "/app/billing",
+    },
+  };
+}
+function clientLocked(error: ClientLockedError) {
+  return { error: { code: "CLIENT_LOCKED" as const, message: error.message } };
+}
 const uuidPattern =
   "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$";
 const idParams = t.Object({ id: t.String({ pattern: uuidPattern }) });
@@ -37,6 +56,7 @@ const maxCsvLength = 2_000_000;
 export function createReconRoutes({
   recon,
   canWrite = async () => true,
+  assertCanAddClient = async () => {},
   getUser,
   allowedOrigins,
 }: ReconRoutesOptions) {
@@ -81,11 +101,18 @@ export function createReconRoutes({
           const user = await getUser(request.headers);
           if (!user) return status(401, unauthorized);
           if (!(await canWrite(user.id))) return status(402, readOnly);
-          const updated = await recon.setExceptionStatus(
-            user.id,
-            params.id,
-            body.status,
-          );
+          let updated: Awaited<ReturnType<ReconService["setExceptionStatus"]>>;
+          try {
+            updated = await recon.setExceptionStatus(
+              user.id,
+              params.id,
+              body.status,
+            );
+          } catch (error) {
+            if (error instanceof ClientLockedError)
+              return status(423, clientLocked(error));
+            throw error;
+          }
           if (!updated) {
             return status(404, {
               error: {
@@ -123,11 +150,18 @@ export function createReconRoutes({
           const user = await getUser(request.headers);
           if (!user) return status(401, unauthorized);
           if (!(await canWrite(user.id))) return status(402, readOnly);
-          const saved = await recon.setMapping(
-            user.id,
-            body.customerKey.trim(),
-            body.clientId,
-          );
+          let saved: boolean;
+          try {
+            saved = await recon.setMapping(
+              user.id,
+              body.customerKey.trim(),
+              body.clientId,
+            );
+          } catch (error) {
+            if (error instanceof ClientLockedError)
+              return status(423, clientLocked(error));
+            throw error;
+          }
           if (!saved) {
             return status(404, {
               error: {
@@ -186,6 +220,72 @@ export function createReconRoutes({
               }),
               csv: t.String({ minLength: 1, maxLength: maxCsvLength }),
             },
+            { additionalProperties: false },
+          ),
+        },
+      )
+      .post(
+        "/recon/clients",
+        async ({ request, body, status }) => {
+          if (!isTrusted(request)) return status(403, invalidOrigin);
+          const user = await getUser(request.headers);
+          if (!user) return status(401, unauthorized);
+          if (!(await canWrite(user.id))) return status(402, readOnly);
+          try {
+            await assertCanAddClient(user.id);
+          } catch (error) {
+            if (error instanceof PlanLimitError)
+              return status(402, planLimit(error));
+            throw error;
+          }
+          return status(201, await recon.createClient(user.id, body));
+        },
+        {
+          body: t.Object(
+            {
+              name: t.String({ minLength: 1, maxLength: 160, pattern: "\\S" }),
+              psaId: t.Optional(t.String({ maxLength: 64 })),
+              markupPct: t.Number({ minimum: 0, maximum: 500 }),
+            },
+            { additionalProperties: false },
+          ),
+        },
+      )
+      .patch(
+        "/recon/clients/:id",
+        async ({ request, params, body, status }) => {
+          if (!isTrusted(request)) return status(403, invalidOrigin);
+          const user = await getUser(request.headers);
+          if (!user) return status(401, unauthorized);
+          if (!(await canWrite(user.id))) return status(402, readOnly);
+          if (!body.archived) {
+            try {
+              await assertCanAddClient(user.id);
+            } catch (error) {
+              if (error instanceof PlanLimitError)
+                return status(402, planLimit(error));
+              throw error;
+            }
+          }
+          const updated = await recon.setArchived(
+            user.id,
+            params.id,
+            body.archived,
+          );
+          if (!updated) {
+            return status(404, {
+              error: {
+                code: "CLIENT_NOT_FOUND" as const,
+                message: "Client not found.",
+              },
+            });
+          }
+          return updated;
+        },
+        {
+          params: idParams,
+          body: t.Object(
+            { archived: t.Boolean() },
             { additionalProperties: false },
           ),
         },

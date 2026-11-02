@@ -97,3 +97,17 @@ export async function joinWaitlist(input: {
   if (error)
     throw new Error(apiErrorMessage(error, "Could not join the waitlist."));
 }
+
+export async function setClientArchived(input: {
+  id: string;
+  archived: boolean;
+}) {
+  const api = await getApiClient();
+  const { data, error } = await api.recon
+    .clients({ id: input.id })
+    .patch({ archived: input.archived });
+  if (error)
+    throw new Error(apiErrorMessage(error, "Could not update client."));
+  if (!data) throw new Error("Client response was empty.");
+  return data;
+}

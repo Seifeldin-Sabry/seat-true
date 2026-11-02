@@ -1,10 +1,11 @@
 import {
   billingCustomers,
+  billingPlanChanges,
   billingSubscriptions,
   billingWebhookEvents,
   type Database,
 } from "@seattrue/db";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import Stripe from "stripe";
 import { type Access, accessFor } from "./access";
 import type { BillingEnvironment } from "./env";
@@ -54,6 +55,30 @@ const handledEvents = new Set([
   "invoice.payment_action_required",
 ]);
 
+export class PlanChangeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PlanChangeError";
+  }
+}
+
+/** Called after each applied subscription state, so plan limits follow Stripe. */
+export type SubscriptionStateHook = (state: {
+  userId: string;
+  planLookupKey: string | null;
+  status: string;
+  eventId: string;
+}) => Promise<void>;
+
+export type PlanChangeResult =
+  | { kind: "upgraded"; planId: PlanId }
+  | {
+      kind: "downgrade_scheduled";
+      planId: PlanId;
+      effectiveAt: string | null;
+      keepClientIds: string[];
+    };
+
 export type BillingOverview = {
   enabled: true;
   plans: Array<{
@@ -71,6 +96,7 @@ export type BillingOverview = {
     cancelAtPeriodEnd: boolean;
     pastDueSince: string | null;
     actionUrl: string | null;
+    scheduledPlanId: PlanId | null;
   } | null;
   access: Access;
 };
@@ -103,6 +129,7 @@ export function createBillingService(
   db: Database,
   config: BillingEnvironment,
   stripe = new Stripe(config.secretKey, { maxNetworkRetries: 2 }),
+  hooks: { onSubscriptionState?: SubscriptionStateHook } = {},
 ) {
   let priceCache: Map<string, Stripe.Price> | null = null;
 
@@ -194,6 +221,9 @@ export function createBillingService(
             cancelAtPeriodEnd: current.cancelAtPeriodEnd,
             pastDueSince: current.pastDueSince?.toISOString() ?? null,
             actionUrl: current.actionUrl,
+            scheduledPlanId:
+              planByLookupKey((await scheduledChange(userId))?.targetLookupKey)
+                ?.id ?? null,
           }
         : null,
       access: accessFor(current),
@@ -378,6 +408,7 @@ export function createBillingService(
     if (!subscriptionId) return;
     const eventAt = new Date(event.created * 1000);
 
+    let applied: Parameters<SubscriptionStateHook>[0] | null = null;
     await db.transaction(async (tx) => {
       await tx.execute(
         sql`SELECT pg_advisory_xact_lock(871304, hashtext(${subscriptionId}))`,
@@ -410,6 +441,12 @@ export function createBillingService(
           .where(
             eq(billingSubscriptions.stripeSubscriptionId, subscription.id),
           );
+        applied = {
+          userId: owner.userId,
+          planLookupKey: null,
+          status: subscription.status,
+          eventId: event.id,
+        };
         return;
       }
 
@@ -461,10 +498,186 @@ export function createBillingService(
         target: billingSubscriptions.stripeSubscriptionId,
         set: state,
       });
+      applied = {
+        userId: owner.userId,
+        planLookupKey: item.price.lookup_key,
+        status: subscription.status,
+        eventId: event.id,
+      };
     });
+    // After commit: a failure here throws, the route returns 500 and Stripe
+    // retries; the hook is idempotent, the event row makes the rest a no-op.
+    const committed = applied as Parameters<SubscriptionStateHook>[0] | null;
+    if (committed) await hooks.onSubscriptionState?.(committed);
   }
 
-  return { overview, access, checkout, portal, verifyWebhook, processWebhook };
+  async function scheduledChange(userId: string) {
+    const [row] = await db
+      .select()
+      .from(billingPlanChanges)
+      .where(
+        and(
+          eq(billingPlanChanges.userId, userId),
+          eq(billingPlanChanges.status, "scheduled"),
+        ),
+      )
+      .orderBy(desc(billingPlanChanges.createdAt))
+      .limit(1);
+    return row ?? null;
+  }
+
+  async function cancelScheduledChanges(userId: string, attemptId: string) {
+    const pending = await scheduledChange(userId);
+    if (!pending) return;
+    if (pending.stripeScheduleId) {
+      await stripe.subscriptionSchedules.release(
+        pending.stripeScheduleId,
+        undefined,
+        {
+          idempotencyKey: `schedule-release:${pending.stripeScheduleId}:${attemptId}`,
+        },
+      );
+    }
+    await db
+      .update(billingPlanChanges)
+      .set({ status: "canceled" })
+      .where(
+        and(
+          eq(billingPlanChanges.userId, userId),
+          eq(billingPlanChanges.status, "scheduled"),
+        ),
+      );
+  }
+
+  /**
+   * Upgrades apply now and invoice the difference immediately. Downgrades are
+   * scheduled for the end of the paid period (no credit, no refund) with the
+   * clients the user chose to keep; the webhook applies the lock when Stripe
+   * moves the subscription to the new plan.
+   */
+  async function changePlan(
+    userId: string,
+    planId: PlanId,
+    options: { keepClientIds?: string[]; attemptId?: string } = {},
+  ): Promise<PlanChangeResult> {
+    const attemptId = options.attemptId ?? crypto.randomUUID();
+    const target = planById(planId);
+    const row = newestRelevant(await subscriptionRows(userId));
+    if (!row || !["active", "trialing", "past_due"].includes(row.status)) {
+      throw new PlanChangeError("Subscribe first, then change plans here.");
+    }
+    const current = planByLookupKey(row.planLookupKey);
+    if (current?.id === target.id) {
+      await cancelScheduledChanges(userId, attemptId);
+      throw new PlanChangeError(`You're already on ${target.name}.`);
+    }
+    const targetPrice = (await prices()).get(target.lookupKey);
+    if (!targetPrice)
+      throw new BillingPriceConfigurationError(target.lookupKey);
+    const subscription = await stripe.subscriptions.retrieve(
+      row.stripeSubscriptionId,
+    );
+    const item = subscription.items.data.find((entry) =>
+      planByLookupKey(entry.price.lookup_key),
+    );
+    if (!item) throw new PlanChangeError("Subscription has no SeatTrue plan.");
+
+    if (!current || target.rank > current.rank) {
+      await cancelScheduledChanges(userId, attemptId);
+      await stripe.subscriptions.update(
+        subscription.id,
+        {
+          items: [{ id: item.id, price: targetPrice.id }],
+          proration_behavior: "always_invoice",
+        },
+        {
+          idempotencyKey: `upgrade:${subscription.id}:${target.lookupKey}:${attemptId}`,
+        },
+      );
+      return { kind: "upgraded", planId: target.id };
+    }
+
+    await cancelScheduledChanges(userId, attemptId);
+    const scheduleId =
+      stripeId(subscription.schedule) ??
+      (
+        await stripe.subscriptionSchedules.create(
+          { from_subscription: subscription.id },
+          { idempotencyKey: `schedule:${subscription.id}:${attemptId}` },
+        )
+      ).id;
+    const periodEnd = item.current_period_end;
+    await stripe.subscriptionSchedules.update(
+      scheduleId,
+      {
+        end_behavior: "release",
+        phases: [
+          {
+            items: [{ price: item.price.id, quantity: 1 }],
+            start_date: item.current_period_start,
+            end_date: periodEnd,
+          },
+          {
+            items: [{ price: targetPrice.id, quantity: 1 }],
+            proration_behavior: "none",
+          },
+        ],
+      },
+      {
+        idempotencyKey: `schedule-update:${scheduleId}:${target.lookupKey}:${attemptId}`,
+      },
+    );
+    const keepClientIds = options.keepClientIds ?? [];
+    const effectiveAt = periodEnd ? new Date(periodEnd * 1000) : null;
+    await db.insert(billingPlanChanges).values({
+      id: attemptId,
+      userId,
+      stripeSubscriptionId: subscription.id,
+      stripeScheduleId: scheduleId,
+      targetLookupKey: target.lookupKey,
+      keepClientIds,
+      status: "scheduled",
+      effectiveAt,
+    });
+    return {
+      kind: "downgrade_scheduled",
+      planId: target.id,
+      effectiveAt: effectiveAt?.toISOString() ?? null,
+      keepClientIds,
+    };
+  }
+
+  /** The keep-list for a downgrade that just took effect; marks it applied. */
+  async function takeScheduledKeepList(
+    userId: string,
+    planLookupKey: string,
+  ): Promise<string[] | null> {
+    const pending = await scheduledChange(userId);
+    if (!pending || pending.targetLookupKey !== planLookupKey) return null;
+    await db
+      .update(billingPlanChanges)
+      .set({ status: "applied" })
+      .where(eq(billingPlanChanges.id, pending.id));
+    return pending.keepClientIds;
+  }
+
+  async function currentPlanLookupKey(userId: string) {
+    const row = newestRelevant(await subscriptionRows(userId));
+    return row && accessFor(row) !== "read_only" ? row.planLookupKey : null;
+  }
+
+  return {
+    overview,
+    access,
+    checkout,
+    portal,
+    verifyWebhook,
+    processWebhook,
+    changePlan,
+    scheduledChange,
+    takeScheduledKeepList,
+    currentPlanLookupKey,
+  };
 }
 
 export type BillingService = ReturnType<typeof createBillingService>;

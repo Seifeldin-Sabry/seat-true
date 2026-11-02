@@ -10,6 +10,7 @@ import { createApp } from "./app";
 import { createAuthService } from "./auth";
 import { readApiEnvironment } from "./env";
 import { createLogger } from "./logger";
+import { createPlanLimits, type PlanLimits } from "./plan-limits";
 import { createProjectRepository } from "./projects";
 import { createReconService } from "./reconciliation";
 
@@ -23,9 +24,23 @@ const jobs = createJobQueue({
   env: process.env,
 });
 const connection = createDatabase(environment.databaseUrl);
+const recon = createReconService(connection.db);
+// Billing's webhook hook and plan limits reference each other; wire lazily.
+let planLimits: PlanLimits | undefined;
 const billing = billingEnvironment
-  ? createBillingService(connection.db, billingEnvironment)
+  ? createBillingService(connection.db, billingEnvironment, undefined, {
+      onSubscriptionState: async (state) => {
+        await planLimits?.onSubscriptionState(state);
+      },
+    })
   : null;
+planLimits = createPlanLimits({
+  db: connection.db,
+  recon,
+  billing,
+  email,
+  logger,
+});
 // On Fly the socket peer is Fly's proxy, which sets Fly-Client-IP itself.
 const behindFlyProxy = Boolean(process.env.FLY_APP_NAME);
 let app: ReturnType<typeof createApp> | undefined;
@@ -44,7 +59,8 @@ const auth = createAuthService(connection.db, {
 });
 app = createApp({
   projects: createProjectRepository(connection.db),
-  recon: createReconService(connection.db),
+  recon,
+  planLimits,
   billing,
   jobs,
   auth,

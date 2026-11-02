@@ -5,6 +5,8 @@ import { Elysia, t } from "elysia";
 import type { AuthService } from "./auth";
 import { createBillingRoutes } from "./billing";
 import { jsonLogger, type Logger } from "./logger";
+import type { PlanLimits } from "./plan-limits";
+import { createPlanRoutes } from "./plan-routes";
 import type { ProjectRepository } from "./projects";
 import { createReconRoutes } from "./recon-routes";
 import type { ReconService } from "./reconciliation";
@@ -25,6 +27,7 @@ export type {
 export type AppOptions = {
   projects: ProjectRepository;
   recon: ReconService;
+  planLimits?: PlanLimits;
   auth: AuthService;
   billing?: BillingService | null;
   /** QStash queue whose signed callbacks land on POST /jobs/:name. */
@@ -50,6 +53,7 @@ const idSchema = t.Object({
 export function createApp({
   projects,
   recon,
+  planLimits,
   auth,
   billing,
   jobs,
@@ -188,6 +192,18 @@ export function createApp({
                 canWrite(await billing.access(userId)),
             }
           : {}),
+        ...(planLimits
+          ? { assertCanAddClient: planLimits.assertCanAddClient }
+          : {}),
+        getUser: async (headers) =>
+          (await auth.getSession(headers))?.user ?? null,
+      }),
+    )
+    .use(
+      createPlanRoutes({
+        billing: billing ?? null,
+        planLimits: planLimits ?? null,
+        allowedOrigins,
         getUser: async (headers) =>
           (await auth.getSession(headers))?.user ?? null,
       }),

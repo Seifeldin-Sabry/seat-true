@@ -12,6 +12,7 @@ import { user } from "./auth-schema";
 export { account, rateLimit, session, user, verification } from "./auth-schema";
 export {
   billingCustomers,
+  billingPlanChanges,
   billingPurchases,
   billingSubscriptions,
   billingWebhookEvents,

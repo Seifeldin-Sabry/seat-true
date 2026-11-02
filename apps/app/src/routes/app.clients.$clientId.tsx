@@ -1,4 +1,4 @@
-import { Badge } from "@seattrue/ui";
+import { Badge, Button } from "@seattrue/ui";
 import { useQuery } from "@tanstack/react-query";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -9,7 +9,7 @@ import {
   exceptionStatusLabels,
   formatCents,
 } from "../lib/format";
-import { clientQueryOptions } from "../lib/recon-query";
+import { clientQueryOptions, useSetClientArchived } from "../lib/recon-query";
 
 export const Route = createFileRoute("/app/clients/$clientId")({
   headers: () => ({ "Cache-Control": "private, no-store" }),
@@ -40,6 +40,7 @@ function ClientPage() {
   const { user } = Route.useRouteContext();
   const { clientId } = Route.useParams();
   const { data } = useQuery(clientQueryOptions(clientId));
+  const archive = useSetClientArchived();
   if (!data) return null;
   const { client, agreements, exceptions, customerKeys } = data;
 
@@ -64,6 +65,37 @@ function ClientPage() {
           </Badge>
         </section>
 
+        {data.client.lockedAt && (
+          <div className="error-banner" role="alert">
+            <div>
+              <strong>Locked: over your plan's client limit</strong>
+              <p>
+                Read-only and left out of reconciliation. Nothing was deleted.
+              </p>
+            </div>
+            <Link to="/app/billing">Upgrade to unlock</Link>
+          </div>
+        )}
+        <div className="recon-actions" style={{ marginBottom: 16 }}>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={archive.isPending}
+            onClick={() =>
+              archive.mutate({
+                id: data.client.id,
+                archived: !data.client.archivedAt,
+              })
+            }
+          >
+            {data.client.archivedAt ? "Restore client" : "Archive client"}
+          </Button>
+          {archive.error && (
+            <span className="dialog-error" role="alert">
+              {archive.error.message}
+            </span>
+          )}
+        </div>
         <section className="recon-headline" aria-label="Client totals">
           <div className="recon-stat recon-stat-primary">
             <span className="recon-stat-label">Leakage this month</span>

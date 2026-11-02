@@ -32,6 +32,14 @@ export const clients = pgTable(
       .default("active")
       .notNull(),
     markupBps: integer("markup_bps").default(2000).notNull(),
+    /** Over the plan's client limit: read-only, excluded from reconciliation. */
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    /** Archived by the user: read-only, excluded, and not counted against limits. */
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    /** Drives least-recently-active selection when a downgrade must lock clients. */
+    lastActiveAt: timestamp("last_active_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     createdAt: createdAt(),
   },
   (table) => [index("clients_owner_id_idx").on(table.ownerId)],

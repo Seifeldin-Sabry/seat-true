@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { ExternalLink, LoaderCircle } from "lucide-react";
 import { AppShell } from "../components/app-shell";
+import { PlanChange } from "../components/plan-change";
 import { requireSession } from "../lib/auth-navigation";
 import {
   billingOverviewQueryOptions,
@@ -165,6 +166,14 @@ function BillingPage() {
               </div>
             )}
           </section>
+        )}
+
+        {subscription && subscribed && (
+          <PlanChange
+            currentPlanId={subscription.planId}
+            scheduledPlanId={subscription.scheduledPlanId}
+            periodEnd={subscription.currentPeriodEnd}
+          />
         )}
 
         {data?.enabled && !subscribed && (

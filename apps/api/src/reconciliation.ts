@@ -19,7 +19,7 @@ import {
   reconcile,
   type VendorLine,
 } from "@seattrue/recon";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 
 export type ClientSummaryDto = {
   id: string;
@@ -30,6 +30,10 @@ export type ClientSummaryDto = {
   vendorSeats: number;
   leakageCents: number;
   openCount: number;
+  /** Over the plan limit after a downgrade: read-only until upgrade. */
+  lockedAt: string | null;
+  archivedAt: string | null;
+  lastActiveAt: string;
 };
 
 export type ExceptionDto = {
@@ -103,6 +107,28 @@ export type WaitlistInput = {
 
 export class CsvRejectedError extends Error {}
 
+/** Writes to a locked or archived client are refused; its data stays. */
+export class ClientLockedError extends Error {
+  constructor(name: string, reason: "locked" | "archived") {
+    super(
+      reason === "locked"
+        ? `${name} is locked because it's over your plan's client limit. Upgrade to unlock it.`
+        : `${name} is archived. Restore it to make changes.`,
+    );
+    this.name = "ClientLockedError";
+  }
+}
+
+export type ClientInput = { name: string; psaId?: string; markupPct: number };
+
+/** Minimal client view used by plan limits. */
+export type LimitClient = {
+  id: string;
+  name: string;
+  lastActiveAt: Date;
+  lockedAt: Date | null;
+};
+
 export type ReconService = {
   overview(ownerId: string): Promise<OverviewDto>;
   client(ownerId: string, clientId: string): Promise<ClientDetailDto | null>;
@@ -123,6 +149,22 @@ export type ReconService = {
   uploadRun(ownerId: string, fileName: string, csv: string): Promise<RunDto>;
   loadDemo(ownerId: string): Promise<RunDto>;
   joinWaitlist(input: WaitlistInput): Promise<void>;
+  createClient(ownerId: string, input: ClientInput): Promise<ClientSummaryDto>;
+  /** Null when the client doesn't belong to the owner. */
+  setArchived(
+    ownerId: string,
+    clientId: string,
+    archived: boolean,
+  ): Promise<ClientSummaryDto | null>;
+  /** Non-archived clients (locked included), for plan-limit decisions. */
+  limitClients(ownerId: string): Promise<LimitClient[]>;
+  /** Locks and unlocks in one transaction, then re-runs the latest bill. */
+  applyLocks(
+    ownerId: string,
+    lockIds: string[],
+    keepIds: string[],
+    at: Date,
+  ): Promise<{ locked: string[]; unlocked: string[] }>;
 };
 
 type ExceptionRow = typeof reconciliationExceptions.$inferSelect;
@@ -231,16 +273,34 @@ export function createReconService(db: Database): ReconService {
         runExceptions(ownerId, run.id),
       ]);
 
+    // Locked and archived clients sit out reconciliation entirely: their bill
+    // lines are skipped rather than reported as unmapped.
+    const excluded = new Set(
+      clientRows
+        .filter((client) => client.lockedAt || client.archivedAt)
+        .map((client) => client.id),
+    );
+    const excludedCustomers = new Set(
+      mappingRows
+        .filter((mapping) => excluded.has(mapping.clientId))
+        .map((mapping) => mapping.customerKey),
+    );
     const found = reconcile({
-      vendorLines: run.vendorLines,
-      clients: clientRows.map((client) => ({
-        id: client.id,
-        name: client.name,
-        status: client.status,
-        markupPct: client.markupBps / 100,
-      })),
-      mappings: mappingRows,
-      agreements: agreementRows,
+      vendorLines: run.vendorLines.filter(
+        (line) => !excludedCustomers.has(line.customerKey),
+      ),
+      clients: clientRows
+        .filter((client) => !excluded.has(client.id))
+        .map((client) => ({
+          id: client.id,
+          name: client.name,
+          status: client.status,
+          markupPct: client.markupBps / 100,
+        })),
+      mappings: mappingRows.filter(
+        (mapping) => !excluded.has(mapping.clientId),
+      ),
+      agreements: agreementRows.filter((line) => !excluded.has(line.clientId)),
     });
     const previousStatus = new Map(
       previous.map((row) => [exceptionKey(row), row]),
@@ -323,8 +383,35 @@ export function createReconService(db: Database): ReconService {
           .filter(isLeakage)
           .reduce((sum, row) => sum + row.monthlyImpactCents, 0),
         openCount: open.length,
+        lockedAt: client.lockedAt?.toISOString() ?? null,
+        archivedAt: client.archivedAt?.toISOString() ?? null,
+        lastActiveAt: client.lastActiveAt.toISOString(),
       };
     });
+  }
+
+  async function writableClient(ownerId: string, clientId: string) {
+    const [client] = await db
+      .select()
+      .from(clients)
+      .where(and(eq(clients.ownerId, ownerId), eq(clients.id, clientId)))
+      .limit(1);
+    if (!client) return null;
+    if (client.lockedAt) throw new ClientLockedError(client.name, "locked");
+    if (client.archivedAt) throw new ClientLockedError(client.name, "archived");
+    return client;
+  }
+
+  async function touch(clientId: string) {
+    await db
+      .update(clients)
+      .set({ lastActiveAt: new Date() })
+      .where(eq(clients.id, clientId));
+  }
+
+  async function refresh(ownerId: string) {
+    const run = await latestRun(ownerId);
+    if (run) await recompute(ownerId, run);
   }
 
   async function mappingRowsFor(ownerId: string) {
@@ -427,6 +514,21 @@ export function createReconService(db: Database): ReconService {
     },
 
     async setExceptionStatus(ownerId, id, status) {
+      const [existing] = await db
+        .select({ clientId: reconciliationExceptions.clientId })
+        .from(reconciliationExceptions)
+        .where(
+          and(
+            eq(reconciliationExceptions.ownerId, ownerId),
+            eq(reconciliationExceptions.id, id),
+          ),
+        )
+        .limit(1);
+      if (!existing) return null;
+      if (existing.clientId) {
+        await writableClient(ownerId, existing.clientId);
+        await touch(existing.clientId);
+      }
       const [row] = await db
         .update(reconciliationExceptions)
         .set({ status, resolvedAt: status === "open" ? null : new Date() })
@@ -481,12 +583,9 @@ export function createReconService(db: Database): ReconService {
     },
 
     async setMapping(ownerId, customerKey, clientId) {
-      const [client] = await db
-        .select({ id: clients.id })
-        .from(clients)
-        .where(and(eq(clients.ownerId, ownerId), eq(clients.id, clientId)))
-        .limit(1);
+      const client = await writableClient(ownerId, clientId);
       if (!client) return false;
+      await touch(client.id);
       await db
         .insert(customerMappings)
         .values({ ownerId, customerKey, clientId })
@@ -494,8 +593,7 @@ export function createReconService(db: Database): ReconService {
           target: [customerMappings.ownerId, customerMappings.customerKey],
           set: { clientId },
         });
-      const run = await latestRun(ownerId);
-      if (run) await recompute(ownerId, run);
+      await refresh(ownerId);
       return true;
     },
 
@@ -559,6 +657,87 @@ export function createReconService(db: Database): ReconService {
         "pax8-billing-2026-11.csv",
         parsePax8Csv(demoPax8Csv),
       );
+    },
+
+    async createClient(ownerId, input) {
+      const [row] = await db
+        .insert(clients)
+        .values({
+          ownerId,
+          name: input.name.trim(),
+          psaId: input.psaId?.trim() || null,
+          markupBps: Math.round(input.markupPct * 100),
+        })
+        .returning();
+      if (!row) throw new Error("Client insert returned no row");
+      const [summary] = summarize([row], [], null, []);
+      if (!summary) throw new Error("Client summary missing");
+      return summary;
+    },
+
+    async setArchived(ownerId, clientId, archived) {
+      const [row] = await db
+        .update(clients)
+        .set({
+          archivedAt: archived ? new Date() : null,
+          ...(archived ? {} : { lastActiveAt: new Date() }),
+        })
+        .where(and(eq(clients.ownerId, ownerId), eq(clients.id, clientId)))
+        .returning();
+      if (!row) return null;
+      await refresh(ownerId);
+      const [summary] = summarize([row], [], null, []);
+      return summary ?? null;
+    },
+
+    async limitClients(ownerId) {
+      const rows = await ownerClients(ownerId);
+      return rows
+        .filter((row) => !row.archivedAt)
+        .map(({ id, name, lastActiveAt, lockedAt }) => ({
+          id,
+          name,
+          lastActiveAt,
+          lockedAt,
+        }));
+    },
+
+    async applyLocks(ownerId, lockIds, keepIds, at) {
+      const result = await db.transaction(async (tx) => {
+        const locked = lockIds.length
+          ? await tx
+              .update(clients)
+              .set({ lockedAt: at })
+              .where(
+                and(
+                  eq(clients.ownerId, ownerId),
+                  inArray(clients.id, lockIds),
+                  isNull(clients.lockedAt),
+                ),
+              )
+              .returning({ id: clients.id })
+          : [];
+        const unlocked = keepIds.length
+          ? await tx
+              .update(clients)
+              .set({ lockedAt: null })
+              .where(
+                and(
+                  eq(clients.ownerId, ownerId),
+                  inArray(clients.id, keepIds),
+                  isNotNull(clients.lockedAt),
+                ),
+              )
+              .returning({ id: clients.id })
+          : [];
+        return {
+          locked: locked.map((row) => row.id),
+          unlocked: unlocked.map((row) => row.id),
+        };
+      });
+      if (result.locked.length || result.unlocked.length)
+        await refresh(ownerId);
+      return result;
     },
 
     async joinWaitlist(input) {

@@ -269,7 +269,13 @@ function OverviewPage() {
                               }
                             >
                               {client.status}
-                            </Badge>
+                            </Badge>{" "}
+                            {client.lockedAt && (
+                              <Badge variant="outline">locked</Badge>
+                            )}
+                            {client.archivedAt && (
+                              <Badge variant="outline">archived</Badge>
+                            )}
                           </td>
                           <td className="num">{client.markupPct}%</td>
                           <td className="num">{client.vendorSeats}</td>

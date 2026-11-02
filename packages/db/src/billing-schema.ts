@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -82,3 +83,29 @@ export const billingWebhookEvents = pgTable("billing_webhook_events", {
     .defaultNow()
     .notNull(),
 });
+
+/**
+ * A downgrade the user scheduled in the app. Applied by the subscription
+ * webhook at the period-end transition using the stored keep-list.
+ */
+export const billingPlanChanges = pgTable(
+  "billing_plan_changes",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    stripeSubscriptionId: text("stripe_subscription_id").notNull(),
+    stripeScheduleId: text("stripe_schedule_id"),
+    targetLookupKey: text("target_lookup_key").notNull(),
+    keepClientIds: jsonb("keep_client_ids").$type<string[]>().notNull(),
+    status: text("status")
+      .$type<"scheduled" | "applied" | "canceled">()
+      .notNull(),
+    effectiveAt: timestamp("effective_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index("billing_plan_changes_user_id_idx").on(table.userId)],
+);

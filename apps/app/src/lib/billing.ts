@@ -1,4 +1,8 @@
-import { queryOptions, useMutation } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { getApiClient } from "./api";
 
 export type PlanId = "solo" | "team";
@@ -74,4 +78,42 @@ export function useBillingCheckout() {
 
 export function useBillingPortal() {
   return useMutation({ mutationFn: openBillingPortal });
+}
+
+export async function getPlanPreflight(plan: PlanId) {
+  const client = await getApiClient();
+  const { data, error } = await client.billing["plan-change"].preflight.get({
+    query: { plan },
+  });
+  if (error)
+    throw new Error(billingErrorMessage(error, "Could not check usage."));
+  if (!data) throw new Error("Preflight response was empty.");
+  return data;
+}
+
+async function changePlan(input: {
+  plan: PlanId;
+  keepClientIds?: string[];
+  confirm?: string;
+}) {
+  const client = await getApiClient();
+  const { data, error } = await client.billing["plan-change"].post(input);
+  if (error)
+    throw new Error(billingErrorMessage(error, "Could not change plan."));
+  if (!data) throw new Error("Plan change response was empty.");
+  return data;
+}
+
+export type PlanPreflight = Awaited<ReturnType<typeof getPlanPreflight>>;
+
+export function useChangePlan() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: changePlan,
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: billingKeys.overview() }),
+        queryClient.invalidateQueries({ queryKey: ["recon"] }),
+      ]),
+  });
 }
