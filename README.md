@@ -9,12 +9,13 @@
 | Reconciliation engine (`packages/recon`) | **Done, unit tested.** Pure TypeScript. Detects unbilled seats, stale price/markup, ghost licences (offboarded client), overbilling (more billed than exists, or billed with no licence) and unmapped distributor customers, each with a monthly $ impact in cents. |
 | Distributor import | **Done for CSV.** Header aliases cover Pax8 API `InvoiceItem` field names and Microsoft Partner Center reconciliation columns (`BillableQuantity`, `EffectiveUnitPrice`). Real Pax8 *portal* CSV headers are unverified. |
 | Adapters | `VendorSource` / `PsaSource` interfaces exist in `packages/recon/src/types.ts`; only the CSV source is implemented. No Pax8 API, HaloPSA or Autotask calls yet. |
-| Database | Owner-scoped tables: `clients`, `customer_mappings`, `agreement_lines`, `reconciliation_runs`, `reconciliation_exceptions`, `waitlist_entries` (migration `0001`). |
-| API (`apps/api/src/recon-routes.ts`) | **Done, integration tested.** `GET /recon/overview`, `GET /recon/clients/:id`, `GET /recon/exceptions`, `PATCH /recon/exceptions/:id` (open / approved / billed / dismissed), `GET`/`PUT /recon/mappings` (re-runs reconciliation and keeps statuses), `POST /recon/runs` (CSV upload), `POST /recon/demo` (loads "Northbeam IT", 8 clients, $548.10/mo leakage), public `POST /waitlist`. |
-| Product app UI | **Not built yet.** The app still shows the template Projects page. Next: overview card + CSV upload, exceptions inbox, mapping screen, per-client page. |
-| Landing page + waitlist form | **Not built yet** (the API endpoint exists). |
-| Auth | Template email/password (Better Auth). Magic link not wired. |
-| Billing | Template Stripe module, unconfigured. |
+| Database | **Workspace-scoped** (Better Auth organization, `organization_id`): `clients`, `customer_mappings`, `agreement_lines`, `reconciliation_runs`, `reconciliation_exceptions`, `exception_comments`, `audit_log`, billing tables. Plugin tables `organization`, `member` (+ `suspended_at`), `invitation`. `waitlist_entries` is global. Migrations `0004`–`0006` moved from owner ids to organizations. |
+| API (`apps/api/src/recon-routes.ts`, `members-routes.ts`) | **Done, integration tested, role-checked.** `GET /recon/overview`, `GET /recon/clients/:id`, `PATCH /recon/clients/:id` (archive, markup), `GET /recon/exceptions`, `PATCH /recon/exceptions/:id` (open / approved / billed / dismissed), `PUT /recon/exceptions/:id/flag`, `GET`/`POST /recon/exceptions/:id/comments`, `GET`/`PUT /recon/mappings` (re-runs reconciliation and keeps statuses, flags and comments), `POST /recon/runs` (CSV upload), `POST /recon/demo` (owner; loads "Northbeam IT", 8 clients, $548.10/mo leakage), `GET /workspace`, `PUT /workspace/active`, `/members` (+ invitations), `/invitations/:id(/accept)`, `GET /audit`, public `POST /waitlist`. |
+| Product app UI | **Built.** Overview + CSV upload, exceptions inbox (flag, comments), mappings, per-client page (markup, archive), billing, Members (`/app/members`), Audit log (`/app/audit`), accept-invite page (`/accept-invite/:id`), workspace switcher. Controls hide by role. |
+| Landing page + waitlist form | **Built** (`apps/app/src/routes/index.tsx`). |
+| Auth | Better Auth email/password (work email only) + optional Google; organization plugin with owner / admin / tech. Magic link not wired. |
+| Roles & seats | **Done, integration tested.** See [Roles & permissions](#roles--permissions). |
+| Billing | Stripe Solo/Team, per workspace. See below; live secrets still to set. |
 
 Try the API locally: sign up in the app at http://localhost:3000, then from the browser console on that origin run `await fetch("http://localhost:3001/recon/demo", { method: "POST", credentials: "include" })` followed by `await (await fetch("http://localhost:3001/recon/overview", { credentials: "include" })).json()`.
 
@@ -50,15 +51,42 @@ Two flat monthly plans, resolved by Stripe lookup key so sandbox and live both w
 - Webhooks: signature verified on the raw body; `billing_webhook_events` (unique event id) is written in the same transaction as the side effects, so duplicates are no-ops; state always comes from re-fetching the subscription, and `last_event_at` stops a late, older invoice event from overwriting newer details; processing errors return 500 so Stripe retries. Handled: `checkout.session.completed`, `customer.subscription.created/updated/deleted/paused/resumed`, `invoice.paid`, `invoice.payment_failed`, `invoice.payment_action_required` (3-D Secure link shown on the Billing page).
 - Access: active/trialing = full; past_due = 7-day grace with a banner (Stripe Smart Retries and dunning emails do the chasing); unpaid/canceled/incomplete_expired/paused = read-only (writes return 402, nothing deleted). Never subscribed = full (free audit stage).
 
-- **Plan limits** live in `packages/billing/src/plans.ts`: Solo = 150 active clients, Team = unlimited (`users` is reserved there until workspaces get invites; there is no multi-user or approval-workflow gating yet). Limits are enforced on client create and restore (`402 PLAN_LIMIT` with an upgrade prompt). CSV imports don't create clients; they only map to existing ones.
+- **Plan limits** live in `packages/billing/src/plans.ts`: Solo = 150 active clients and 2 users, Team = unlimited clients and users; never subscribed = unlimited. Client limits are enforced on client create and restore, seat limits on invite and accept (`402 PLAN_LIMIT` with an upgrade prompt). CSV imports don't create clients; they only map to existing ones.
 - **Plan changes happen in the app** (Billing page); the Stripe portal only handles card, invoices and cancellation. Upgrades apply now with `always_invoice` and unlock every client. Downgrades run a usage preflight; with overages the user picks which clients stay (least-recently-active are pre-unchecked) and types `DOWNGRADE`, or archives clients first. The downgrade is a Stripe subscription schedule (phase 2 = Solo, `proration_behavior: none`) starting at period end. No credits, no refunds.
-- **Locks** apply when the `customer.subscription.updated` webhook shows the new plan: the stored keep-list for in-app downgrades, otherwise the current state is preserved (or, for an external downgrade such as from the Stripe dashboard, least-recently-active clients lock first and the owner gets a Resend email). Locked clients are read-only (`423 CLIENT_LOCKED`), excluded from reconciliation and never deleted; replays are no-ops.
+- **Locks** apply when the `customer.subscription.updated` webhook shows the new plan: the stored keep-lists (`keep_client_ids`, `keep_member_ids`) for in-app downgrades, otherwise the current state is preserved (or, for an external downgrade such as from the Stripe dashboard, least-recently-active clients lock first, members are kept owner first then most recently active, and the owner gets one Resend email listing both). Locked clients are read-only (`423 CLIENT_LOCKED`), excluded from reconciliation and never deleted; over-limit members are suspended (`member.suspended_at`), never removed, and restored on upgrade; replays are no-ops.
+- Billing belongs to the workspace: `billing_customers`, `billing_subscriptions` and `billing_plan_changes` are keyed by `organization_id`; Stripe metadata and idempotency keys use the organization id. Only the owner (`billing:manage`) can check out, open the portal or change plan; every member sees the Billing page.
 
 **TODO (Seif):**
 1. `bun run secrets:set STRIPE_SECRET_KEY "sk_live_..."` and, once the API domain exists, create the webhook endpoint `https://api.<domain>/billing/webhook` with the events above, then `bun run secrets:set STRIPE_WEBHOOK_SECRET "whsec_..."`.
 2. `bun run secrets:set STRIPE_PORTAL_CONFIG_ID "bpc_1UXGFQEmKiht8PXgdUn9Lalf"`.
 3. For a sandbox: put a test key in `.env`, run `bun run stripe:seed` (idempotent; creates products, prices and the portal config), and copy the printed portal ID into `.env`.
 4. Enable Stripe's "Email customers about successful payments" and invoice emails, plus Smart Retries.
+
+## Roles & permissions
+
+Every workspace is a Better Auth organization ([organization plugin](https://www.better-auth.com/docs/plugins/organization)). Three fixed roles defined with `createAccessControl` / `ac.newRole` in `packages/auth-policy/src/access.ts`; no dynamic access control, no teams. The plugin's own statements stay (`invitation:create` = invite, `member:update` = change role, `member:delete` = remove, `organization:delete` = delete workspace).
+
+| Permission | Owner | Admin (ops/finance) | Tech |
+| --- | :-: | :-: | :-: |
+| View everything (overview, clients, exceptions, mappings, members, billing page) | ✓ | ✓ | ✓ |
+| Upload a bill (`run:upload`) | ✓ | ✓ | ✓ |
+| Flag / comment on exceptions (`exception:flag`, `exception:comment`) | ✓ | ✓ | ✓ |
+| Approve / dismiss / mark billed / reopen (`exception:resolve`) | ✓ | ✓ | |
+| Edit customer mappings (`mapping:edit`) | ✓ | ✓ | |
+| Invite / cancel invites (`invitation:create`, `invitation:cancel`) | ✓ | ✓ | |
+| Audit log (`audit:view`) | ✓ | ✓ | |
+| Create / archive clients, change markup (`client:*`) | ✓ | | |
+| Load demo data (wipes the workspace) (`run:demo`) | ✓ | | |
+| Billing and plan (`billing:manage`) | ✓ | | |
+| Change roles, remove members (`member:update`, `member:delete`) | ✓ | | |
+| Delete the workspace (`organization:delete`; permission defined, no route or UI yet) | ✓ | | |
+
+- **Enforcement:** every API route resolves the session's active organization (`session.activeOrganizationId`) and the member row. Reads need an active, non-suspended membership; writes also pass `auth.api.hasPermission`. Denials are `403 { error: { code: "FORBIDDEN", message } }`. `GET /workspace` returns the member's role and permissions; the UI only hides controls. The plugin's membership endpoints (`/api/auth/organization/invite-member`, `remove-member`, `update-member-role`, `accept-invitation`, `create`, `delete`, …) return 404 over HTTP; the API's `/members` and `/invitations` routes call them server-side so the 403 contract and audit log always apply.
+- **Audit log** (`audit_log`): actor id + email, action (approve, dismiss, billed, reopen, flag, comment, mapping change, markup change, member invited / joined / removed / role changed / suspended / restored, plan change), target, before/after JSON, org id, timestamp. Exception, mapping and markup changes write it in the same transaction; member and plan changes write it right after Better Auth / Stripe succeed. Owners and admins read it at `/app/audit`.
+- **Seats:** Solo 2 users, Team unlimited, never subscribed unlimited. Seats = active members + pending, unexpired invites, checked on invite; on accept only members count (the invite held the seat). Over the limit → `402 PLAN_LIMIT`.
+- **Invites:** `POST /members/invitations` (work email only, `WORK_EMAIL_REQUIRED` otherwise; role admin or tech, never owner). Better Auth's default 48 h expiry. The email goes through Resend (`sendInvitationEmail`) with a link to `APP_ORIGIN/accept-invite/<id>`; with email disabled (dev) the API logs the link (`invitation_link`). The invitee signs in or signs up with the invited address, then accepts; with email enabled `requireEmailVerificationOnInvitation` makes them verify first. Accepting switches their active workspace.
+- **Personal workspaces:** sign-up creates `org_<userId>` with the user as owner (`databaseHooks.user.create.after`); `session.create.before` sets the active organization (newest non-suspended membership). `allowUserToCreateOrganization: false`. Users in several workspaces switch from the sidebar.
+- **Migration:** `0004_organizations` adds the plugin tables and nullable `organization_id` columns; `0005_org_backfill` (custom SQL, idempotent: deterministic `org_`/`mem_` ids, `ON CONFLICT DO NOTHING`, updates only `NULL` rows) gives every user a personal org as owner, points sessions at it, re-keys domain and billing rows and forgets pre-move pending Checkouts; `0006_organization_scope` makes `organization_id` NOT NULL and drops `owner_id` / `user_id`. `bun run db:migrate` runs all three; `org-migration.integration.test.ts` replays them on a scratch database, including the backfill twice.
 
 ## Workspaces
 

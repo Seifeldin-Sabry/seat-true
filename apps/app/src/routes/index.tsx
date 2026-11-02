@@ -65,6 +65,11 @@ const stack: { item: string; basis: string; value: number }[] = [
     value: 150,
   },
   {
+    item: "Owner, admin and tech roles with an audit log",
+    basis: "techs flag, admins approve, only you touch billing and markups",
+    value: 0,
+  },
+  {
     item: "Customer-to-client mapping set up with you",
     basis: "one onboarding call with the founder",
     value: 200,
@@ -334,11 +339,11 @@ function LandingPage() {
                 <strong>$149</strong>/month
               </p>
               <p>
-                Solo: flat, up to 150 clients. Team: $249/month flat, unlimited
-                clients.
+                Solo: flat, up to 150 clients and 2 users. Team: $249/month
+                flat, unlimited clients and unlimited users.
               </p>
               <ul>
-                <li>No per-seat pricing</li>
+                <li>No per-licence fees</li>
                 <li>
                   Cancel any time, effective at the end of the paid period
                 </li>
