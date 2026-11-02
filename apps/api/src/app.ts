@@ -1,5 +1,5 @@
 import { cors } from "@elysia/cors";
-import type { BillingService } from "@seattrue/billing";
+import { type BillingService, canWrite } from "@seattrue/billing";
 import { type JobQueue, projectCreatedPayloadSchema } from "@seattrue/jobs";
 import { Elysia, t } from "elysia";
 import type { AuthService } from "./auth";
@@ -182,6 +182,12 @@ export function createApp({
       createReconRoutes({
         recon,
         allowedOrigins,
+        ...(billing
+          ? {
+              canWrite: async (userId: string) =>
+                canWrite(await billing.access(userId)),
+            }
+          : {}),
         getUser: async (headers) =>
           (await auth.getSession(headers))?.user ?? null,
       }),

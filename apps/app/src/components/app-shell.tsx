@@ -13,6 +13,7 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { authClient } from "../lib/auth-client";
+import { BillingBanner } from "./billing-banner";
 
 const iconStroke = 1.8;
 const primaryLinks = [
@@ -82,7 +83,7 @@ export function AppShell({
             <Link
               className="sidebar-link"
               activeProps={{ className: "sidebar-link sidebar-link-active" }}
-              to="/billing"
+              to="/app/billing"
             >
               <CreditCard
                 size={18}
@@ -154,7 +155,10 @@ export function AppShell({
               {label}
             </Link>
           ))}
-          <Link to="/billing" activeProps={{ className: "mobile-nav-active" }}>
+          <Link
+            to="/app/billing"
+            activeProps={{ className: "mobile-nav-active" }}
+          >
             Billing
           </Link>
           <button type="button" onClick={signOut} disabled={isSigningOut}>
@@ -166,6 +170,7 @@ export function AppShell({
             {signOutError}
           </div>
         )}
+        <BillingBanner />
         {children}
       </div>
     </div>

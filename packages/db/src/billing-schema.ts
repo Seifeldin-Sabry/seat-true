@@ -56,6 +56,14 @@ export const billingSubscriptions = pgTable(
     status: text("status").notNull(),
     currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
     cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false).notNull(),
+    /** Plan lookup key (e.g. seattrue_solo_monthly); price IDs differ per Stripe account. */
+    planLookupKey: text("plan_lookup_key"),
+    /** First moment the subscription went past_due; drives the 7-day grace period. */
+    pastDueSince: timestamp("past_due_since", { withTimezone: true }),
+    /** Hosted invoice URL when a payment needs customer action (3-D Secure). */
+    actionUrl: text("action_url"),
+    /** `created` of the newest Stripe event applied, to ignore stale invoice details. */
+    lastEventAt: timestamp("last_event_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

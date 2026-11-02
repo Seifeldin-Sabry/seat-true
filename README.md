@@ -40,6 +40,22 @@ Open [app](http://localhost:3000), [landing site](http://localhost:3002), and [A
 
 PostgreSQL binds to localhost. If port 5432 is occupied, change `POSTGRES_PORT`, `DATABASE_URL`, and `TEST_DATABASE_URL` to port 5433 in `.env` before starting Compose. To add the optional sample project, register first, set `SEED_USER_EMAIL` to that account's email, then run `bun run db:seed`. Seed is safe to rerun. Without that variable it exits without inserting data.
 
+## Billing (SeatTrue)
+
+Two flat monthly plans, resolved by Stripe lookup key so sandbox and live both work: `seattrue_solo_monthly` ($149, up to 150 clients) and `seattrue_team_monthly` ($249, unlimited). Live price IDs, for reference only: `price_1UXGEGEmKiht8PXgKHiC0PxD` (Solo), `price_1UXGEHEmKiht8PXgvt1iSeMs` (Team). Portal configuration (live): `bpc_1UXGFQEmKiht8PXgdUn9Lalf`.
+
+- Checkout is subscription mode; Stripe charges automatically and emails receipts and invoices (turn on the customer email toggles in the Stripe dashboard). The app sends no billing email of its own.
+- **No refunds.** Cancellation takes effect at period end with no proration. Upgrades in the portal invoice immediately; downgrades apply at period end, so no credits are issued. There is no refund code path.
+- Every Stripe POST carries an idempotency key (`customer:<userId>`, `checkout:<userId>:<lookupKey>:<attemptId>`, `portal:<userId>:<attemptId>`). One Stripe customer per account; a second Checkout while a plan exists returns 409 and the UI sends the user to the portal.
+- Webhooks: signature verified on the raw body; `billing_webhook_events` (unique event id) is written in the same transaction as the side effects, so duplicates are no-ops; state always comes from re-fetching the subscription, and `last_event_at` stops a late, older invoice event from overwriting newer details; processing errors return 500 so Stripe retries. Handled: `checkout.session.completed`, `customer.subscription.created/updated/deleted/paused/resumed`, `invoice.paid`, `invoice.payment_failed`, `invoice.payment_action_required` (3-D Secure link shown on the Billing page).
+- Access: active/trialing = full; past_due = 7-day grace with a banner (Stripe Smart Retries and dunning emails do the chasing); unpaid/canceled/incomplete_expired/paused = read-only (writes return 402, nothing deleted). Never subscribed = full (free audit stage).
+
+**TODO (Seif):**
+1. `bun run secrets:set STRIPE_SECRET_KEY "sk_live_..."` and, once the API domain exists, create the webhook endpoint `https://api.<domain>/billing/webhook` with the events above, then `bun run secrets:set STRIPE_WEBHOOK_SECRET "whsec_..."`.
+2. `bun run secrets:set STRIPE_PORTAL_CONFIG_ID "bpc_1UXGFQEmKiht8PXgdUn9Lalf"`.
+3. For a sandbox: put a test key in `.env`, run `bun run stripe:seed` (idempotent; creates products, prices and the portal config), and copy the printed portal ID into `.env`.
+4. Enable Stripe's "Email customers about successful payments" and invoice emails, plus Smart Retries.
+
 ## Workspaces
 
 | Path | Purpose |

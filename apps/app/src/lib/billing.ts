@@ -1,7 +1,7 @@
 import { queryOptions, useMutation } from "@tanstack/react-query";
 import { getApiClient } from "./api";
 
-export type CheckoutKind = "subscription" | "one_time";
+export type PlanId = "solo" | "team";
 
 function billingErrorMessage(error: unknown, fallback: string): string {
   if (error && typeof error === "object") {
@@ -34,9 +34,9 @@ export async function getBillingOverview() {
   return data;
 }
 
-async function startCheckout(kind: CheckoutKind): Promise<string> {
+async function startCheckout(plan: PlanId): Promise<string> {
   const client = await getApiClient();
-  const { data, error } = await client.billing.checkout.post({ kind });
+  const { data, error } = await client.billing.checkout.post({ plan });
   if (error) {
     throw new Error(billingErrorMessage(error, "Could not start checkout."));
   }
@@ -57,7 +57,7 @@ async function openBillingPortal(): Promise<string> {
 }
 
 export type BillingOverview = Awaited<ReturnType<typeof getBillingOverview>>;
-export type BillingOffer = BillingOverview["offers"][number];
+export type BillingPlan = BillingOverview["plans"][number];
 
 export const billingKeys = {
   overview: () => ["billing", "overview"] as const,

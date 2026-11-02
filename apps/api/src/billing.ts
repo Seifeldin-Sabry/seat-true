@@ -47,9 +47,9 @@ export function createBillingRoutes({
       if (!billing) {
         return {
           enabled: false as const,
-          offers: [],
+          plans: [],
           subscription: null,
-          purchases: [],
+          access: "none" as const,
         };
       }
       try {
@@ -74,7 +74,7 @@ export function createBillingRoutes({
         if (!user) return status(401, unauthorized);
         if (!billing) return status(503, unavailable);
         try {
-          return await billing.checkout(user, body.kind);
+          return await billing.checkout(user, body.plan);
         } catch (error) {
           if (error instanceof ExistingSubscriptionError) {
             return status(409, {
@@ -98,7 +98,7 @@ export function createBillingRoutes({
       {
         body: t.Object(
           {
-            kind: t.Union([t.Literal("subscription"), t.Literal("one_time")]),
+            plan: t.Union([t.Literal("solo"), t.Literal("team")]),
           },
           { additionalProperties: false },
         ),
@@ -147,7 +147,17 @@ export function createBillingRoutes({
           });
         }
 
-        await billing.processWebhook(event);
+        try {
+          await billing.processWebhook(event);
+        } catch {
+          // 5xx makes Stripe retry; processing is idempotent per event id.
+          return status(500, {
+            error: {
+              code: "WEBHOOK_PROCESSING_FAILED" as const,
+              message: "Webhook could not be processed; Stripe will retry.",
+            },
+          });
+        }
         return { received: true as const };
       },
       { parse: "none" },

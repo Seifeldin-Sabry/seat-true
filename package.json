@@ -27,12 +27,15 @@
     "db:studio": "dotenvx run -f .env -- turbo db:studio --filter=@seattrue/db",
     "check": "bun run lint && bun run typecheck && bun run test && bun run build",
     "secrets:set": "dotenvx set -f .env.production --no-native",
-    "secrets:fly": "bun scripts/fly-secrets.ts"
+    "secrets:fly": "bun scripts/fly-secrets.ts",
+    "stripe:seed": "dotenvx run -f .env -- bun scripts/stripe-seed.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
     "@dotenvx/dotenvx": "2.31.1",
+    "stripe": "22.6.2",
     "turbo": "2.11.4",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "@seattrue/billing": "workspace:*"
   }
 }

@@ -1,17 +1,13 @@
 export type BillingEnvironment = {
   secretKey: string;
   webhookSecret: string;
-  subscriptionPriceId: string;
-  oneTimePriceId: string;
+  /** Billing portal configuration (bpc_...); Stripe's default when absent. */
+  portalConfigurationId: string | null;
   appOrigin: string;
 };
 
-const billingKeys = [
-  "STRIPE_SECRET_KEY",
-  "STRIPE_WEBHOOK_SECRET",
-  "STRIPE_SUBSCRIPTION_PRICE_ID",
-  "STRIPE_ONE_TIME_PRICE_ID",
-] as const;
+/** Prices resolve by lookup key (see plans.ts), so only secrets live in env. */
+const billingKeys = ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"] as const;
 
 /** Stripe is an optional integration, but partial configuration is a boot error. */
 export function readBillingEnvironment(
@@ -54,8 +50,7 @@ export function readBillingEnvironment(
   return {
     secretKey: required("STRIPE_SECRET_KEY"),
     webhookSecret: required("STRIPE_WEBHOOK_SECRET"),
-    subscriptionPriceId: required("STRIPE_SUBSCRIPTION_PRICE_ID"),
-    oneTimePriceId: required("STRIPE_ONE_TIME_PRICE_ID"),
+    portalConfigurationId: env.STRIPE_PORTAL_CONFIG_ID?.trim() || null,
     appOrigin: origin,
   };
 }

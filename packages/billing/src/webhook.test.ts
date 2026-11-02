@@ -11,8 +11,7 @@ test("Stripe SDK verifies exact signed webhook bytes", async () => {
     {
       secretKey: "sk_test_fake",
       webhookSecret: secret,
-      subscriptionPriceId: "price_subscription",
-      oneTimePriceId: "price_one_time",
+      portalConfigurationId: null,
       appOrigin: "http://localhost:3000",
     },
     stripe,

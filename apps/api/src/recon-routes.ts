@@ -9,6 +9,8 @@ type ReconUser = { id: string };
 
 export type ReconRoutesOptions = {
   recon: ReconService;
+  /** False when the workspace's subscription has lapsed (read-only, nothing deleted). */
+  canWrite?: (userId: string) => Promise<boolean>;
   getUser: (headers: Headers) => Promise<ReconUser | null>;
   allowedOrigins: string[];
 };
@@ -19,6 +21,13 @@ const unauthorized = {
 const invalidOrigin = {
   error: { code: "INVALID_ORIGIN" as const, message: "Origin not allowed." },
 };
+const readOnly = {
+  error: {
+    code: "SUBSCRIPTION_INACTIVE" as const,
+    message:
+      "Your subscription is inactive. Your data is safe; update billing to make changes.",
+  },
+};
 const uuidPattern =
   "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$";
 const idParams = t.Object({ id: t.String({ pattern: uuidPattern }) });
@@ -27,6 +36,7 @@ const maxCsvLength = 2_000_000;
 
 export function createReconRoutes({
   recon,
+  canWrite = async () => true,
   getUser,
   allowedOrigins,
 }: ReconRoutesOptions) {
@@ -70,6 +80,7 @@ export function createReconRoutes({
           if (!isTrusted(request)) return status(403, invalidOrigin);
           const user = await getUser(request.headers);
           if (!user) return status(401, unauthorized);
+          if (!(await canWrite(user.id))) return status(402, readOnly);
           const updated = await recon.setExceptionStatus(
             user.id,
             params.id,
@@ -111,6 +122,7 @@ export function createReconRoutes({
           if (!isTrusted(request)) return status(403, invalidOrigin);
           const user = await getUser(request.headers);
           if (!user) return status(401, unauthorized);
+          if (!(await canWrite(user.id))) return status(402, readOnly);
           const saved = await recon.setMapping(
             user.id,
             body.customerKey.trim(),
@@ -146,6 +158,7 @@ export function createReconRoutes({
           if (!isTrusted(request)) return status(403, invalidOrigin);
           const user = await getUser(request.headers);
           if (!user) return status(401, unauthorized);
+          if (!(await canWrite(user.id))) return status(402, readOnly);
           try {
             return status(
               201,
@@ -181,6 +194,7 @@ export function createReconRoutes({
         if (!isTrusted(request)) return status(403, invalidOrigin);
         const user = await getUser(request.headers);
         if (!user) return status(401, unauthorized);
+        if (!(await canWrite(user.id))) return status(402, readOnly);
         return status(201, await recon.loadDemo(user.id));
       })
       // Public landing-page form. ponytail: no per-IP limit yet; add Upstash ratelimit before launch.

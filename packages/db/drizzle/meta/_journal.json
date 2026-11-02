@@ -15,6 +15,13 @@
       "when": 1793604393101,
       "tag": "0001_condemned_forgotten_one",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793606931610,
+      "tag": "0002_nifty_crusher_hogan",
+      "breakpoints": true
     }
   ]
 }

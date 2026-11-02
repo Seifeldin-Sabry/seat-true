@@ -1,6 +1,5 @@
 import { expect, test } from "bun:test";
 import {
-  billingPurchases,
   billingSubscriptions,
   billingWebhookEvents,
   createDatabase,
@@ -17,305 +16,349 @@ import {
 
 const databaseTest = process.env.TEST_DATABASE_URL ? test : test.skip;
 
-databaseTest(
-  "Checkout and webhook state stay tied to verified server prices",
-  async () => {
-    const connection = createDatabase(process.env.TEST_DATABASE_URL ?? "");
-    const userId = crypto.randomUUID();
-    const suffix = userId.replaceAll("-", "");
-    const customerId = `cus_test_${suffix}`;
-    const checkoutSessionId = `cs_test_${suffix}`;
-    const subscriptionCheckoutSessionPrefix = `cs_sub_test_${suffix}`;
-    const failedCheckoutSessionId = `cs_failed_${suffix}`;
-    const subscriptionId = `sub_test_${suffix}`;
-    const unrelatedSubscriptionId = `sub_unrelated_${suffix}`;
-    const eventIds = [
-      `evt_paid_${suffix}`,
-      `evt_subscription_active_${suffix}`,
-      `evt_subscription_canceled_${suffix}`,
-      `evt_subscription_late_${suffix}`,
-      `evt_subscription_unrelated_${suffix}`,
-      `evt_payment_failed_${suffix}`,
-      `evt_payment_completed_late_${suffix}`,
-    ];
-    const config: BillingEnvironment = {
-      secretKey: "sk_test_fake",
-      webhookSecret: "whsec_fake",
-      subscriptionPriceId: "price_subscription_server",
-      oneTimePriceId: "price_one_time_server",
-      appOrigin: "http://localhost:3000",
-    };
+const config: BillingEnvironment = {
+  secretKey: "sk_test_fake",
+  webhookSecret: "whsec_fake",
+  portalConfigurationId: "bpc_test_portal",
+  appOrigin: "http://localhost:3000",
+};
 
-    let customerCreations = 0;
-    const checkoutParams: Stripe.Checkout.SessionCreateParams[] = [];
-    let paymentStatus: Stripe.Checkout.Session.PaymentStatus = "paid";
-    let subscriptionStatus: Stripe.Subscription.Status = "active";
-    let wrongPriceType = true;
-    let subscriptionCheckoutCreations = 0;
-    let subscriptionSessionStatus: "open" | "expired" = "open";
-    let pendingPriceId = config.subscriptionPriceId;
-    let expiredSessions = 0;
-    let liveSubscriptionPriceId: string | null = null;
-    const stripe = {
-      prices: {
-        retrieve: async (priceId: string) => ({
-          id: priceId,
-          active: true,
-          recurring:
-            priceId === config.subscriptionPriceId || wrongPriceType
-              ? { interval: "month" }
-              : null,
-          unit_amount: 2400,
-          currency: "usd",
-          product: { name: "Starter plan" },
-        }),
+type Call = {
+  method: string;
+  params: unknown;
+  idempotencyKey: string | undefined;
+};
+
+/** Minimal in-memory Stripe that records every call and its idempotency key. */
+function fakeStripe(suffix: string) {
+  const calls: Call[] = [];
+  const priceFor = (lookupKey: string, amount: number) => ({
+    id: `price_${lookupKey}_${suffix}`,
+    lookup_key: lookupKey,
+    active: true,
+    recurring: { interval: "month" },
+    unit_amount: amount,
+    currency: "usd",
+  });
+  const state = {
+    prices: [
+      priceFor("seattrue_solo_monthly", 14900),
+      priceFor("seattrue_team_monthly", 24900),
+    ],
+    subscription: {
+      id: `sub_${suffix}`,
+      customer: `cus_${suffix}`,
+      status: "active" as Stripe.Subscription.Status,
+      cancel_at_period_end: false,
+      lookupKey: "seattrue_solo_monthly",
+    },
+    liveSubscriptions: [] as unknown[],
+  };
+  const stripe = {
+    prices: {
+      list: async () => ({ data: state.prices }),
+    },
+    customers: {
+      create: async (
+        params: unknown,
+        options?: { idempotencyKey?: string },
+      ) => {
+        calls.push({
+          method: "customers.create",
+          params,
+          idempotencyKey: options?.idempotencyKey,
+        });
+        return { id: `cus_${suffix}` };
       },
-      customers: {
-        create: async () => {
-          customerCreations += 1;
-          return { id: customerId };
-        },
-      },
-      checkout: {
-        sessions: {
-          create: async (params: Stripe.Checkout.SessionCreateParams) => {
-            checkoutParams.push(params);
-            if (params.mode === "subscription") {
-              subscriptionCheckoutCreations += 1;
-              pendingPriceId = params.line_items?.[0]?.price ?? "";
-              return {
-                id: `${subscriptionCheckoutSessionPrefix}_${subscriptionCheckoutCreations}`,
-                url: `https://checkout.stripe.test/subscription/${subscriptionCheckoutCreations}`,
-                expires_at: Math.floor(Date.now() / 1000) + 3600,
-              };
-            }
-            return {
-              id: checkoutSessionId,
-              url: "https://checkout.stripe.test/session",
-              expires_at: Math.floor(Date.now() / 1000) + 3600,
-            };
-          },
-          retrieve: async (id: string) =>
-            id.startsWith(subscriptionCheckoutSessionPrefix)
-              ? {
-                  id,
-                  mode: "subscription",
-                  status: subscriptionSessionStatus,
-                  customer: customerId,
-                  metadata: { userId, priceId: pendingPriceId },
-                  url: `https://checkout.stripe.test/subscription/${id.split("_").at(-1)}`,
-                  expires_at: Math.floor(Date.now() / 1000) + 3600,
-                }
-              : {
-                  id,
-                  mode: "payment",
-                  customer: customerId,
-                  metadata: {
-                    userId,
-                    kind: "one_time",
-                    priceId: config.oneTimePriceId,
-                  },
-                  payment_intent: `pi_test_${suffix}`,
-                  payment_status: paymentStatus,
-                  amount_total: 2400,
-                  currency: "usd",
-                },
-          expire: async () => {
-            expiredSessions += 1;
-            return { status: "expired" };
-          },
-        },
-      },
-      subscriptions: {
-        list: async () => ({
-          data: liveSubscriptionPriceId
-            ? [
-                {
-                  status: "active",
-                  items: { data: [{ price: { id: liveSubscriptionPriceId } }] },
-                },
-              ]
-            : [],
-        }),
-        retrieve: async (id: string) => ({
-          id,
-          customer: customerId,
-          status: subscriptionStatus,
-          cancel_at_period_end: subscriptionStatus === "active",
+    },
+    subscriptions: {
+      list: async () => ({ data: state.liveSubscriptions }),
+      retrieve: async () => {
+        const price = state.prices.find(
+          (entry) => entry.lookup_key === state.subscription.lookupKey,
+        );
+        return {
+          ...state.subscription,
           items: {
             data: [
               {
-                price: {
-                  id:
-                    id === unrelatedSubscriptionId
-                      ? "price_unrelated"
-                      : config.subscriptionPriceId,
+                price: price ?? {
+                  id: "price_other",
+                  lookup_key: "someone_elses_plan",
                 },
                 current_period_end: 1_800_000_000,
               },
             ],
           },
-        }),
+        };
       },
-    } as unknown as Stripe;
-
-    const service = createBillingService(connection.db, config, stripe);
-    try {
-      await connection.db.insert(user).values({
-        id: userId,
-        name: "Billing test",
-        email: `${suffix}@example.test`,
-      });
-
-      await expect(
-        service.checkout(
-          { id: userId, email: `${suffix}@example.test` },
-          "one_time",
-        ),
-      ).rejects.toBeInstanceOf(BillingPriceConfigurationError);
-      expect(customerCreations).toBe(0);
-      wrongPriceType = false;
-
-      const oneTime = await service.checkout(
-        { id: userId, email: `${suffix}@example.test` },
-        "one_time",
-      );
-      expect(oneTime.url).toBe("https://checkout.stripe.test/session");
-      expect(checkoutParams.at(-1)?.mode).toBe("payment");
-      expect(checkoutParams.at(-1)?.line_items?.[0]?.price).toBe(
-        config.oneTimePriceId,
-      );
-      expect(customerCreations).toBe(1);
-
-      const paidEvent = {
-        id: eventIds[0],
-        type: "checkout.session.completed",
-        data: { object: { id: checkoutSessionId } },
-      } as Stripe.Event;
-      await service.processWebhook(paidEvent);
-      paymentStatus = "unpaid";
-      await service.processWebhook(paidEvent);
-      const purchases = await connection.db
-        .select()
-        .from(billingPurchases)
-        .where(eq(billingPurchases.checkoutSessionId, checkoutSessionId));
-      expect(purchases).toHaveLength(1);
-      expect(purchases[0]?.status).toBe("paid");
-
-      await service.processWebhook({
-        id: eventIds[5],
-        type: "checkout.session.async_payment_failed",
-        data: { object: { id: failedCheckoutSessionId } },
-      } as Stripe.Event);
-      await service.processWebhook({
-        id: eventIds[6],
-        type: "checkout.session.completed",
-        data: { object: { id: failedCheckoutSessionId } },
-      } as Stripe.Event);
-      const failedPurchases = await connection.db
-        .select()
-        .from(billingPurchases)
-        .where(eq(billingPurchases.checkoutSessionId, failedCheckoutSessionId));
-      expect(failedPurchases[0]?.status).toBe("failed");
-
-      const subscriptionEvent = (
-        id: string,
-        type: string,
-        resourceId = subscriptionId,
-      ) =>
-        ({
+    },
+    checkout: {
+      sessions: {
+        create: async (
+          params: unknown,
+          options?: { idempotencyKey?: string },
+        ) => {
+          calls.push({
+            method: "checkout.sessions.create",
+            params,
+            idempotencyKey: options?.idempotencyKey,
+          });
+          return {
+            id: `cs_${suffix}_${calls.length}`,
+            url: `https://checkout.stripe.test/${calls.length}`,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+          };
+        },
+        retrieve: async (id: string) => ({
           id,
-          type,
-          data: { object: { id: resourceId } },
-        }) as Stripe.Event;
-      await service.processWebhook(
-        subscriptionEvent(eventIds[1] ?? "", "customer.subscription.created"),
+          status: "open",
+          url: `https://checkout.stripe.test/${id}`,
+          customer: `cus_${suffix}`,
+          metadata: {
+            userId: undefined as string | undefined,
+            planLookupKey: "seattrue_solo_monthly",
+          },
+        }),
+        expire: async () => ({}),
+      },
+    },
+    billingPortal: {
+      sessions: {
+        create: async (
+          params: unknown,
+          options?: { idempotencyKey?: string },
+        ) => {
+          calls.push({
+            method: "billingPortal.sessions.create",
+            params,
+            idempotencyKey: options?.idempotencyKey,
+          });
+          return { url: "https://billing.stripe.test/session" };
+        },
+      },
+    },
+  };
+  return { stripe: stripe as unknown as Stripe, calls, state };
+}
+
+function subscriptionEvent(
+  id: string,
+  type: string,
+  subscriptionId: string,
+  created: number,
+): Stripe.Event {
+  return {
+    id,
+    type,
+    created,
+    data: { object: { object: "subscription", id: subscriptionId } },
+  } as unknown as Stripe.Event;
+}
+
+function invoiceEvent(
+  id: string,
+  type: string,
+  subscriptionId: string,
+  created: number,
+  hostedInvoiceUrl = "https://invoice.stripe.test/pay",
+): Stripe.Event {
+  return {
+    id,
+    type,
+    created,
+    data: {
+      object: {
+        object: "invoice",
+        hosted_invoice_url: hostedInvoiceUrl,
+        parent: { subscription_details: { subscription: subscriptionId } },
+      },
+    },
+  } as unknown as Stripe.Event;
+}
+
+databaseTest(
+  "checkout, portal and webhooks are idempotent and gate access",
+  async () => {
+    const connection = createDatabase(process.env.TEST_DATABASE_URL ?? "");
+    const userId = crypto.randomUUID();
+    const suffix = userId.replaceAll("-", "");
+    const { stripe, calls, state } = fakeStripe(suffix);
+    const billing = createBillingService(connection.db, config, stripe);
+    const owner = { id: userId, email: `${suffix}@northbeam-it.com` };
+    const subscriptionId = state.subscription.id;
+    const eventIds: string[] = [];
+    const event = (name: string) => {
+      const id = `evt_${name}_${suffix}`;
+      eventIds.push(id);
+      return id;
+    };
+    await connection.db
+      .insert(user)
+      .values({ id: userId, name: "Owner", email: owner.email });
+
+    try {
+      // Checkout: one customer, stable idempotency keys, lookup-key prices.
+      const first = await billing.checkout(owner, "solo", "attempt-1");
+      expect(first.url).toContain("checkout.stripe.test");
+      const created = calls.filter(
+        (call) => call.method === "checkout.sessions.create",
       );
-      await connection.db.insert(billingSubscriptions).values({
-        stripeSubscriptionId: `sub_history_${suffix}`,
-        userId,
-        stripeCustomerId: customerId,
-        priceId: config.subscriptionPriceId,
-        status: "canceled",
-        updatedAt: new Date(Date.now() + 1000),
+      expect(created[0]?.idempotencyKey).toBe(
+        `checkout:${userId}:seattrue_solo_monthly:attempt-1`,
+      );
+      expect(created[0]?.params).toMatchObject({
+        mode: "subscription",
+        line_items: [
+          { price: `price_seattrue_solo_monthly_${suffix}`, quantity: 1 },
+        ],
+        success_url: "http://localhost:3000/app/billing?checkout=success",
       });
-      expect((await service.overview(userId)).subscription?.status).toBe(
-        "active",
+      const customerCalls = calls.filter(
+        (call) => call.method === "customers.create",
       );
-      await service.processWebhook(
-        subscriptionEvent(
-          eventIds[4] ?? "",
-          "customer.subscription.created",
-          unrelatedSubscriptionId,
-        ),
+      expect(customerCalls).toHaveLength(1);
+      expect(customerCalls[0]?.idempotencyKey).toBe(`customer:${userId}`);
+
+      // Webhook: subscription becomes active; duplicate delivery is a no-op.
+      const activeEvent = subscriptionEvent(
+        event("created"),
+        "customer.subscription.created",
+        subscriptionId,
+        1_000,
       );
-      expect((await service.overview(userId)).subscription?.status).toBe(
-        "active",
-      );
+      await billing.processWebhook(activeEvent);
+      await billing.processWebhook(activeEvent);
+      const recorded = await connection.db
+        .select()
+        .from(billingWebhookEvents)
+        .where(eq(billingWebhookEvents.stripeEventId, activeEvent.id));
+      expect(recorded).toHaveLength(1);
+      expect(await billing.access(userId)).toBe("full");
+      const view = await billing.overview(userId);
+      expect(view.subscription).toMatchObject({
+        status: "active",
+        planId: "solo",
+      });
+      expect(view.plans.map((plan) => plan.amount)).toEqual([14900, 24900]);
+
+      // Double checkout while subscribed goes to the portal instead.
       await expect(
-        service.checkout(
-          { id: userId, email: `${suffix}@example.test` },
-          "subscription",
-        ),
+        billing.checkout(owner, "team", "attempt-2"),
       ).rejects.toBeInstanceOf(ExistingSubscriptionError);
 
-      subscriptionStatus = "canceled";
-      await service.processWebhook(
-        subscriptionEvent(eventIds[2] ?? "", "customer.subscription.deleted"),
+      // Portal uses the configured portal and returns to /app/billing.
+      const portal = await billing.portal(userId, "p1");
+      expect(portal?.url).toBe("https://billing.stripe.test/session");
+      const portalCall = calls.find(
+        (call) => call.method === "billingPortal.sessions.create",
       );
-      await service.processWebhook(
-        subscriptionEvent(eventIds[3] ?? "", "customer.subscription.created"),
+      expect(portalCall?.params).toMatchObject({
+        configuration: "bpc_test_portal",
+        return_url: "http://localhost:3000/app/billing",
+      });
+      expect(portalCall?.idempotencyKey).toBe(`portal:${userId}:p1`);
+
+      // Payment fails: past_due with a grace window, then 3-D Secure link.
+      state.subscription.status = "past_due";
+      await billing.processWebhook(
+        invoiceEvent(
+          event("failed"),
+          "invoice.payment_failed",
+          subscriptionId,
+          2_000,
+        ),
       );
-      const subscriptions = await connection.db
+      await billing.processWebhook(
+        invoiceEvent(
+          event("action"),
+          "invoice.payment_action_required",
+          subscriptionId,
+          3_000,
+        ),
+      );
+      let [row] = await connection.db
         .select()
         .from(billingSubscriptions)
         .where(eq(billingSubscriptions.stripeSubscriptionId, subscriptionId));
-      expect(subscriptions[0]?.status).toBe("canceled");
+      expect(row?.status).toBe("past_due");
+      expect(row?.pastDueSince?.getTime()).toBe(2_000_000);
+      expect(row?.actionUrl).toBe("https://invoice.stripe.test/pay");
+      expect(
+        await billing.access(userId, new Date(2_000_000 + 86_400_000)),
+      ).toBe("grace");
+      expect(
+        await billing.access(userId, new Date(2_000_000 + 8 * 86_400_000)),
+      ).toBe("read_only");
 
-      liveSubscriptionPriceId = config.subscriptionPriceId;
-      await expect(
-        service.checkout(
-          { id: userId, email: `${suffix}@example.test` },
-          "subscription",
+      // An older event delivered late must not overwrite newer invoice details.
+      await billing.processWebhook(
+        invoiceEvent(
+          event("stale_action"),
+          "invoice.payment_action_required",
+          subscriptionId,
+          1_500,
+          "https://invoice.stripe.test/stale",
         ),
-      ).rejects.toBeInstanceOf(ExistingSubscriptionError);
-      liveSubscriptionPriceId = "price_unrelated";
+      );
+      [row] = await connection.db
+        .select()
+        .from(billingSubscriptions)
+        .where(eq(billingSubscriptions.stripeSubscriptionId, subscriptionId));
+      expect(row?.actionUrl).toBe("https://invoice.stripe.test/pay");
+      expect(row?.lastEventAt?.getTime()).toBe(3_000_000);
 
-      const [first, second] = await Promise.all([
-        service.checkout(
-          { id: userId, email: `${suffix}@example.test` },
-          "subscription",
+      // Paid: back to active, grace and action link cleared.
+      state.subscription.status = "active";
+      await billing.processWebhook(
+        invoiceEvent(event("paid"), "invoice.paid", subscriptionId, 4_000),
+      );
+      [row] = await connection.db
+        .select()
+        .from(billingSubscriptions)
+        .where(eq(billingSubscriptions.stripeSubscriptionId, subscriptionId));
+      expect(row).toMatchObject({
+        status: "active",
+        pastDueSince: null,
+        actionUrl: null,
+      });
+
+      // Canceled at period end: read-only, nothing deleted.
+      state.subscription.status = "canceled";
+      await billing.processWebhook(
+        subscriptionEvent(
+          event("deleted"),
+          "customer.subscription.deleted",
+          subscriptionId,
+          5_000,
         ),
-        service.checkout(
-          { id: userId, email: `${suffix}@example.test` },
-          "subscription",
+      );
+      expect(await billing.access(userId)).toBe("read_only");
+
+      // Plan moved to a price that isn't SeatTrue's: local entitlement dropped.
+      state.subscription.lookupKey = "someone_elses_plan";
+      await billing.processWebhook(
+        subscriptionEvent(
+          event("foreign"),
+          "customer.subscription.updated",
+          subscriptionId,
+          6_000,
         ),
-      ]);
-      expect(first.url).toBe("https://checkout.stripe.test/subscription/1");
-      expect(second.url).toBe(first.url);
-      expect(subscriptionCheckoutCreations).toBe(1);
-      subscriptionSessionStatus = "expired";
-      const retry = await service.checkout(
-        { id: userId, email: `${suffix}@example.test` },
-        "subscription",
       );
-      expect(retry.url).toBe("https://checkout.stripe.test/subscription/2");
-      expect(subscriptionCheckoutCreations).toBe(2);
-      subscriptionSessionStatus = "open";
-      config.subscriptionPriceId = "price_subscription_changed";
-      const changedPrice = await service.checkout(
-        { id: userId, email: `${suffix}@example.test` },
-        "subscription",
-      );
-      expect(changedPrice.url).toBe(
-        "https://checkout.stripe.test/subscription/3",
-      );
-      expect(expiredSessions).toBe(1);
-      expect(checkoutParams.at(-1)?.mode).toBe("subscription");
-      expect(checkoutParams.at(-1)?.line_items?.[0]?.price).toBe(
-        config.subscriptionPriceId,
-      );
-      expect(customerCreations).toBe(1);
+      expect(await billing.access(userId)).toBe("none");
+
+      // Unhandled event types are acknowledged without side effects.
+      await billing.processWebhook({
+        id: `evt_ignored_${suffix}`,
+        type: "charge.refunded",
+        created: 7_000,
+        data: { object: { object: "charge" } },
+      } as unknown as Stripe.Event);
+      const ignored = await connection.db
+        .select()
+        .from(billingWebhookEvents)
+        .where(eq(billingWebhookEvents.stripeEventId, `evt_ignored_${suffix}`));
+      expect(ignored).toHaveLength(0);
     } finally {
       await connection.db
         .delete(billingWebhookEvents)
@@ -325,3 +368,17 @@ databaseTest(
     }
   },
 );
+
+databaseTest("missing Stripe prices fail with a seed hint", async () => {
+  const connection = createDatabase(process.env.TEST_DATABASE_URL ?? "");
+  const { stripe, state } = fakeStripe("noprices");
+  state.prices = [];
+  const billing = createBillingService(connection.db, config, stripe);
+  try {
+    await expect(billing.overview(crypto.randomUUID())).rejects.toBeInstanceOf(
+      BillingPriceConfigurationError,
+    );
+  } finally {
+    await connection.close();
+  }
+});

@@ -10,12 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as BillingRouteImport } from './routes/billing'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppBillingRouteImport } from './routes/app.billing'
 import { Route as AppExceptionsRouteImport } from './routes/app.exceptions'
 import { Route as AppMappingsRouteImport } from './routes/app.mappings'
 import { Route as AppClientsClientIdRouteImport } from './routes/app.clients.$clientId'
@@ -23,11 +23,6 @@ import { Route as AppClientsClientIdRouteImport } from './routes/app.clients.$cl
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BillingRoute = BillingRouteImport.update({
-  id: '/billing',
-  path: '/billing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -55,6 +50,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/app/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppBillingRoute = AppBillingRouteImport.update({
+  id: '/app/billing',
+  path: '/app/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppExceptionsRoute = AppExceptionsRouteImport.update({
   id: '/app/exceptions',
   path: '/app/exceptions',
@@ -73,11 +73,11 @@ const AppClientsClientIdRoute = AppClientsClientIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/billing': typeof BillingRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/app/billing': typeof AppBillingRoute
   '/app/exceptions': typeof AppExceptionsRoute
   '/app/mappings': typeof AppMappingsRoute
   '/app/': typeof AppIndexRoute
@@ -85,11 +85,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/billing': typeof BillingRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/app/billing': typeof AppBillingRoute
   '/app/exceptions': typeof AppExceptionsRoute
   '/app/mappings': typeof AppMappingsRoute
   '/app': typeof AppIndexRoute
@@ -98,11 +98,11 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/billing': typeof BillingRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/app/billing': typeof AppBillingRoute
   '/app/exceptions': typeof AppExceptionsRoute
   '/app/mappings': typeof AppMappingsRoute
   '/app/': typeof AppIndexRoute
@@ -112,11 +112,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/billing'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/app/billing'
     | '/app/exceptions'
     | '/app/mappings'
     | '/app/'
@@ -124,11 +124,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/billing'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/app/billing'
     | '/app/exceptions'
     | '/app/mappings'
     | '/app'
@@ -136,11 +136,11 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/billing'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/app/billing'
     | '/app/exceptions'
     | '/app/mappings'
     | '/app/'
@@ -149,11 +149,11 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  BillingRoute: typeof BillingRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  AppBillingRoute: typeof AppBillingRoute
   AppExceptionsRoute: typeof AppExceptionsRoute
   AppMappingsRoute: typeof AppMappingsRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -167,13 +167,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/billing': {
-      id: '/billing'
-      path: '/billing'
-      fullPath: '/billing'
-      preLoaderRoute: typeof BillingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -211,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/billing': {
+      id: '/app/billing'
+      path: '/app/billing'
+      fullPath: '/app/billing'
+      preLoaderRoute: typeof AppBillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/exceptions': {
       id: '/app/exceptions'
       path: '/app/exceptions'
@@ -237,11 +237,11 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  BillingRoute: BillingRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  AppBillingRoute: AppBillingRoute,
   AppExceptionsRoute: AppExceptionsRoute,
   AppMappingsRoute: AppMappingsRoute,
   AppIndexRoute: AppIndexRoute,

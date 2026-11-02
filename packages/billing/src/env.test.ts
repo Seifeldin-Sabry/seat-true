@@ -14,8 +14,6 @@ test("billing rejects unsafe redirect origins", () => {
   const values = {
     STRIPE_SECRET_KEY: "sk_test_fake",
     STRIPE_WEBHOOK_SECRET: "whsec_fake",
-    STRIPE_SUBSCRIPTION_PRICE_ID: "price_subscription",
-    STRIPE_ONE_TIME_PRICE_ID: "price_one_time",
   };
   expect(() =>
     readBillingEnvironment({
@@ -28,8 +26,14 @@ test("billing rejects unsafe redirect origins", () => {
   ).toEqual({
     secretKey: values.STRIPE_SECRET_KEY,
     webhookSecret: values.STRIPE_WEBHOOK_SECRET,
-    subscriptionPriceId: values.STRIPE_SUBSCRIPTION_PRICE_ID,
-    oneTimePriceId: values.STRIPE_ONE_TIME_PRICE_ID,
+    portalConfigurationId: null,
     appOrigin: "http://localhost:3000",
   });
+  expect(
+    readBillingEnvironment({
+      ...values,
+      APP_ORIGIN: "http://localhost:3000",
+      STRIPE_PORTAL_CONFIG_ID: "bpc_test",
+    })?.portalConfigurationId,
+  ).toBe("bpc_test");
 });
