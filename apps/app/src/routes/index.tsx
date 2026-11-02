@@ -136,7 +136,7 @@ const faqs = [
   },
   {
     q: "How long does the free audit take?",
-    a: "About five minutes of your time: export last month's Pax8 billing CSV and your current client prices. We map customers to clients with you and send back every exception with a monthly dollar figure.",
+    a: "About five minutes of your time: upload your Pax8 bill and your client billing export (from ConnectWise, Autotask, HaloPSA or any CSV with client, SKU, quantity and price). We map customers to clients with you and send back every exception with a monthly dollar figure.",
   },
   {
     q: "What if it finds nothing?",
@@ -249,8 +249,8 @@ function LandingPage() {
           <li>
             <h3>Export</h3>
             <p>
-              Download last month's Pax8 billing CSV. No API access, nothing to
-              approve.
+              Upload your Pax8 bill and your client billing export as CSV. No
+              API access, nothing to approve.
             </p>
           </li>
           <li>
@@ -334,8 +334,9 @@ function LandingPage() {
           <h2 id="st-guarantee-title">See the leak before you pay a cent</h2>
           <ul className="st-risk">
             <li>
-              <strong>Free margin audit first.</strong> We run your Pax8 bill
-              and show every exception in dollars before you subscribe.
+              <strong>Free margin audit first.</strong> Upload your Pax8 bill
+              and your client billing export; we show every exception in dollars
+              before you subscribe.
             </li>
             <li>
               <strong>Month to month.</strong> No refunds; cancel anytime and
@@ -436,9 +437,10 @@ function LandingPage() {
         <div>
           <h2 id="st-final-title">See last month's leak in dollars</h2>
           <p>
-            We onboard four MSPs a week so every audit gets a real person. The
-            first 20 MSPs keep the founding price for as long as they stay.
-            Built by the team at SDX Studio.
+            Upload your Pax8 bill and your client billing export; we check every
+            line at cost × your agreed markup. We onboard four MSPs a week so
+            every audit gets a real person. The first 20 MSPs keep the founding
+            price for as long as they stay. Built by the team at SDX Studio.
           </p>
         </div>
         <AuditForm />

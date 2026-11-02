@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query";
 import {
   addComment,
+  createClient,
   type ExceptionStatus,
   getClientDetail,
   getMappings,
@@ -13,11 +14,14 @@ import {
   listComments,
   listExceptions,
   loadDemo,
+  mapBillingClient,
+  saveAgreementLines,
   saveMapping,
   setClientArchived,
   setClientMarkup,
   setExceptionFlag,
   setExceptionStatus,
+  uploadBilling,
   uploadRun,
 } from "./recon-api";
 
@@ -68,6 +72,38 @@ export function useUploadRun() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: uploadRun,
+    onSuccess: () => invalidateRecon(queryClient),
+  });
+}
+
+export function useUploadBilling() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: uploadBilling,
+    onSuccess: () => invalidateRecon(queryClient),
+  });
+}
+
+export function useSaveAgreementLines() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: saveAgreementLines,
+    onSuccess: () => invalidateRecon(queryClient),
+  });
+}
+
+export function useMapBillingClient() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: mapBillingClient,
+    onSuccess: () => invalidateRecon(queryClient),
+  });
+}
+
+export function useCreateClient() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createClient,
     onSuccess: () => invalidateRecon(queryClient),
   });
 }

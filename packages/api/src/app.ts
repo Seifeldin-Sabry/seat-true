@@ -21,6 +21,9 @@ export type { DowngradePreflight } from "./plan-limits";
 export type { ProjectDto } from "./projects";
 export type {
   AgreementDto,
+  AgreementLineInput,
+  BillingImportDto,
+  BillingImportSummaryDto,
   ClientDetailDto,
   ClientSummaryDto,
   CommentDto,
@@ -28,6 +31,7 @@ export type {
   MappingsDto,
   OverviewDto,
   RunDto,
+  UnmappedBillingClientDto,
   UnmappedCustomerDto,
 } from "./reconciliation";
 

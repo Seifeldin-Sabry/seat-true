@@ -5,7 +5,12 @@ import { useState } from "react";
 import { AppShell } from "../components/app-shell";
 import { requireWorkspaceMember } from "../lib/auth-navigation";
 import { formatCents } from "../lib/format";
-import { mappingsQueryOptions, useSaveMapping } from "../lib/recon-query";
+import {
+  mappingsQueryOptions,
+  useCreateClient,
+  useMapBillingClient,
+  useSaveMapping,
+} from "../lib/recon-query";
 import { privateHead } from "../lib/seo";
 import { useCan } from "../lib/workspace";
 
@@ -162,6 +167,15 @@ function MappingsPage() {
           )}
         </section>
 
+        {data && data.unmappedBilling.length > 0 && (
+          <UnmatchedBilling
+            names={data.unmappedBilling}
+            clients={data.clients}
+            canEdit={canEdit}
+            onNotice={setNotice}
+          />
+        )}
+
         <section
           className="recon-panel"
           aria-labelledby="mapped-title"
@@ -203,5 +217,171 @@ function MappingsPage() {
         </section>
       </main>
     </AppShell>
+  );
+}
+
+const newClient = "__new__";
+
+/** Client names on the billing CSV that match no client yet. */
+function UnmatchedBilling({
+  names,
+  clients,
+  canEdit,
+  onNotice,
+}: {
+  names: {
+    clientName: string;
+    lineCount: number;
+    seats: number;
+    monthlyBilledCents: number;
+  }[];
+  clients: { id: string; name: string }[];
+  canEdit: boolean;
+  onNotice: (notice: string | null) => void;
+}) {
+  const mapBilling = useMapBillingClient();
+  const create = useCreateClient();
+  const canCreate = useCan()("client", "create");
+  const [choices, setChoices] = useState<Record<string, string>>({});
+  const [markups, setMarkups] = useState<Record<string, string>>({});
+  const error = create.error ?? mapBilling.error;
+  const busy = create.isPending || mapBilling.isPending;
+
+  async function map(clientName: string) {
+    const choice = choices[clientName];
+    if (!choice) return;
+    onNotice(null);
+    try {
+      const clientId =
+        choice === newClient
+          ? (
+              await create.mutateAsync({
+                name: clientName,
+                markupPct: Number(markups[clientName] ?? "20"),
+              })
+            ).id
+          : choice;
+      await mapBilling.mutateAsync({ clientName, clientId });
+      onNotice(
+        `Matched billed lines for ${clientName}. Reconciliation re-ran.`,
+      );
+    } catch {
+      // Shown via error below.
+    }
+  }
+
+  return (
+    <section
+      className="recon-panel"
+      aria-labelledby="unmatched-billing-title"
+      style={{ marginTop: 16 }}
+    >
+      <h2 id="unmatched-billing-title">
+        Unmatched names on the client billing CSV
+      </h2>
+      <p>
+        Match each name once; the next upload remembers it.
+        {canCreate
+          ? " Or add it as a new client (counts toward your plan)."
+          : ""}
+      </p>
+      {error && (
+        <span className="dialog-error" role="alert">
+          {error.message}
+        </span>
+      )}
+      <div className="recon-table-wrap">
+        <table className="recon-table">
+          <thead>
+            <tr>
+              <th scope="col">Billed client</th>
+              <th scope="col" className="num">
+                Billed / mo
+              </th>
+              <th scope="col">SeatTrue client</th>
+              <th scope="col">
+                <span className="sr-only">Save</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {names.map((entry) => {
+              const selectId = `billing-${entry.clientName}`;
+              const choice = choices[entry.clientName] ?? "";
+              return (
+                <tr key={entry.clientName}>
+                  <td>
+                    <div>{entry.clientName}</div>
+                    <div className="recon-summary">
+                      {entry.lineCount} line{entry.lineCount === 1 ? "" : "s"} ·{" "}
+                      {entry.seats} seats
+                    </div>
+                  </td>
+                  <td className="num">
+                    {formatCents(entry.monthlyBilledCents)}
+                  </td>
+                  <td>
+                    <label className="sr-only" htmlFor={selectId}>
+                      Client for {entry.clientName}
+                    </label>
+                    <select
+                      id={selectId}
+                      className="recon-select"
+                      disabled={!canEdit}
+                      value={choice}
+                      onChange={(event) =>
+                        setChoices((current) => ({
+                          ...current,
+                          [entry.clientName]: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Choose a client…</option>
+                      {canCreate && (
+                        <option value={newClient}>+ Add as new client</option>
+                      )}
+                      {clients.map((client) => (
+                        <option key={client.id} value={client.id}>
+                          {client.name}
+                        </option>
+                      ))}
+                    </select>
+                    {choice === newClient && (
+                      <label className="billing-markup">
+                        Markup %{" "}
+                        <input
+                          type="number"
+                          min={0}
+                          max={500}
+                          step="0.01"
+                          className="recon-select"
+                          value={markups[entry.clientName] ?? "20"}
+                          onChange={(event) =>
+                            setMarkups((current) => ({
+                              ...current,
+                              [entry.clientName]: event.target.value,
+                            }))
+                          }
+                        />
+                      </label>
+                    )}
+                  </td>
+                  <td>
+                    <Button
+                      size="sm"
+                      type="button"
+                      disabled={!canEdit || !choice || busy}
+                      onClick={() => map(entry.clientName)}
+                    >
+                      Match
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }

@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import {
+  auditLog,
   createDatabase,
   organization,
   user,
@@ -9,7 +10,11 @@ import { eq, inArray } from "drizzle-orm";
 import { createApp } from "./app";
 import type { AuthService } from "./auth";
 import { createProjectRepository } from "./projects";
-import { CsvRejectedError, createReconService } from "./reconciliation";
+import {
+  ClientLockedError,
+  CsvRejectedError,
+  createReconService,
+} from "./reconciliation";
 import { testAuthService, testWorkspace } from "./testing";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
@@ -212,3 +217,190 @@ integrationTest("routes enforce auth, origin and CSV validation", async () => {
     await connection.close();
   }
 });
+
+integrationTest(
+  "client billing CSV fills the billed side, re-runs and keeps statuses",
+  async () => {
+    if (!databaseUrl) return;
+    const connection = createDatabase(databaseUrl);
+    const db = connection.db;
+    const recon = createReconService(db);
+    const orgId = `billing-${crypto.randomUUID()}`;
+    await db
+      .insert(organization)
+      .values({ id: orgId, name: orgId, slug: orgId });
+    const actor = { userId: orgId, email: `${orgId}@northbeam-it.com` };
+    await db
+      .insert(user)
+      .values({ id: actor.userId, name: "Ops", email: actor.email });
+
+    try {
+      const acme = await recon.createClient(orgId, {
+        name: "Acme Corp",
+        markupPct: 20,
+      });
+      const beta = await recon.createClient(orgId, {
+        name: "Beta LLC",
+        psaId: "CW-42",
+        markupPct: 20,
+      });
+      const frozen = await recon.createClient(orgId, {
+        name: "Frozen Inc",
+        markupPct: 20,
+      });
+      await recon.uploadRun(
+        orgId,
+        "pax8.csv",
+        [
+          "Company ID,Company Name,SKU,Product Name,Quantity,Cost",
+          "PX-1,Acme Pax8 Name,BP,Business Premium,12,$22.00",
+          "PX-1,Acme Pax8 Name,E3,Office 365 E3,5,$23.00",
+          "PX-2,Beta,BS,Business Standard,4,$12.50",
+        ].join("\n"),
+      );
+      await recon.setMapping(orgId, "PX-1", acme.id, null);
+      await recon.setMapping(orgId, "PX-2", beta.id, null);
+      // No billed side yet: everything on the bill is unbilled.
+      expect(
+        (await recon.exceptions(orgId)).every(
+          (entry) => entry.kind === "unbilled_seats",
+        ),
+      ).toBe(true);
+
+      // Lock Frozen Inc the way a downgrade would.
+      await recon.applyLocks(orgId, [frozen.id], [], new Date());
+
+      const billing = [
+        "Company Name,Product ID,Description,Quantity,Unit Price,Period",
+        // Matched by the mapped Pax8 customer's name.
+        "Acme Pax8 Name,BP,Business Premium,10,$26.40,2026-11",
+        "Acme Corp,E3,Office 365 E3,5,$25.00,2026-11",
+        // Matched by PSA ID.
+        "CW-42,BS,Business Standard,6,$15.00,2026-11",
+        "Frozen Inc,BP,Business Premium,1,$26.40,2026-11",
+        "Gamma Dental,BP,Business Premium,3,$26.40,2026-11",
+      ].join("\n");
+      const imported = await recon.importBilling(
+        orgId,
+        "psa.csv",
+        billing,
+        actor,
+      );
+      expect(imported).toMatchObject({
+        lineCount: 5,
+        agreementCount: 3,
+        matchedClients: 2,
+        unmapped: [{ clientName: "Gamma Dental", lineCount: 1 }],
+        skippedClients: ["Frozen Inc"],
+      });
+
+      const kinds = (await recon.exceptions(orgId))
+        .map((entry) => `${entry.kind}:${entry.sku}`)
+        .sort();
+      expect(kinds).toEqual([
+        "overbilled:BS",
+        "stale_price:E3",
+        "unbilled_seats:BP",
+      ]);
+      expect((await recon.mappings(orgId)).unmappedBilling).toEqual([
+        {
+          clientName: "Gamma Dental",
+          lineCount: 1,
+          seats: 3,
+          monthlyBilledCents: 7920,
+        },
+      ]);
+      expect((await recon.overview(orgId)).billingImport).toMatchObject({
+        fileName: "psa.csv",
+        unmappedCount: 1,
+      });
+
+      // Statuses survive a re-upload.
+      const stale = (await recon.exceptions(orgId)).find(
+        (entry) => entry.kind === "stale_price",
+      );
+      if (!stale) throw new Error("Expected stale price");
+      await recon.setExceptionStatus(orgId, stale.id, "approved", null);
+      await recon.importBilling(orgId, "psa.csv", billing, actor);
+      expect(
+        (await recon.exceptions(orgId)).find((entry) => entry.id === stale.id)
+          ?.status,
+      ).toBe("approved");
+
+      // Bad rows: nothing stored, every row reported.
+      const rejected = await recon
+        .importBilling(
+          orgId,
+          "bad.csv",
+          "Client,SKU,Qty,Price\nAcme Corp,BP,x,1\nAcme Corp,BP,1,",
+          actor,
+        )
+        .catch((error: unknown) => error);
+      expect(rejected).toBeInstanceOf(CsvRejectedError);
+      expect(
+        (rejected as CsvRejectedError).rows.map((row) => row.rowNumber),
+      ).toEqual([2, 3]);
+      expect(
+        (await recon.client(orgId, acme.id))?.agreements.map(
+          (line) => line.sku,
+        ),
+      ).toEqual(["BP", "E3"]);
+
+      // Manual edit fixes the price; the stale exception disappears.
+      await recon.setAgreementLines(
+        orgId,
+        acme.id,
+        [
+          { sku: "BP", quantity: 12, unitPriceCents: 2640 },
+          {
+            sku: "E3",
+            productName: "Office 365 E3",
+            quantity: 5,
+            unitPriceCents: 2760,
+          },
+        ],
+        actor,
+      );
+      expect(
+        (await recon.exceptions(orgId)).map((entry) => entry.kind),
+      ).toEqual(["overbilled"]);
+      await expect(
+        recon.setAgreementLines(orgId, frozen.id, [], actor),
+      ).rejects.toBeInstanceOf(ClientLockedError);
+
+      // Mapping an unmapped billing name moves its rows and is remembered.
+      const gamma = await recon.createClient(orgId, {
+        name: "Gamma Dental Group",
+        markupPct: 20,
+      });
+      expect(
+        await recon.mapBillingClient(orgId, "Gamma Dental", gamma.id, actor),
+      ).toBe(true);
+      expect((await recon.client(orgId, gamma.id))?.agreements).toMatchObject([
+        { sku: "BP", quantity: 3, unitPriceCents: 2640 },
+      ]);
+      expect((await recon.mappings(orgId)).unmappedBilling).toEqual([]);
+      const again = await recon.importBilling(orgId, "psa.csv", billing, actor);
+      expect(again.unmapped).toEqual([]);
+      // The billing alias never shows up as a distributor mapping.
+      expect(
+        (await recon.mappings(orgId)).mappings.map(
+          (entry) => entry.customerKey,
+        ),
+      ).toEqual(["PX-1", "PX-2"]);
+
+      const actions = (
+        await db
+          .select({ action: auditLog.action })
+          .from(auditLog)
+          .where(eq(auditLog.organizationId, orgId))
+      ).map((row) => row.action);
+      expect(actions).toContain("billing.import");
+      expect(actions).toContain("billing.lines_edit");
+    } finally {
+      await db.delete(organization).where(eq(organization.id, orgId));
+      await db.delete(user).where(eq(user.id, orgId));
+      await connection.close();
+    }
+  },
+);

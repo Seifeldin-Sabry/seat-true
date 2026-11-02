@@ -115,6 +115,38 @@ export const reconciliationRuns = pgTable(
   ],
 );
 
+/** A client billing row whose client name didn't match a SeatTrue client. */
+export type StoredBilledLine = {
+  rowNumber: number;
+  clientName: string;
+  sku: string;
+  productName: string;
+  quantity: number;
+  unitPriceCents: number;
+  period: string;
+};
+
+/**
+ * Latest client billing CSV import per workspace (the billed side). Matched
+ * rows become agreement_lines; unmatched rows wait here until mapped.
+ */
+export const billingImports = pgTable(
+  "billing_imports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: organizationId(),
+    fileName: varchar("file_name", { length: 255 }).notNull(),
+    lineCount: integer("line_count").notNull(),
+    unmappedLines: jsonb("unmapped_lines")
+      .$type<StoredBilledLine[]>()
+      .notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    index("billing_imports_organization_id_idx").on(table.organizationId),
+  ],
+);
+
 export type ExceptionStatus = "open" | "approved" | "billed" | "dismissed";
 
 export const reconciliationExceptions = pgTable(

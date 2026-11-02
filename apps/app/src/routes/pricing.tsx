@@ -56,9 +56,9 @@ function PricingPage() {
     <SiteShell>
       <PageIntro eyebrow="Pricing" title="Two flat plans. Free audit first.">
         <p>
-          No per-licence fees and no setup fee. Run the free margin audit on
-          last month's Pax8 bill, then pick the plan that fits your client
-          count.
+          No per-licence fees and no setup fee. Run the free margin audit:
+          upload your Pax8 bill and your client billing export, then pick the
+          plan that fits your client count.
         </p>
       </PageIntro>
 

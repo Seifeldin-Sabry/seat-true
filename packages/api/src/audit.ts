@@ -14,6 +14,8 @@ export type AuditAction =
   | "exception.comment"
   | "mapping.change"
   | "client.markup"
+  | "billing.import"
+  | "billing.lines_edit"
   | "member.invited"
   | "member.invite_canceled"
   | "member.joined"

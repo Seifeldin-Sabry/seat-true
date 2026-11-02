@@ -4,6 +4,7 @@ export type {
   ExceptionStatus,
   NewProject,
   Project,
+  StoredBilledLine,
   StoredVendorLine,
   WorkspaceRole,
 } from "./schema";
@@ -12,6 +13,7 @@ export {
   agreementLines,
   auditLog,
   billingCustomers,
+  billingImports,
   billingPlanChanges,
   billingPurchases,
   billingSubscriptions,

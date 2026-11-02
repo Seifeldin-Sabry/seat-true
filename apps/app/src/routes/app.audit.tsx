@@ -24,6 +24,8 @@ const actionLabels: Record<string, string> = {
   "exception.comment": "Commented",
   "mapping.change": "Changed mapping",
   "client.markup": "Changed markup",
+  "billing.import": "Imported client billing CSV",
+  "billing.lines_edit": "Edited billed lines",
   "member.invited": "Invited member",
   "member.invite_canceled": "Canceled invite",
   "member.joined": "Joined workspace",

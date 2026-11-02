@@ -1,9 +1,11 @@
 /**
  * Integrations directory. Strict rule: "live" only when the code ships and
- * tests it. Today that is the one CSV parser in packages/recon/src/pax8-csv.ts
- * (Pax8 billing export, Partner Center reconciliation file), covered by
- * packages/recon/src/reconcile.test.ts. Nothing imports from or writes to a
- * PSA yet, so every PSA entry is "soon". No dates on anything that isn't live.
+ * tests it. Today that is two CSV parsers: packages/recon/src/pax8-csv.ts
+ * (Pax8 billing export, Partner Center reconciliation file, tested in
+ * reconcile.test.ts) and packages/recon/src/billing-csv.ts (generic client
+ * billing export, tested in billing-csv.test.ts). Nothing connects to a PSA's
+ * API or writes to one, so the PSA syncs stay "soon". No dates on anything
+ * that isn't live.
  */
 export type IntegrationCategory = "distributors" | "microsoft" | "psa" | "ai";
 
@@ -196,6 +198,45 @@ export const integrations: Integration[] = [
       "Download the reconciliation file from Partner Center and upload it as CSV.",
   },
   {
+    slug: "psa-billing-csv",
+    name: "PSA billing CSV import",
+    category: "psa",
+    status: "live",
+    method: "CSV import",
+    pulls:
+      "What each client is billed: client, SKU, quantity, unit price. Generic; ConnectWise / Autotask / HaloPSA exports.",
+    title: "PSA billing CSV import · SeatTrue integrations",
+    description:
+      "Upload your client billing export as CSV: client, SKU, quantity and unit price. A file upload, not a PSA sync. ConnectWise, Autotask, HaloPSA or any CSV.",
+    intro:
+      "The billed side of the check: upload a CSV of what you invoice each client and SeatTrue compares it with the distributor bill at cost × markup. This is a file upload, not an API sync. SeatTrue doesn't connect to your PSA and never writes to it.",
+    data: [
+      "Client (name or PSA ID), matched to your SeatTrue clients",
+      "SKU or product ID; it must match the distributor SKU on the Pax8 bill",
+      "Quantity billed",
+      "Unit price; “$1,234.50” style amounts are fine",
+      "Billing period, if the file has one (one month per file)",
+    ],
+    setup: [
+      {
+        title: "Export what you bill",
+        body: "Export recurring billing lines from your PSA or billing tool as CSV. Any file with client, SKU, quantity and unit price columns works.",
+      },
+      {
+        title: "Column names are mapped, not synced",
+        body: "Headers are matched by meaning, ignoring case and spacing. Names common in ConnectWise agreement additions, Autotask contract services and HaloPSA recurring invoice lines are recognised; they're mapped from common export layouts, not tested against every PSA version. If a column isn't found, rename the header and upload again.",
+      },
+      {
+        title: "Upload in SeatTrue",
+        body: "Choose Upload client billing CSV on the overview. Anyone who can upload the Pax8 bill can upload this. If any row is unreadable, every bad row is listed by number and nothing is stored.",
+      },
+      {
+        title: "Match client names once",
+        body: "Names that don't match a client wait on the Mappings page. Match each once and later uploads remember it. Reconciliation re-runs on every upload and keeps the statuses you've set.",
+      },
+    ],
+  },
+  {
     slug: "connectwise",
     name: "ConnectWise PSA",
     category: "psa",
@@ -213,7 +254,7 @@ export const integrations: Integration[] = [
     ],
     setup: [],
     meanwhile:
-      "Set clients and their markup in SeatTrue. Nothing reads from or writes to ConnectWise today.",
+      "Export what you bill as CSV and use the PSA billing CSV import. Nothing connects to or writes to ConnectWise today.",
   },
   {
     slug: "autotask",
@@ -233,7 +274,7 @@ export const integrations: Integration[] = [
     ],
     setup: [],
     meanwhile:
-      "Set clients and their markup in SeatTrue. Nothing reads from or writes to Autotask today.",
+      "Export what you bill as CSV and use the PSA billing CSV import. Nothing connects to or writes to Autotask today.",
   },
   {
     slug: "halopsa",
@@ -253,7 +294,7 @@ export const integrations: Integration[] = [
     ],
     setup: [],
     meanwhile:
-      "Set clients and their markup in SeatTrue. Nothing reads from or writes to HaloPSA today.",
+      "Export what you bill as CSV and use the PSA billing CSV import. Nothing connects to or writes to HaloPSA today.",
   },
   {
     slug: "mcp-server",

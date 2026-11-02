@@ -1,15 +1,16 @@
 import { Badge, Button } from "@seattrue/ui";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FileUp, LoaderCircle, Sparkles } from "lucide-react";
-import type { ChangeEvent } from "react";
+import { FileSpreadsheet, FileUp, LoaderCircle, Sparkles } from "lucide-react";
 import { useRef, useState } from "react";
 import { AppShell } from "../components/app-shell";
 import { requireWorkspaceMember } from "../lib/auth-navigation";
 import { exceptionKindLabels, formatCents } from "../lib/format";
+import type { BillingImportDto } from "../lib/recon-api";
 import {
   overviewQueryOptions,
   useLoadDemo,
+  useUploadBilling,
   useUploadRun,
 } from "../lib/recon-query";
 import { privateHead } from "../lib/seo";
@@ -29,34 +30,64 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Something went wrong.";
 }
 
+/** What the billing import did, in one line. */
+function billingNotice(result: BillingImportDto) {
+  const parts = [
+    `Imported ${result.lineCount} billed lines for ${result.matchedClients} client${result.matchedClients === 1 ? "" : "s"}. Reconciliation re-ran.`,
+  ];
+  if (result.unmapped.length)
+    parts.push(
+      `${result.unmapped.length} client name${result.unmapped.length === 1 ? "" : "s"} didn't match a client: map them on Mappings.`,
+    );
+  if (result.skippedClients.length)
+    parts.push(
+      `Left out (locked or archived): ${result.skippedClients.join(", ")}.`,
+    );
+  return parts.join(" ");
+}
+
+/** Reads the chosen CSV and hands its name and text on. */
+function pickCsv(
+  input: HTMLInputElement,
+  onCsv: (file: { fileName: string; csv: string }) => void,
+) {
+  const file = input.files?.[0];
+  input.value = "";
+  if (file) void file.text().then((csv) => onCsv({ fileName: file.name, csv }));
+}
+
 function OverviewPage() {
   const { user } = Route.useRouteContext();
   const overview = useQuery(overviewQueryOptions);
   const upload = useUploadRun();
   const demo = useLoadDemo();
   const can = useCan();
+  const billing = useUploadBilling();
   const fileInput = useRef<HTMLInputElement>(null);
+  const billingInput = useRef<HTMLInputElement>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const data = overview.data;
-  const busy = upload.isPending || demo.isPending;
-  const actionError = upload.error ?? demo.error;
+  const busy = upload.isPending || demo.isPending || billing.isPending;
+  const actionError = upload.error ?? billing.error ?? demo.error;
+  const canUpload = can("run", "upload");
 
-  async function onFile(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
+  function onBill(file: { fileName: string; csv: string }) {
     setNotice(null);
-    try {
-      const run = await upload.mutateAsync({
-        fileName: file.name,
-        csv: await file.text(),
-      });
-      setNotice(
-        `Reconciled ${run.lineCount} lines across ${run.customerCount} customers.`,
-      );
-    } catch {
-      // Shown via upload.error.
-    }
+    billing.reset();
+    upload.mutate(file, {
+      onSuccess: (run) =>
+        setNotice(
+          `Reconciled ${run.lineCount} lines across ${run.customerCount} customers.`,
+        ),
+    });
+  }
+
+  function onBilling(file: { fileName: string; csv: string }) {
+    setNotice(null);
+    upload.reset();
+    billing.mutate(file, {
+      onSuccess: (result) => setNotice(billingNotice(result)),
+    });
   }
 
   async function onDemo() {
@@ -79,8 +110,23 @@ function OverviewPage() {
             <p>
               {data?.run
                 ? `From ${data.run.fileName} · ${data.run.lineCount} lines · ${data.run.customerCount} customers`
-                : "Upload a Pax8 billing export to reconcile it against your client agreements."}
+                : "Upload your Pax8 bill and your client billing export to reconcile one against the other."}
             </p>
+            {data?.billingImport && (
+              <p className="recon-summary">
+                Billed side from {data.billingImport.fileName} ·{" "}
+                {data.billingImport.lineCount} lines
+                {data.billingImport.unmappedCount > 0 && (
+                  <>
+                    {" "}
+                    ·{" "}
+                    <Link to="/app/mappings">
+                      {data.billingImport.unmappedCount} unmatched
+                    </Link>
+                  </>
+                )}
+              </p>
+            )}
           </div>
           <div className="recon-actions">
             <input
@@ -88,12 +134,19 @@ function OverviewPage() {
               type="file"
               accept=".csv,text/csv"
               hidden
-              onChange={onFile}
+              onChange={(event) => pickCsv(event.target, onBill)}
+            />
+            <input
+              ref={billingInput}
+              type="file"
+              accept=".csv,text/csv"
+              hidden
+              onChange={(event) => pickCsv(event.target, onBilling)}
             />
             <Button
               type="button"
               onClick={() => fileInput.current?.click()}
-              disabled={busy || !can("run", "upload")}
+              disabled={busy || !canUpload}
             >
               {upload.isPending ? (
                 <LoaderCircle size={16} className="spin" aria-hidden="true" />
@@ -101,6 +154,20 @@ function OverviewPage() {
                 <FileUp size={16} aria-hidden="true" />
               )}
               Upload Pax8 CSV
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => billingInput.current?.click()}
+              disabled={busy || !canUpload}
+              title="Generic CSV: client, SKU, quantity, unit price. Replaces the billed lines of every unlocked client."
+            >
+              {billing.isPending ? (
+                <LoaderCircle size={16} className="spin" aria-hidden="true" />
+              ) : (
+                <FileSpreadsheet size={16} aria-hidden="true" />
+              )}
+              Upload client billing CSV
             </Button>
             {can("run", "demo") && (
               <Button
@@ -146,7 +213,9 @@ function OverviewPage() {
           <div className="empty-state">
             <h2>No bill reconciled yet</h2>
             <p>
-              Upload last month's Pax8 export, or load the demo MSP to see what
+              Upload last month's Pax8 export and your client billing export
+              (ConnectWise, Autotask, HaloPSA or any CSV with client, SKU,
+              quantity and unit price), or load the demo MSP to see what
               SeatTrue finds.
             </p>
           </div>

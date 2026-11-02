@@ -29,8 +29,34 @@ const columnAliases = {
   billingTerm: ["term and billing cycle", "billing term", "term", "commitment"],
 } as const;
 
-const normalizeHeader = (value: string) =>
+export const normalizeHeader = (value: string) =>
   value.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/**
+ * Header row → column index per field (first alias found wins, -1 if none).
+ * Throws CsvFormatError naming the first alias of each missing required field.
+ */
+export function resolveColumns<Field extends string>(
+  header: string[],
+  aliases: Record<Field, readonly string[]>,
+  required: readonly Field[],
+): Record<Field, number> {
+  const normalized = header.map(normalizeHeader);
+  const index = {} as Record<Field, number>;
+  for (const field of Object.keys(aliases) as Field[]) {
+    const alias = aliases[field]
+      .map(normalizeHeader)
+      .find((candidate) => normalized.includes(candidate));
+    index[field] = alias === undefined ? -1 : normalized.indexOf(alias);
+  }
+  const missing = required.filter((field) => index[field] === -1);
+  if (missing.length > 0) {
+    throw new CsvFormatError(
+      `Missing columns: ${missing.map((field) => aliases[field][0]).join(", ")}.`,
+    );
+  }
+  return index;
+}
 
 type Column = keyof typeof columnAliases;
 const requiredColumns: Column[] = [
@@ -83,7 +109,8 @@ export function parseCsv(text: string): string[][] {
   return rows.filter((cells) => cells.some((cell) => cell.trim() !== ""));
 }
 
-function parseMoneyToCents(value: string, rowNumber: number): number {
+/** "$1,234.50", "1234.5", "€ 12" → cents. */
+export function parseMoneyToCents(value: string, rowNumber: number): number {
   const amount = Number(value.replace(/[$£€,\s]/g, ""));
   if (!Number.isFinite(amount)) {
     throw new CsvFormatError(`Row ${rowNumber}: "${value}" is not a price.`);
@@ -95,20 +122,7 @@ export function parsePax8Csv(text: string): VendorLine[] {
   const [header, ...body] = parseCsv(text.replace(/^﻿/, ""));
   if (!header) throw new CsvFormatError("The file is empty.");
 
-  const normalized = header.map(normalizeHeader);
-  const index = {} as Record<Column, number>;
-  for (const column of Object.keys(columnAliases) as Column[]) {
-    const alias = columnAliases[column]
-      .map(normalizeHeader)
-      .find((candidate) => normalized.includes(candidate));
-    index[column] = alias === undefined ? -1 : normalized.indexOf(alias);
-  }
-  const missing = requiredColumns.filter((column) => index[column] === -1);
-  if (missing.length > 0) {
-    throw new CsvFormatError(
-      `Missing columns: ${missing.map((column) => columnAliases[column][0]).join(", ")}.`,
-    );
-  }
+  const index = resolveColumns(header, columnAliases, requiredColumns);
 
   const cell = (cells: string[], column: Column) =>
     index[column] === -1

@@ -102,8 +102,8 @@ MSPs that resell Microsoft 365: owners of small MSPs (1–20 staff) who do the b
 
 ## How it works today
 
-- Input: CSV exports (Pax8 billing export; Partner Center reconciliation files also work). No API access needed; it never writes to Pax8 or the PSA.
-- Live integrations: Pax8 billing CSV import and Microsoft Partner Center reconciliation CSV import (one importer, tested).
+- Input: two CSV uploads. The distributor bill (Pax8 billing export; Partner Center reconciliation files also work) and the MSP's client billing export (client, SKU, quantity, unit price; column names common in ConnectWise, Autotask and HaloPSA exports are recognised). Billed lines can also be entered by hand per client. No API access needed; it never writes to Pax8 or the PSA.
+- Live integrations: Pax8 billing CSV import, Microsoft Partner Center reconciliation CSV import, and PSA billing CSV import (a file upload, not a PSA sync). All tested.
 - Coming soon, not live: Pax8 API, Partner Center API, Giacom, Sherweb, ConnectWise PSA, Autotask PSA and HaloPSA syncs, and a SeatTrue MCP server.
 - Sign-in requires a company email address.
 

@@ -50,12 +50,14 @@ export type NewProject = typeof projects.$inferInsert;
 
 export {
   agreementLines,
+  billingImports,
   clients,
   customerMappings,
   type ExceptionStatus,
   exceptionComments,
   reconciliationExceptions,
   reconciliationRuns,
+  type StoredBilledLine,
   type StoredVendorLine,
   waitlistEntries,
 } from "./recon-schema";

@@ -58,7 +58,7 @@ export const comparisons: Record<string, Comparison> = {
       {
         check: "PSA connection",
         them: "Integrations listed for ConnectWise, Autotask and HaloPSA",
-        us: "None live; CSV upload. HaloPSA sync planned",
+        us: "No API sync; billing CSV upload (ConnectWise, Autotask, HaloPSA exports). Syncs planned",
       },
       {
         check: "Seat quantity vs what's billed",

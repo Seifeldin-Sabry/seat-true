@@ -181,14 +181,21 @@ describe("integrations", () => {
     );
   });
 
-  // Live = shipped and tested in packages/recon (pax8-csv.ts). Changing this
-  // list means pointing at new code and tests, not editing copy.
-  test("only the tested CSV importer is marked live", () => {
+  // Live = shipped and tested in packages/recon (pax8-csv.ts, billing-csv.ts).
+  // Changing this list means pointing at new code and tests, not editing copy.
+  test("only the tested CSV importers are marked live", () => {
     const live = integrations.filter((i) => i.status === "live");
     expect(live.map((i) => [i.slug, i.method])).toEqual([
       ["pax8-csv", "CSV import"],
       ["partner-center-csv", "CSV import"],
+      ["psa-billing-csv", "CSV import"],
     ]);
+    // PSA API syncs stay "soon" until something connects to a PSA.
+    expect(
+      integrations
+        .filter((i) => i.category === "psa" && i.method === "API")
+        .map((i) => i.status),
+    ).toEqual(["soon", "soon", "soon"]);
     for (const integration of integrations) {
       const isLive = integration.status === "live";
       expect({

@@ -66,9 +66,27 @@ function permissionMatrix(): {
       allowed: everyone,
     },
     {
+      method: "POST",
+      path: "/recon/billing",
+      body: { fileName: "billing.csv", csv: "a,b\n1,2" },
+      allowed: everyone,
+    },
+    {
+      method: "PUT",
+      path: `/recon/clients/${id()}/agreements`,
+      body: { lines: [{ sku: "BP", quantity: 1, unitPriceCents: 2640 }] },
+      allowed: everyone,
+    },
+    {
       method: "PATCH",
       path: `/recon/exceptions/${id()}`,
       body: { status: "approved" },
+      allowed: opsAndUp,
+    },
+    {
+      method: "PUT",
+      path: "/recon/billing/mappings",
+      body: { clientName: "Acme", clientId: id() },
       allowed: opsAndUp,
     },
     {

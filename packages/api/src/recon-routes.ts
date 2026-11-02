@@ -47,11 +47,27 @@ function planLimit(error: PlanLimitError) {
 function clientLocked(error: ClientLockedError) {
   return { error: { code: "CLIENT_LOCKED" as const, message: error.message } };
 }
+function invalidCsv(error: CsvRejectedError) {
+  return {
+    error: {
+      code: "INVALID_CSV" as const,
+      message: error.message,
+      rows: error.rows,
+    },
+  };
+}
 const uuidPattern =
   "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$";
 const idParams = t.Object({ id: t.String({ pattern: uuidPattern }) });
 /** ~2 MB of CSV covers thousands of subscription lines. */
 const maxCsvLength = 2_000_000;
+const csvUpload = t.Object(
+  {
+    fileName: t.String({ minLength: 1, maxLength: 255, pattern: "\\S" }),
+    csv: t.String({ minLength: 1, maxLength: maxCsvLength }),
+  },
+  { additionalProperties: false },
+);
 
 export function createReconRoutes({
   recon,
@@ -289,26 +305,136 @@ export function createReconRoutes({
               ),
             );
           } catch (error) {
-            if (error instanceof CsvRejectedError) {
-              return status(422, {
-                error: {
-                  code: "INVALID_CSV" as const,
-                  message: error.message,
-                },
-              });
-            }
+            if (error instanceof CsvRejectedError)
+              return status(422, invalidCsv(error));
             throw error;
           }
+        },
+        { body: csvUpload },
+      )
+      // Client billing CSV (the billed side). Same permission as the Pax8 upload.
+      .post(
+        "/recon/billing",
+        async ({ request, body, status }) => {
+          if (!isTrusted(request)) return status(403, invalidOrigin);
+          const access = await guard(request.headers, { run: ["upload"] });
+          if (!access.ok) return status(access.status, access.body);
+          const { workspace } = access;
+          if (!(await canWrite(workspace.organizationId)))
+            return status(402, readOnly);
+          try {
+            return status(
+              201,
+              await recon.importBilling(
+                workspace.organizationId,
+                body.fileName.trim(),
+                body.csv,
+                actorOf(workspace),
+              ),
+            );
+          } catch (error) {
+            if (error instanceof CsvRejectedError)
+              return status(422, invalidCsv(error));
+            throw error;
+          }
+        },
+        { body: csvUpload },
+      )
+      .put(
+        "/recon/billing/mappings",
+        async ({ request, body, status }) => {
+          if (!isTrusted(request)) return status(403, invalidOrigin);
+          const access = await guard(request.headers, { mapping: ["edit"] });
+          if (!access.ok) return status(access.status, access.body);
+          const { workspace } = access;
+          if (!(await canWrite(workspace.organizationId)))
+            return status(402, readOnly);
+          let saved: boolean;
+          try {
+            saved = await recon.mapBillingClient(
+              workspace.organizationId,
+              body.clientName.trim(),
+              body.clientId,
+              actorOf(workspace),
+            );
+          } catch (error) {
+            if (error instanceof ClientLockedError)
+              return status(423, clientLocked(error));
+            throw error;
+          }
+          if (!saved) return status(404, clientNotFound);
+          return { success: true as const };
         },
         {
           body: t.Object(
             {
-              fileName: t.String({
+              clientName: t.String({
                 minLength: 1,
-                maxLength: 255,
+                maxLength: 160,
                 pattern: "\\S",
               }),
-              csv: t.String({ minLength: 1, maxLength: maxCsvLength }),
+              clientId: t.String({ pattern: uuidPattern }),
+            },
+            { additionalProperties: false },
+          ),
+        },
+      )
+      .put(
+        "/recon/clients/:id/agreements",
+        async ({ request, params, body, status }) => {
+          if (!isTrusted(request)) return status(403, invalidOrigin);
+          const access = await guard(request.headers, { run: ["upload"] });
+          if (!access.ok) return status(access.status, access.body);
+          const { workspace } = access;
+          if (!(await canWrite(workspace.organizationId)))
+            return status(402, readOnly);
+          const skus = body.lines.map((line) => line.sku.trim());
+          if (new Set(skus).size !== skus.length)
+            return status(422, {
+              error: {
+                code: "DUPLICATE_SKU" as const,
+                message: "Each SKU can appear once per client.",
+              },
+            });
+          let saved: Awaited<ReturnType<ReconService["setAgreementLines"]>>;
+          try {
+            saved = await recon.setAgreementLines(
+              workspace.organizationId,
+              params.id,
+              body.lines,
+              actorOf(workspace),
+            );
+          } catch (error) {
+            if (error instanceof ClientLockedError)
+              return status(423, clientLocked(error));
+            throw error;
+          }
+          if (!saved) return status(404, clientNotFound);
+          return { agreements: saved };
+        },
+        {
+          params: idParams,
+          body: t.Object(
+            {
+              lines: t.Array(
+                t.Object(
+                  {
+                    sku: t.String({
+                      minLength: 1,
+                      maxLength: 64,
+                      pattern: "\\S",
+                    }),
+                    productName: t.Optional(t.String({ maxLength: 200 })),
+                    quantity: t.Integer({ minimum: 0, maximum: 1_000_000 }),
+                    unitPriceCents: t.Integer({
+                      minimum: 0,
+                      maximum: 100_000_000,
+                    }),
+                  },
+                  { additionalProperties: false },
+                ),
+                { maxItems: 500 },
+              ),
             },
             { additionalProperties: false },
           ),

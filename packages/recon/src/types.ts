@@ -81,7 +81,11 @@ export type VendorSource = {
   fetchLines(): Promise<VendorLine[]>;
 };
 
-/** Adapter seam: manual/DB now, HaloPSA / Autotask / ConnectWise later. */
+/**
+ * Adapter seam for PSA API syncs (HaloPSA / Autotask / ConnectWise, not built).
+ * Today the billed side comes from a CSV upload (billing-csv.ts) or manual
+ * entry, both stored as agreement lines.
+ */
 export type PsaSource = {
   name: string;
   listClients(): Promise<Client[]>;

@@ -1218,6 +1218,8 @@ body {
   margin-top: 14px;
 }
 .recon-table-wrap {
+  /* Contains absolutely positioned sr-only labels so they can't widen the page. */
+  position: relative;
   overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) + 4px);
@@ -1263,6 +1265,41 @@ body {
   color: var(--primary-foreground);
   border-color: var(--primary);
   background: var(--primary);
+}
+.billing-markup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+.billing-markup input {
+  width: 84px;
+}
+/* Manual billed-lines editor on the client page. */
+.billed-lines {
+  display: grid;
+  gap: 12px;
+}
+.billed-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) 72px 96px auto;
+  gap: 8px;
+  align-items: end;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+@media (max-width: 560px) {
+  .billed-line {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .billed-line-remove {
+    justify-self: start;
+  }
 }
 .recon-row-actions {
   display: flex;

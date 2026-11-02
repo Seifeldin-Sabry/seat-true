@@ -1,5 +1,6 @@
 import {
   agreementLines,
+  billingImports,
   clients,
   customerMappings,
   type Database,
@@ -7,15 +8,21 @@ import {
   exceptionComments,
   reconciliationExceptions,
   reconciliationRuns,
+  type StoredBilledLine,
   type StoredVendorLine,
   waitlistEntries,
 } from "@seattrue/db";
 import {
+  type BillingRowError,
+  billedLinesToAgreements,
+  CsvFormatError,
   demoAgreements,
   demoClients,
   demoPax8Csv,
   type ExceptionKind,
   exceptionKinds,
+  normalizeClientName,
+  parseBillingCsv,
   parsePax8Csv,
   reconcile,
   type VendorLine,
@@ -29,6 +36,8 @@ import {
   inArray,
   isNotNull,
   isNull,
+  like,
+  not,
 } from "drizzle-orm";
 import { type Actor, type AuditAction, recordAudit } from "./audit";
 
@@ -83,8 +92,17 @@ export type RunDto = {
   customerCount: number;
 };
 
+export type BillingImportSummaryDto = {
+  fileName: string;
+  createdAt: string;
+  lineCount: number;
+  unmappedCount: number;
+};
+
 export type OverviewDto = {
   run: RunDto | null;
+  /** Latest client billing CSV import (the billed side), if any. */
+  billingImport: BillingImportSummaryDto | null;
   leakageCents: number;
   recoveredCents: number;
   overbilledCents: number;
@@ -114,9 +132,18 @@ export type UnmappedCustomerDto = {
   monthlyCostCents: number;
 };
 
+export type UnmappedBillingClientDto = {
+  clientName: string;
+  lineCount: number;
+  seats: number;
+  monthlyBilledCents: number;
+};
+
 export type MappingsDto = {
   mappings: { customerKey: string; clientId: string; clientName: string }[];
   unmapped: UnmappedCustomerDto[];
+  /** Client names from the billing CSV that match no SeatTrue client. */
+  unmappedBilling: UnmappedBillingClientDto[];
   clients: { id: string; name: string }[];
 };
 
@@ -126,7 +153,41 @@ export type WaitlistInput = {
   seats?: number;
 };
 
-export class CsvRejectedError extends Error {}
+export class CsvRejectedError extends Error {
+  constructor(
+    message: string,
+    /** Per-row problems; nothing was stored. */
+    readonly rows: BillingRowError[] = [],
+  ) {
+    super(message);
+  }
+}
+
+export type BillingImportDto = {
+  fileName: string;
+  /** Billed rows read from the file. */
+  lineCount: number;
+  /** Agreement lines written (duplicate client + SKU rows are summed). */
+  agreementCount: number;
+  matchedClients: number;
+  unmapped: { clientName: string; lineCount: number }[];
+  /** Locked or archived clients whose rows were left out. */
+  skippedClients: string[];
+};
+
+export type AgreementLineInput = {
+  sku: string;
+  productName?: string;
+  quantity: number;
+  unitPriceCents: number;
+};
+
+/** Mapping key for a billing CSV client name; never collides with distributor IDs. */
+const billingKeyPrefix = "billing:";
+const billingKey = (clientName: string) =>
+  `${billingKeyPrefix}${normalizeClientName(clientName)}`.slice(0, 128);
+const isBillingKey = (customerKey: string) =>
+  customerKey.startsWith(billingKeyPrefix);
 
 /** Writes to a locked or archived client are refused; its data stays. */
 export class ClientLockedError extends Error {
@@ -192,6 +253,31 @@ export type ReconService = {
     markupPct: number,
     actor: Actor,
   ): Promise<ClientSummaryDto | null>;
+  /**
+   * Client billing CSV → agreement lines for every unlocked client, then
+   * re-runs the latest bill. Throws CsvRejectedError (with per-row errors)
+   * and stores nothing when any row is bad.
+   */
+  importBilling(
+    organizationId: string,
+    fileName: string,
+    csv: string,
+    actor: Actor,
+  ): Promise<BillingImportDto>;
+  /** Replaces one client's billed lines. Null when the client isn't in the workspace. */
+  setAgreementLines(
+    organizationId: string,
+    clientId: string,
+    lines: AgreementLineInput[],
+    actor: Actor,
+  ): Promise<AgreementDto[] | null>;
+  /** Billing CSV client name → client; moves its waiting rows. False when the client isn't in the workspace. */
+  mapBillingClient(
+    organizationId: string,
+    clientName: string,
+    clientId: string,
+    actor: Actor,
+  ): Promise<boolean>;
   /** Throws CsvRejectedError when the file cannot be parsed. */
   uploadRun(
     organizationId: string,
@@ -304,6 +390,35 @@ export function createReconService(db: Database): ReconService {
       .orderBy(desc(reconciliationRuns.createdAt), desc(reconciliationRuns.id))
       .limit(1);
     return run ?? null;
+  }
+
+  async function latestBillingImport(organizationId: string) {
+    const [row] = await db
+      .select()
+      .from(billingImports)
+      .where(eq(billingImports.organizationId, organizationId))
+      .orderBy(desc(billingImports.createdAt), desc(billingImports.id))
+      .limit(1);
+    return row ?? null;
+  }
+
+  async function agreementsFor(organizationId: string, clientId: string) {
+    const rows = await db
+      .select()
+      .from(agreementLines)
+      .where(
+        and(
+          eq(agreementLines.organizationId, organizationId),
+          eq(agreementLines.clientId, clientId),
+        ),
+      )
+      .orderBy(asc(agreementLines.productName));
+    return rows.map(({ sku, productName, quantity, unitPriceCents }) => ({
+      sku,
+      productName,
+      quantity,
+      unitPriceCents,
+    }));
   }
 
   async function organizationClients(organizationId: string) {
@@ -508,7 +623,12 @@ export function createReconService(db: Database): ReconService {
         clientId: customerMappings.clientId,
       })
       .from(customerMappings)
-      .where(eq(customerMappings.organizationId, organizationId));
+      .where(
+        and(
+          eq(customerMappings.organizationId, organizationId),
+          not(like(customerMappings.customerKey, `${billingKeyPrefix}%`)),
+        ),
+      );
   }
 
   async function exceptionInWorkspace(organizationId: string, id: string) {
@@ -547,11 +667,13 @@ export function createReconService(db: Database): ReconService {
   return {
     async overview(organizationId) {
       const run = await latestRun(organizationId);
-      const [clientRows, exceptionRows, mappingRows] = await Promise.all([
-        organizationClients(organizationId),
-        run ? runExceptions(organizationId, run.id) : Promise.resolve([]),
-        mappingRowsFor(organizationId),
-      ]);
+      const [clientRows, exceptionRows, mappingRows, billing] =
+        await Promise.all([
+          organizationClients(organizationId),
+          run ? runExceptions(organizationId, run.id) : Promise.resolve([]),
+          mappingRowsFor(organizationId),
+          latestBillingImport(organizationId),
+        ]);
       const byKind = Object.fromEntries(
         exceptionKinds.map((kind) => [kind, { count: 0, cents: 0 }]),
       ) as OverviewDto["byKind"];
@@ -563,6 +685,12 @@ export function createReconService(db: Database): ReconService {
       }
       return {
         run: run ? toRunDto(run) : null,
+        billingImport: billing && {
+          fileName: billing.fileName,
+          createdAt: billing.createdAt.toISOString(),
+          lineCount: billing.lineCount,
+          unmappedCount: billing.unmappedLines.length,
+        },
         // Dismissed = false positive; everything else was real leakage this month.
         leakageCents: exceptionRows
           .filter((row) => isLeakage(row) && row.status !== "dismissed")
@@ -592,16 +720,7 @@ export function createReconService(db: Database): ReconService {
       const run = await latestRun(organizationId);
       const [exceptionRows, agreements, mappingRows] = await Promise.all([
         run ? runExceptions(organizationId, run.id) : Promise.resolve([]),
-        db
-          .select()
-          .from(agreementLines)
-          .where(
-            and(
-              eq(agreementLines.organizationId, organizationId),
-              eq(agreementLines.clientId, clientId),
-            ),
-          )
-          .orderBy(asc(agreementLines.productName)),
+        agreementsFor(organizationId, clientId),
         mappingRowsFor(organizationId),
       ]);
       const own = exceptionRows.filter((entry) => entry.clientId === clientId);
@@ -613,14 +732,7 @@ export function createReconService(db: Database): ReconService {
         customerKeys: mappingRows
           .filter((mapping) => mapping.clientId === clientId)
           .map((mapping) => mapping.customerKey),
-        agreements: agreements.map(
-          ({ sku, productName, quantity, unitPriceCents }) => ({
-            sku,
-            productName,
-            quantity,
-            unitPriceCents,
-          }),
-        ),
+        agreements,
         exceptions: own.map((entry) => toExceptionDto(entry, names)),
       };
     },
@@ -748,11 +860,26 @@ export function createReconService(db: Database): ReconService {
     },
 
     async mappings(organizationId) {
-      const [run, clientRows, mappingRows] = await Promise.all([
+      const [run, clientRows, mappingRows, billing] = await Promise.all([
         latestRun(organizationId),
         organizationClients(organizationId),
         mappingRowsFor(organizationId),
+        latestBillingImport(organizationId),
       ]);
+      const unmappedBilling = new Map<string, UnmappedBillingClientDto>();
+      for (const line of billing?.unmappedLines ?? []) {
+        const key = normalizeClientName(line.clientName);
+        const entry = unmappedBilling.get(key) ?? {
+          clientName: line.clientName,
+          lineCount: 0,
+          seats: 0,
+          monthlyBilledCents: 0,
+        };
+        entry.lineCount += 1;
+        entry.seats += line.quantity;
+        entry.monthlyBilledCents += line.quantity * line.unitPriceCents;
+        unmappedBilling.set(key, entry);
+      }
       const names = new Map(
         clientRows.map((client) => [client.id, client.name]),
       );
@@ -778,6 +905,7 @@ export function createReconService(db: Database): ReconService {
           }))
           .sort((a, b) => a.clientName.localeCompare(b.clientName)),
         unmapped: [...unmapped.values()],
+        unmappedBilling: [...unmappedBilling.values()],
         clients: clientRows.map(({ id, name }) => ({ id, name })),
       };
     },
@@ -853,6 +981,251 @@ export function createReconService(db: Database): ReconService {
       return summary ?? null;
     },
 
+    async importBilling(organizationId, fileName, csv, actor) {
+      let parsed: ReturnType<typeof parseBillingCsv>;
+      try {
+        parsed = parseBillingCsv(csv);
+      } catch (error) {
+        throw new CsvRejectedError(
+          error instanceof CsvFormatError
+            ? error.message
+            : "File could not be read.",
+        );
+      }
+      if (parsed.errors.length > 0) {
+        const shown = parsed.errors
+          .slice(0, 5)
+          .map((row) => `Row ${row.rowNumber}: ${row.message}`)
+          .join(" ");
+        throw new CsvRejectedError(
+          `${parsed.errors.length} row${parsed.errors.length === 1 ? "" : "s"} could not be read, so nothing was imported. ${shown}`,
+          parsed.errors,
+        );
+      }
+      if (parsed.lines.length === 0)
+        throw new CsvRejectedError("The file has a header but no rows.");
+
+      const [clientRows, aliasRows, run] = await Promise.all([
+        organizationClients(organizationId),
+        db
+          .select()
+          .from(customerMappings)
+          .where(eq(customerMappings.organizationId, organizationId)),
+        latestRun(organizationId),
+      ]);
+      // Resolution order: a saved mapping for this billing name, PSA ID,
+      // client name, then the name of a mapped distributor customer.
+      const byName = new Map<string, string>();
+      for (const line of run?.vendorLines ?? []) {
+        const mapping = aliasRows.find(
+          (row) => row.customerKey === line.customerKey,
+        );
+        if (mapping)
+          byName.set(normalizeClientName(line.customerName), mapping.clientId);
+      }
+      for (const client of clientRows)
+        byName.set(normalizeClientName(client.name), client.id);
+      for (const client of clientRows)
+        if (client.psaId)
+          byName.set(normalizeClientName(client.psaId), client.id);
+      const aliases = new Map(
+        aliasRows
+          .filter((row) => isBillingKey(row.customerKey))
+          .map((row) => [row.customerKey, row.clientId]),
+      );
+      const resolve = (name: string) =>
+        aliases.get(billingKey(name)) ?? byName.get(normalizeClientName(name));
+
+      const { agreements, unmatched } = billedLinesToAgreements(
+        parsed.lines,
+        resolve,
+      );
+      // Locked and archived clients are read-only: their rows are left out
+      // and their existing lines stay as they were.
+      const frozen = new Map(
+        clientRows
+          .filter((client) => client.lockedAt || client.archivedAt)
+          .map((client) => [client.id, client.name]),
+      );
+      const writable = agreements.filter((line) => !frozen.has(line.clientId));
+      const skippedClients = [
+        ...new Set(
+          agreements
+            .map((line) => frozen.get(line.clientId))
+            .filter((name): name is string => Boolean(name)),
+        ),
+      ];
+      const writableIds = clientRows
+        .filter((client) => !frozen.has(client.id))
+        .map((client) => client.id);
+      const unmapped = new Map<
+        string,
+        { clientName: string; lineCount: number }
+      >();
+      for (const line of unmatched) {
+        const key = normalizeClientName(line.clientName);
+        const entry = unmapped.get(key) ?? {
+          clientName: line.clientName,
+          lineCount: 0,
+        };
+        entry.lineCount += 1;
+        unmapped.set(key, entry);
+      }
+      const result: BillingImportDto = {
+        fileName,
+        lineCount: parsed.lines.length,
+        agreementCount: writable.length,
+        matchedClients: new Set(writable.map((line) => line.clientId)).size,
+        unmapped: [...unmapped.values()],
+        skippedClients,
+      };
+
+      await db.transaction(async (tx) => {
+        // The file is the billed side for every unlocked client: a client
+        // missing from it is billed nothing.
+        if (writableIds.length)
+          await tx
+            .delete(agreementLines)
+            .where(
+              and(
+                eq(agreementLines.organizationId, organizationId),
+                inArray(agreementLines.clientId, writableIds),
+              ),
+            );
+        if (writable.length)
+          await tx
+            .insert(agreementLines)
+            .values(writable.map((line) => ({ ...line, organizationId })));
+        await tx
+          .delete(billingImports)
+          .where(eq(billingImports.organizationId, organizationId));
+        await tx.insert(billingImports).values({
+          organizationId,
+          fileName,
+          lineCount: parsed.lines.length,
+          unmappedLines: unmatched satisfies StoredBilledLine[],
+        });
+        await recordAudit(tx, {
+          organizationId,
+          actor,
+          action: "billing.import",
+          targetType: "billing_import",
+          targetId: fileName,
+          after: {
+            lineCount: result.lineCount,
+            agreementCount: result.agreementCount,
+            matchedClients: result.matchedClients,
+            unmappedClients: result.unmapped.map((entry) => entry.clientName),
+            skippedClients,
+          },
+        });
+      });
+      await refresh(organizationId);
+      return result;
+    },
+
+    async setAgreementLines(organizationId, clientId, lines, actor) {
+      const client = await writableClient(organizationId, clientId);
+      if (!client) return null;
+      const before = await agreementsFor(organizationId, clientId);
+      await db.transaction(async (tx) => {
+        await tx
+          .delete(agreementLines)
+          .where(
+            and(
+              eq(agreementLines.organizationId, organizationId),
+              eq(agreementLines.clientId, clientId),
+            ),
+          );
+        if (lines.length)
+          await tx.insert(agreementLines).values(
+            lines.map((line) => ({
+              organizationId,
+              clientId,
+              sku: line.sku.trim(),
+              productName: line.productName?.trim() || line.sku.trim(),
+              quantity: line.quantity,
+              unitPriceCents: line.unitPriceCents,
+            })),
+          );
+        await recordAudit(tx, {
+          organizationId,
+          actor,
+          action: "billing.lines_edit",
+          targetType: "client",
+          targetId: clientId,
+          before: { lines: before },
+          after: { lines },
+        });
+      });
+      await touch(clientId);
+      await refresh(organizationId);
+      return agreementsFor(organizationId, clientId);
+    },
+
+    async mapBillingClient(organizationId, clientName, clientId, actor) {
+      const client = await writableClient(organizationId, clientId);
+      if (!client) return false;
+      const billing = await latestBillingImport(organizationId);
+      const name = normalizeClientName(clientName);
+      const moving = (billing?.unmappedLines ?? []).filter(
+        (line) => normalizeClientName(line.clientName) === name,
+      );
+      const { agreements } = billedLinesToAgreements(moving, () => clientId);
+      await db.transaction(async (tx) => {
+        await tx
+          .insert(customerMappings)
+          .values({
+            organizationId,
+            customerKey: billingKey(clientName),
+            clientId,
+          })
+          .onConflictDoUpdate({
+            target: [
+              customerMappings.organizationId,
+              customerMappings.customerKey,
+            ],
+            set: { clientId },
+          });
+        for (const line of agreements)
+          await tx
+            .insert(agreementLines)
+            .values({ ...line, organizationId })
+            .onConflictDoUpdate({
+              target: [agreementLines.clientId, agreementLines.sku],
+              set: {
+                productName: line.productName,
+                quantity: line.quantity,
+                unitPriceCents: line.unitPriceCents,
+              },
+            });
+        if (billing && moving.length)
+          await tx
+            .update(billingImports)
+            .set({
+              unmappedLines: billing.unmappedLines.filter(
+                (line) => normalizeClientName(line.clientName) !== name,
+              ),
+            })
+            .where(eq(billingImports.id, billing.id));
+        await recordAudit(tx, {
+          organizationId,
+          actor,
+          action: "mapping.change",
+          targetType: "billing_client",
+          targetId: clientName,
+          after: {
+            clientId,
+            clientName: client.name,
+            linesMoved: moving.length,
+          },
+        });
+      });
+      await touch(clientId);
+      await refresh(organizationId);
+      return true;
+    },
+
     async uploadRun(organizationId, fileName, csv) {
       let lines: VendorLine[];
       try {
@@ -877,6 +1250,9 @@ export function createReconService(db: Database): ReconService {
         await tx
           .delete(clients)
           .where(eq(clients.organizationId, organizationId));
+        await tx
+          .delete(billingImports)
+          .where(eq(billingImports.organizationId, organizationId));
         const inserted = await tx
           .insert(clients)
           .values(
