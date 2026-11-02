@@ -75,7 +75,7 @@ function PricingPage() {
                 <strong>${plan.priceUsd}</strong>/month
               </p>
               <p>{plan.summary}.</p>
-              <a className="st-btn" href="/#audit">
+              <a className="st-btn" href="/audit">
                 Start with the free audit
               </a>
             </article>

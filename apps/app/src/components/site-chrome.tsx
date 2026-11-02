@@ -21,7 +21,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
             Sign in
           </Link>
         </nav>
-        <a className="st-btn st-btn-small" href="/#audit">
+        <a className="st-btn st-btn-small" href="/audit">
           Free audit
         </a>
       </header>
@@ -30,7 +30,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
         <nav className="st-footer-mesh" aria-label="Footer">
           <div>
             <h2>Product</h2>
-            <a href="/#audit">Free margin audit</a>
+            <a href="/audit">Free margin audit</a>
             <Link to="/pricing">Pricing</Link>
             <Link to="/integrations">Integrations</Link>
             <Link to="/login" search={{ redirect: "/app" }}>

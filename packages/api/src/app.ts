@@ -3,6 +3,7 @@ import type { Database } from "@seattrue/db";
 import { type JobQueue, projectCreatedPayloadSchema } from "@seattrue/jobs";
 import { Elysia, t } from "elysia";
 import { type AuditLog, createAuditLog } from "./audit";
+import { createAuditRequestRoutes } from "./audit-requests";
 import type { AuthService } from "./auth";
 import { createBillingRoutes } from "./billing";
 import { createIntegrationWaitlistRoutes } from "./integration-waitlist";
@@ -16,6 +17,7 @@ import type { ReconService } from "./reconciliation";
 import { createWorkspaceGuard } from "./workspace";
 
 export type { AuditDto } from "./audit";
+export type { AuditRequestDto } from "./audit-requests";
 export type { IntegrationWaitlistCountDto } from "./integration-waitlist";
 export type { Logger } from "./logger";
 export type { InvitationDto, MemberDto } from "./members-routes";
@@ -213,6 +215,14 @@ export function createApp({
     )
     .use(
       createIntegrationWaitlistRoutes({
+        db,
+        auth,
+        platformAdminEmails,
+        allowedOrigins,
+      }),
+    )
+    .use(
+      createAuditRequestRoutes({
         db,
         auth,
         platformAdminEmails,

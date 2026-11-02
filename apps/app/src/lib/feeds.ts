@@ -123,6 +123,7 @@ ${plans.map((plan) => `- ${plan.name}: $${plan.priceUsd}/month flat. ${plan.summ
 
 - Home: ${absoluteUrl("/")}
 - Pricing: ${absoluteUrl("/pricing")}
+- Free margin audit: ${absoluteUrl("/audit")}
 - Compare with Gradient Reconcile: ${absoluteUrl("/compare/gradient")}
 - Compare with a Pax8-to-PSA sync: ${absoluteUrl("/compare/pax8-psa-sync")}
 - Compare with a spreadsheet: ${absoluteUrl("/compare/spreadsheet")}

@@ -9,6 +9,7 @@ import { exceptionKindLabels, formatCents } from "../lib/format";
 import { integrationBySlug } from "../lib/integrations";
 import {
   type BillingImportDto,
+  getAuditRequests,
   getIntegrationWaitlistCounts,
 } from "../lib/recon-api";
 import {
@@ -79,6 +80,11 @@ function OverviewPage() {
   const waitlist = useQuery({
     queryKey: ["integration-waitlist"],
     queryFn: getIntegrationWaitlistCounts,
+    enabled: workspace.data?.platformAdmin === true,
+  });
+  const auditRequests = useQuery({
+    queryKey: ["audit-requests"],
+    queryFn: getAuditRequests,
     enabled: workspace.data?.platformAdmin === true,
   });
 
@@ -401,6 +407,53 @@ function OverviewPage() {
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+        {auditRequests.data && (
+          <section
+            className="recon-panel"
+            aria-labelledby="audit-requests-title"
+            style={{ marginTop: 16 }}
+          >
+            <h2 id="audit-requests-title">Free margin audit requests</h2>
+            <p>
+              SeatTrue staff only. Newest first, across all of SeatTrue.{" "}
+              {auditRequests.data.length > 0 && (
+                <a href="/api/admin/audit-requests?format=csv" download>
+                  Export CSV
+                </a>
+              )}
+            </p>
+            {auditRequests.data.length === 0 ? (
+              <p>No requests yet.</p>
+            ) : (
+              <div className="recon-table-wrap">
+                <table className="recon-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Email</th>
+                      <th scope="col">MSP</th>
+                      <th scope="col">Clients</th>
+                      <th scope="col">Distributor</th>
+                      <th scope="col">PSA</th>
+                      <th scope="col">Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditRequests.data.map((row) => (
+                      <tr key={row.email}>
+                        <td>{row.email}</td>
+                        <td>{row.company}</td>
+                        <td>{row.clients}</td>
+                        <td>{row.distributor}</td>
+                        <td>{row.psa}</td>
+                        <td>{row.updatedAt.slice(0, 10)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
         )}
       </main>

@@ -1539,7 +1539,8 @@ body {
   font-size: 14px;
 }
 .st-calc input[type="number"],
-.st-form input {
+.st-form input,
+.st-form select {
   min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--st-rule);

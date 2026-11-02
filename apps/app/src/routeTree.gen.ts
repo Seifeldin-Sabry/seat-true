@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuditRouteImport } from './routes/audit'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as GlossaryRouteImport } from './routes/glossary'
 import { Route as LlmsFullDottxtRouteImport } from './routes/llms-full[.]txt'
@@ -41,6 +42,11 @@ import { Route as AppClientsClientIdRouteImport } from './routes/app.clients.$cl
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditRoute = AuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -182,6 +188,7 @@ const AppClientsClientIdRoute = AppClientsClientIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/audit': typeof AuditRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/glossary': typeof GlossaryRoute
   '/llms-full.txt': typeof LlmsFullDottxtRoute
@@ -212,6 +219,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/audit': typeof AuditRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/glossary': typeof GlossaryRoute
   '/llms-full.txt': typeof LlmsFullDottxtRoute
@@ -243,6 +251,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/audit': typeof AuditRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/glossary': typeof GlossaryRoute
   '/llms-full.txt': typeof LlmsFullDottxtRoute
@@ -275,6 +284,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/audit'
     | '/forgot-password'
     | '/glossary'
     | '/llms-full.txt'
@@ -305,6 +315,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/audit'
     | '/forgot-password'
     | '/glossary'
     | '/llms-full.txt'
@@ -335,6 +346,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/audit'
     | '/forgot-password'
     | '/glossary'
     | '/llms-full.txt'
@@ -366,6 +378,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuditRoute: typeof AuditRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   GlossaryRoute: typeof GlossaryRoute
   LlmsFullDottxtRoute: typeof LlmsFullDottxtRoute
@@ -402,6 +415,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit': {
+      id: '/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -598,6 +618,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuditRoute: AuditRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   GlossaryRoute: GlossaryRoute,
   LlmsFullDottxtRoute: LlmsFullDottxtRoute,

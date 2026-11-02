@@ -1,14 +1,8 @@
 import { brand } from "@seattrue/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ArrowRight,
-  Check,
-  LoaderCircle,
-  Minus,
-  ShieldCheck,
-} from "lucide-react";
-import type { FormEvent } from "react";
+import { ArrowRight, Check, Minus, ShieldCheck } from "lucide-react";
 import { useId, useState } from "react";
+import { AuditForm } from "../components/audit-form";
 import { SiteShell } from "../components/site-chrome";
 import { publicHead } from "../lib/seo";
 import { pageOgImage, sitePages } from "../lib/site";
@@ -443,7 +437,7 @@ function LandingPage() {
             price for as long as they stay. Built by the team at SDX Studio.
           </p>
         </div>
-        <AuditForm />
+        <AuditForm cta={cta} />
       </section>
     </SiteShell>
   );
@@ -553,83 +547,5 @@ function ProductMock() {
       </table>
       <figcaption>Example · demo MSP "Northbeam IT", one Pax8 bill</figcaption>
     </figure>
-  );
-}
-
-function AuditForm() {
-  const [state, setState] = useState<"idle" | "pending" | "done">("idle");
-  const [error, setError] = useState<string | null>(null);
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const email = String(form.get("email") ?? "").trim();
-    const company = String(form.get("company") ?? "").trim();
-    const seats = Number(form.get("seats") || 0);
-    setError(null);
-    setState("pending");
-    try {
-      // Loaded on submit: the API client isn't needed for first paint.
-      const { joinWaitlist } = await import("../lib/recon-api");
-      await joinWaitlist({
-        email,
-        ...(company ? { company } : {}),
-        ...(seats > 0 ? { seats: Math.round(seats) } : {}),
-      });
-      setState("done");
-    } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : "Something went wrong.",
-      );
-      setState("idle");
-    }
-  }
-
-  if (state === "done") {
-    return (
-      <p className="st-done" role="status">
-        You're in. We'll email you within one working day with where to send the
-        export.
-      </p>
-    );
-  }
-
-  return (
-    <form className="st-form" onSubmit={submit} aria-busy={state === "pending"}>
-      <label htmlFor="audit-email">
-        Work email
-        <input
-          id="audit-email"
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          placeholder="you@yourmsp.com"
-          aria-describedby="audit-email-hint"
-        />
-      </label>
-      <span id="audit-email-hint" className="st-hint">
-        Company address only. Gmail, Outlook.com and similar are not accepted.
-      </span>
-      <label htmlFor="audit-company">
-        MSP name
-        <input id="audit-company" name="company" maxLength={160} />
-      </label>
-      <label htmlFor="audit-seats">
-        Microsoft seats you resell
-        <input id="audit-seats" name="seats" type="number" min={1} />
-      </label>
-      {error && (
-        <p className="st-error" role="alert">
-          {error}
-        </p>
-      )}
-      <button className="st-btn" type="submit" disabled={state === "pending"}>
-        {state === "pending" && (
-          <LoaderCircle className="spin" size={16} aria-hidden="true" />
-        )}
-        {cta}
-      </button>
-    </form>
   );
 }

@@ -12,6 +12,7 @@ export {
   account,
   agreementLines,
   auditLog,
+  auditRequests,
   billingCustomers,
   billingImports,
   billingPlanChanges,

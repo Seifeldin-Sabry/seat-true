@@ -151,6 +151,17 @@ export const sitePages = {
     primaryKeyword: "msp billing reconciliation integrations",
     secondaryKeyword: "pax8 billing reconciliation",
   },
+  audit: {
+    path: "/audit",
+    title: "Free Microsoft 365 margin audit for MSPs · SeatTrue",
+    description:
+      "Upload your Pax8 bill and your client billing export; we check every line at cost × your agreed markup and show last month's leak in dollars.",
+    eyebrow: "Free margin audit",
+    headline: "See last month's leak in dollars",
+    updatedAt: "2026-11-02",
+    primaryKeyword: "free msp margin audit",
+    secondaryKeyword: "msp license margin",
+  },
 } satisfies Record<string, SitePage>;
 
 export type SitePageKey = keyof typeof sitePages;

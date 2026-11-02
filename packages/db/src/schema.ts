@@ -50,6 +50,7 @@ export type NewProject = typeof projects.$inferInsert;
 
 export {
   agreementLines,
+  auditRequests,
   billingImports,
   clients,
   customerMappings,

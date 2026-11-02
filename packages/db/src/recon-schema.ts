@@ -217,6 +217,20 @@ export const waitlistEntries = pgTable("waitlist_entries", {
   createdAt: createdAt(),
 });
 
+/** Free margin audit requests from /audit and the landing page. One row per email. */
+export const auditRequests = pgTable("audit_requests", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: varchar("email", { length: 254 }).notNull().unique(),
+  company: varchar("company", { length: 160 }).notNull(),
+  clients: varchar("clients", { length: 16 }).notNull(),
+  distributor: varchar("distributor", { length: 32 }).notNull(),
+  psa: varchar("psa", { length: 32 }).notNull(),
+  createdAt: createdAt(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 /** "Notify me when it's live" sign-ups per Coming soon integration; not workspace scoped. */
 export const integrationWaitlist = pgTable(
   "integration_waitlist",

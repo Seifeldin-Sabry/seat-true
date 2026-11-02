@@ -89,7 +89,7 @@ function PostPage() {
             Upload one export and see unbilled seats, stale prices and ghost
             licences in dollars. Free, before you decide anything.
           </p>
-          <a className="st-btn" href="/#audit">
+          <a className="st-btn" href="/audit">
             Get my free margin audit <ArrowRight size={18} aria-hidden="true" />
           </a>
         </aside>

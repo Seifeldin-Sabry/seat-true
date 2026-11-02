@@ -166,6 +166,7 @@ function permissionMatrix(): {
       path: "/integrations/waitlist/counts",
       allowed: nobody,
     },
+    { method: "GET", path: "/admin/audit-requests", allowed: nobody },
   ];
 }
 

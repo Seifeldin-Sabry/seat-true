@@ -48,7 +48,7 @@ export function AuditCta({ title = "See last month's leak in dollars" }) {
           exception with a monthly dollar figure. Free, before you decide
           anything.
         </p>
-        <a className="st-btn" href="/#audit">
+        <a className="st-btn" href="/audit">
           Get my free margin audit <ArrowRight size={18} aria-hidden="true" />
         </a>
       </div>

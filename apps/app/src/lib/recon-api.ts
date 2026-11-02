@@ -1,6 +1,7 @@
 import type {
   AgreementDto,
   AgreementLineInput,
+  AuditRequestDto,
   BillingImportDto,
   ClientDetailDto,
   CommentDto,
@@ -15,6 +16,7 @@ import { apiErrorMessage, getApiClient } from "./api";
 export type {
   AgreementDto,
   AgreementLineInput,
+  AuditRequestDto,
   BillingImportDto,
   ClientDetailDto,
   CommentDto,
@@ -149,17 +151,6 @@ export async function loadDemo(): Promise<RunDto> {
   return data;
 }
 
-export async function joinWaitlist(input: {
-  email: string;
-  company?: string;
-  seats?: number;
-}): Promise<void> {
-  const api = getApiClient();
-  const { error } = await api.waitlist.post(input);
-  if (error)
-    throw new Error(apiErrorMessage(error, "Could not join the waitlist."));
-}
-
 export async function setClientMarkup(input: {
   id: string;
   markupPct: number;
@@ -248,4 +239,28 @@ export async function saveSkuAlias(input: {
   const api = getApiClient();
   const { error } = await api.recon["sku-aliases"].put(input);
   if (error) throw new Error(apiErrorMessage(error, "Could not save SKU."));
+}
+
+export async function requestAudit(input: {
+  email: string;
+  company: string;
+  clients: string;
+  distributor: string;
+  psa: string;
+}): Promise<void> {
+  const api = getApiClient();
+  // Select values are checked server-side against the fixed option lists.
+  const { error } = await api["audit-requests"].post(
+    input as Parameters<(typeof api)["audit-requests"]["post"]>[0],
+  );
+  if (error)
+    throw new Error(apiErrorMessage(error, "Could not send your request."));
+}
+
+export async function getAuditRequests(): Promise<AuditRequestDto[]> {
+  const api = getApiClient();
+  const { data, error } = await api.admin["audit-requests"].get({ query: {} });
+  if (error)
+    throw new Error(apiErrorMessage(error, "Could not load audit requests."));
+  return data && "requests" in data ? data.requests : [];
 }

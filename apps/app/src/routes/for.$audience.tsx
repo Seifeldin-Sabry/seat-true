@@ -40,7 +40,7 @@ function AudiencePage() {
       <PageIntro eyebrow={audience.eyebrow} title={audience.title}>
         <p>{audience.intro}</p>
         <p>
-          <a className="st-btn" href="/#audit">
+          <a className="st-btn" href="/audit">
             Get my free margin audit
           </a>
         </p>
