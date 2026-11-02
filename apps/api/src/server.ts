@@ -40,6 +40,7 @@ const auth = createAuthService(connection.db, {
   getClientIp: (request) => request.headers.get("x-real-ip"),
   email,
   logger,
+  ...(environment.google ? { google: environment.google } : {}),
 });
 app = createApp({
   projects: createProjectRepository(connection.db),

@@ -20,6 +20,7 @@
   "dependencies": {
     "@better-auth/drizzle-adapter": "1.7.6",
     "@elysia/cors": "1.4.2",
+    "@seattrue/auth-policy": "workspace:*",
     "@seattrue/billing": "workspace:*",
     "@seattrue/cache": "workspace:*",
     "@seattrue/db": "workspace:*",

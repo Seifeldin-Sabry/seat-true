@@ -140,7 +140,10 @@ export function createApp({
       });
       requestDetails.delete(request);
     })
-    .get("/auth/capabilities", () => ({ emailEnabled: auth.emailEnabled }))
+    .get("/auth/capabilities", () => ({
+      emailEnabled: auth.emailEnabled,
+      googleEnabled: auth.googleEnabled ?? false,
+    }))
     .mount(auth.handler)
     .macro({
       auth: {

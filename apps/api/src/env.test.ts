@@ -96,3 +96,16 @@ test("validates structured logging level", () => {
     "LOG_LEVEL",
   );
 });
+test("Google sign-in is optional but needs both credentials", () => {
+  expect(readApiEnvironment(valid).google).toBeUndefined();
+  expect(() =>
+    readApiEnvironment({ ...valid, GOOGLE_CLIENT_ID: "id-only" }),
+  ).toThrow("GOOGLE_CLIENT_SECRET");
+  expect(
+    readApiEnvironment({
+      ...valid,
+      GOOGLE_CLIENT_ID: "id",
+      GOOGLE_CLIENT_SECRET: "secret",
+    }).google,
+  ).toEqual({ clientId: "id", clientSecret: "secret" });
+});

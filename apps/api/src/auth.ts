@@ -1,4 +1,8 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import {
+  isWorkEmail,
+  WORK_EMAIL_REQUIRED_MESSAGE,
+} from "@seattrue/auth-policy";
 import type { BetterAuthSecondaryStorage } from "@seattrue/cache";
 import {
   account,
@@ -10,6 +14,7 @@ import {
 } from "@seattrue/db";
 import type { EmailService } from "@seattrue/email";
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import type { Logger } from "./logger";
 
 export type AuthEnvironment = {
@@ -21,6 +26,8 @@ export type AuthEnvironment = {
   getClientIp?: (request: Request) => string | null;
   email?: EmailService;
   logger?: Logger;
+  /** Google sign-in turns on only when both credentials are configured. */
+  google?: { clientId: string; clientSecret: string };
 };
 
 export type AuthenticatedSession = {
@@ -30,9 +37,26 @@ export type AuthenticatedSession = {
 
 export type AuthService = {
   emailEnabled: boolean;
+  googleEnabled?: boolean;
   handler(request: Request): Promise<Response>;
   getSession(headers: Headers): Promise<AuthenticatedSession | null>;
 };
+
+/**
+ * Runs before any user row is created, so it covers email sign-up and a
+ * first Google sign-in alike. Personal mailboxes never get an account.
+ */
+export async function requireWorkEmail<T extends { email: string }>(
+  user: T,
+): Promise<{ data: T }> {
+  if (!isWorkEmail(user.email)) {
+    throw new APIError("BAD_REQUEST", {
+      code: "WORK_EMAIL_REQUIRED",
+      message: WORK_EMAIL_REQUIRED_MESSAGE,
+    });
+  }
+  return { data: user };
+}
 
 export function createAuth(db: Database, environment: AuthEnvironment) {
   const email = environment.email;
@@ -113,6 +137,22 @@ export function createAuth(db: Database, environment: AuthEnvironment) {
     ...(environment.secondaryStorage
       ? { secondaryStorage: environment.secondaryStorage }
       : {}),
+    databaseHooks: {
+      user: { create: { before: (user) => requireWorkEmail(user) } },
+    },
+    ...(environment.google
+      ? {
+          socialProviders: {
+            google: {
+              clientId: environment.google.clientId,
+              clientSecret: environment.google.clientSecret,
+              prompt: "select_account" as const,
+              // Workspace accounts only; consumer Google accounts carry no hd claim.
+              hd: "*",
+            },
+          },
+        }
+      : {}),
     session: { storeSessionInDatabase: true },
     rateLimit: {
       enabled: true,
@@ -142,6 +182,7 @@ export function createAuthService(
 
   return {
     emailEnabled: environment.email?.enabled ?? false,
+    googleEnabled: Boolean(environment.google),
     handler(request) {
       const headers = new Headers(request.headers);
       headers.delete("x-real-ip");

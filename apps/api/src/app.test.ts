@@ -453,6 +453,9 @@ describe("API contract", () => {
       new Request("http://localhost/auth/capabilities"),
     );
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ emailEnabled: true });
+    expect(await response.json()).toEqual({
+      emailEnabled: true,
+      googleEnabled: false,
+    });
   });
 });

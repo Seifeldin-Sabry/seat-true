@@ -17,6 +17,7 @@
       "dependencies": {
         "@better-auth/drizzle-adapter": "1.7.6",
         "@elysia/cors": "1.4.2",
+        "@seattrue/auth-policy": "workspace:*",
         "@seattrue/billing": "workspace:*",
         "@seattrue/cache": "workspace:*",
         "@seattrue/db": "workspace:*",
@@ -81,6 +82,17 @@
         "tailwindcss": "4.3.3",
         "typescript": "5.9.3",
         "vite": "8.3.1",
+      },
+    },
+    "packages/auth-policy": {
+      "name": "@seattrue/auth-policy",
+      "version": "0.0.0",
+      "dependencies": {
+        "free-email-domains": "1.15.24",
+      },
+      "devDependencies": {
+        "@types/bun": "1.4.2",
+        "typescript": "5.9.3",
       },
     },
     "packages/billing": {
@@ -393,6 +405,8 @@
 
     "@seattrue/app": ["@seattrue/app@workspace:apps/app"],
 
+    "@seattrue/auth-policy": ["@seattrue/auth-policy@workspace:packages/auth-policy"],
+
     "@seattrue/billing": ["@seattrue/billing@workspace:packages/billing"],
 
     "@seattrue/cache": ["@seattrue/cache@workspace:packages/cache"],
@@ -614,6 +628,8 @@
     "fetchdts": ["fetchdts@0.1.7", "", {}, "sha512-YoZjBdafyLIop9lSxXVI33oLD5kN31q4Td+CasofLLYeLXRFeOsuOw0Uo+XNRi9PZlbfdlN2GmRtm4tCEQ9/KA=="],
 
     "file-type": ["file-type@22.1.1", "", { "dependencies": { "@tokenizer/inflate": "^0.4.1", "strtok3": "^10.3.5", "token-types": "^6.1.2", "uint8array-extras": "^1.5.0" } }, "sha512-sEB0oStmeLGtpmSAD88RDNuLsvhv4iC3u0lE25CUvfCULvj49xoQ3l3K525Vn+ZzsZ6DOLajQCV6RmhwwhqiJg=="],
+
+    "free-email-domains": ["free-email-domains@1.15.24", "", {}, "sha512-F347+weOZ1Y1dUXyvo0z0K7u0mycgNzdUDc9isafuYFySveTbOsWuoZF756KIlfd2XyR0mkxbJP0f395olMFOA=="],
 
     "fsevents": ["fsevents@2.3.3", "", { "os": "darwin" }, "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw=="],
 

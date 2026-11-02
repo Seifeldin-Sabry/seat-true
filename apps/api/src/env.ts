@@ -9,6 +9,7 @@ export type ApiEnvironment = {
   authCookieDomain?: string;
   allowedOrigins: string[];
   logLevel: LogLevel;
+  google?: { clientId: string; clientSecret: string };
 };
 
 export function readApiEnvironment(
@@ -120,6 +121,14 @@ export function readApiEnvironment(
     );
   }
 
+  const googleClientId = env.GOOGLE_CLIENT_ID?.trim();
+  const googleClientSecret = env.GOOGLE_CLIENT_SECRET?.trim();
+  if (Boolean(googleClientId) !== Boolean(googleClientSecret)) {
+    throw new Error(
+      "Set both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, or neither",
+    );
+  }
+
   return {
     databaseUrl,
     host,
@@ -129,6 +138,14 @@ export function readApiEnvironment(
     ...(authCookieDomain ? { authCookieDomain } : {}),
     allowedOrigins,
     logLevel,
+    ...(googleClientId && googleClientSecret
+      ? {
+          google: {
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+          },
+        }
+      : {}),
   };
 }
 

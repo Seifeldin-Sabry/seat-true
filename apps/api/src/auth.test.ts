@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import type { BetterAuthSecondaryStorage } from "@seattrue/cache";
 import { createDatabase } from "@seattrue/db";
 import { createEmailService } from "@seattrue/email";
-import { createAuth } from "./auth";
+import { createAuth, requireWorkEmail } from "./auth";
 
 const databaseUrl = "postgres://starter:starter@localhost:5432/starter";
 const baseEnvironment = {
@@ -158,6 +158,43 @@ test("propagates email delivery failure without exposing provider details", asyn
     ).rejects.toThrow("Email delivery failed");
     expect(errors[0]?.event).toBe("verification_email_failed");
     expect(JSON.stringify(errors)).not.toContain("provider token is private");
+  } finally {
+    await connection.close();
+  }
+});
+
+test("user-create hook rejects personal mailboxes for email and Google sign-ups", async () => {
+  // The same hook runs for email sign-up and for a first Google sign-in, so
+  // a Google profile with a consumer address is rejected identically.
+  for (const email of ["ann@gmail.com", "ann@outlook.com", "ann@proton.me"]) {
+    await expect(
+      requireWorkEmail({ email, name: "Ann", emailVerified: true }),
+    ).rejects.toMatchObject({
+      body: {
+        code: "WORK_EMAIL_REQUIRED",
+        message: "Please use your work email",
+      },
+    });
+  }
+  const allowed = { email: "ann@northbeam-it.com", name: "Ann" };
+  expect(await requireWorkEmail(allowed)).toEqual({ data: allowed });
+});
+
+test("Google provider is configured only when credentials are present", async () => {
+  const connection = createDatabase(databaseUrl);
+  try {
+    const without = createAuth(connection.db, baseEnvironment);
+    expect(without.options.socialProviders).toBeUndefined();
+    expect(without.options.databaseHooks?.user?.create?.before).toBeDefined();
+
+    const withGoogle = createAuth(connection.db, {
+      ...baseEnvironment,
+      google: { clientId: "id.apps.googleusercontent.com", clientSecret: "x" },
+    });
+    expect(withGoogle.options.socialProviders?.google).toMatchObject({
+      hd: "*",
+      prompt: "select_account",
+    });
   } finally {
     await connection.close();
   }
