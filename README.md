@@ -60,8 +60,8 @@ Two flat monthly plans, resolved by Stripe lookup key so sandbox and live both w
 - Billing belongs to the workspace: `billing_customers`, `billing_subscriptions` and `billing_plan_changes` are keyed by `organization_id`; Stripe metadata and idempotency keys use the organization id. Only the owner (`billing:manage`) can check out, open the portal or change plan; every member sees the Billing page.
 
 **TODO (Seif):**
-1. `bun run secrets:set STRIPE_SECRET_KEY "sk_live_..."` and, once the domain exists, create the webhook endpoint `https://<domain>/api/billing/webhook` with the events above, then `bun run secrets:set STRIPE_WEBHOOK_SECRET "whsec_..."`.
-2. `bun run secrets:set STRIPE_PORTAL_CONFIG_ID "bpc_1UXGFQEmKiht8PXgdUn9Lalf"`.
+1. `bun run secrets:set STRIPE_SECRET_KEY` and, once the domain exists, create the webhook endpoint `https://<domain>/api/billing/webhook` with the events above, then `bun run secrets:set STRIPE_WEBHOOK_SECRET`.
+2. `bun run secrets:set STRIPE_PORTAL_CONFIG_ID`.
 3. For a sandbox: put a test key in `.env`, run `bun run stripe:seed` (idempotent; creates products, prices and the portal config), and copy the printed portal ID into `.env`.
 4. Enable Stripe's "Email customers about successful payments" and invoice emails, plus Smart Retries.
 
@@ -119,7 +119,7 @@ Copy `.env.example` to ignored `.env` for local development. In staging and prod
 | `VITE_APP_ORIGIN`, `VITE_WEB_ORIGIN` | Public links compiled into frontend builds |
 | `BETTER_AUTH_SECRET` | 32+ character signing secret; production startup rejects example value |
 | `SEED_USER_EMAIL` | Existing registered email to receive sample project |
-| `PLATFORM_ADMIN_EMAILS` | Comma-separated SeatTrue staff emails (verified addresses only) who can read platform-wide data such as integration waitlist counts. Empty = nobody. Production: `bun run secrets:set PLATFORM_ADMIN_EMAILS "…"` then `bun run secrets:fly` |
+| `PLATFORM_ADMIN_EMAILS` | Comma-separated SeatTrue staff emails (verified addresses only) who can read platform-wide data such as integration waitlist counts. Empty = nobody. Production: `bun run secrets:set PLATFORM_ADMIN_EMAILS` then `bun run secrets:fly` |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Optional Upstash pair; both or neither |
 | `REDIS_KEY_NAMESPACE` | Redis key prefix to separate deployments |
 | `RESEND_API_KEY`, `EMAIL_FROM` | Optional Resend credential and verified sender address; both or neither |
@@ -196,7 +196,7 @@ Projects CRUD is a removable sample: replace its table, repository, routes, UI, 
 | `bun run lint`, `format`, `format:check` | Biome checks and formatting |
 | `bun run typecheck`, `test`, `check` | Typecheck, tests, or full verification |
 | `bun run db:up`, `db:down` | Start or stop local PostgreSQL |
-| `bun run secrets:set KEY value` | Encrypt a production secret into `.env.production` (no private key needed) |
+| `bun run secrets:set KEY` | Encrypt a production secret into `.env.production`; the value is read from stdin or a hidden prompt, never echoed (no private key needed) |
 | `bun run secrets:fly [config] [file]` | Decrypt `.env.production` and stage all values as Fly secrets |
 | `bun run db:generate`, `db:migrate`, `db:seed`, `db:studio` | Database workflow |
 
@@ -216,8 +216,8 @@ One Fly app, `seattrue`, deploys from the repository root with `fly.toml` and th
 
 ```sh
 fly apps create seattrue
-bun run secrets:set DATABASE_URL "postgres://..."          # encrypts into .env.production
-bun run secrets:set BETTER_AUTH_SECRET "$(openssl rand -base64 32)"
+bun run secrets:set DATABASE_URL          # encrypts into .env.production
+openssl rand -base64 32 | bun run secrets:set BETTER_AUTH_SECRET
 bun run secrets:fly          # decrypts and stages every value on the app (fly.toml)
 fly deploy                   # release_command runs Drizzle migrations first
 fly certs add <domain> -a seattrue

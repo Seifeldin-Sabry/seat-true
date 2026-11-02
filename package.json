@@ -23,7 +23,7 @@
     "db:seed": "dotenvx run -f .env -- turbo db:seed --filter=@seattrue/db",
     "db:studio": "dotenvx run -f .env -- turbo db:studio --filter=@seattrue/db",
     "check": "bun run lint && bun run typecheck && bun run test && bun run build",
-    "secrets:set": "dotenvx set -f .env.production --no-native",
+    "secrets:set": "bun scripts/set-secret.ts",
     "secrets:fly": "bun scripts/fly-secrets.ts",
     "stripe:seed": "dotenvx run -f .env -- bun scripts/stripe-seed.ts"
   },
