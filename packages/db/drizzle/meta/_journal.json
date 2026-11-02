@@ -29,6 +29,27 @@
       "when": 1793607355339,
       "tag": "0003_peaceful_pet_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793608338452,
+      "tag": "0004_organizations",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793608347195,
+      "tag": "0005_org_backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793608385773,
+      "tag": "0006_organization_scope",
+      "breakpoints": true
     }
   ]
 }

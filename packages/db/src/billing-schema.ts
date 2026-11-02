@@ -9,11 +9,16 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth-schema";
+import { organization } from "./org-schema";
+
+/** Billing belongs to the workspace (Better Auth organization). */
+const organizationId = () =>
+  text("organization_id")
+    .notNull()
+    .references(() => organization.id, { onDelete: "cascade" });
 
 export const billingCustomers = pgTable("billing_customers", {
-  userId: text("user_id")
-    .primaryKey()
-    .references(() => user.id, { onDelete: "cascade" }),
+  organizationId: organizationId().primaryKey(),
   stripeCustomerId: text("stripe_customer_id").notNull().unique(),
   pendingSubscriptionCheckoutId: text("pending_subscription_checkout_id"),
   pendingSubscriptionCheckoutExpiresAt: timestamp(
@@ -49,9 +54,7 @@ export const billingSubscriptions = pgTable(
   "billing_subscriptions",
   {
     stripeSubscriptionId: text("stripe_subscription_id").primaryKey(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
+    organizationId: organizationId(),
     stripeCustomerId: text("stripe_customer_id").notNull(),
     priceId: text("price_id").notNull(),
     status: text("status").notNull(),
@@ -73,7 +76,9 @@ export const billingSubscriptions = pgTable(
       .notNull()
       .$onUpdate(() => new Date()),
   },
-  (table) => [index("billing_subscriptions_user_id_idx").on(table.userId)],
+  (table) => [
+    index("billing_subscriptions_organization_id_idx").on(table.organizationId),
+  ],
 );
 
 export const billingWebhookEvents = pgTable("billing_webhook_events", {
@@ -92,13 +97,16 @@ export const billingPlanChanges = pgTable(
   "billing_plan_changes",
   {
     id: text("id").primaryKey(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
+    organizationId: organizationId(),
     stripeSubscriptionId: text("stripe_subscription_id").notNull(),
     stripeScheduleId: text("stripe_schedule_id"),
     targetLookupKey: text("target_lookup_key").notNull(),
     keepClientIds: jsonb("keep_client_ids").$type<string[]>().notNull(),
+    /** Members who stay active; the owner always stays and is not listed. */
+    keepMemberIds: jsonb("keep_member_ids")
+      .$type<string[]>()
+      .default([])
+      .notNull(),
     status: text("status")
       .$type<"scheduled" | "applied" | "canceled">()
       .notNull(),
@@ -107,5 +115,7 @@ export const billingPlanChanges = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => [index("billing_plan_changes_user_id_idx").on(table.userId)],
+  (table) => [
+    index("billing_plan_changes_organization_id_idx").on(table.organizationId),
+  ],
 );

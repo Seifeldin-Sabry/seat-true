@@ -4,11 +4,12 @@ import {
   ExistingSubscriptionError,
 } from "@seattrue/billing";
 import { createBillingRoutes } from "./billing";
+import { testGuard, testWorkspace } from "./testing";
 
 test("unconfigured billing remains readable and disables payment actions", async () => {
   const routes = createBillingRoutes({
     billing: null,
-    getUser: async () => ({ id: "user-1", email: "user@example.test" }),
+    guard: testGuard(testWorkspace("owner", "user-1")),
     allowedOrigins: ["http://localhost:3000"],
   });
 
@@ -63,7 +64,7 @@ test("billing validates the plan and maps subscription conflict", async () => {
   } as unknown as BillingService;
   const routes = createBillingRoutes({
     billing: service,
-    getUser: async () => ({ id: "user-1", email: "user@example.test" }),
+    guard: testGuard(testWorkspace("owner", "user-1")),
     allowedOrigins: ["http://localhost:3000"],
   });
 
@@ -102,7 +103,7 @@ test("Stripe webhook verifier receives exact raw JSON before processing", async 
   } as unknown as BillingService;
   const routes = createBillingRoutes({
     billing: service,
-    getUser: async () => null,
+    guard: testGuard(null),
     allowedOrigins: ["http://localhost:3000"],
   });
   const webhook = (signature: string) =>
@@ -134,7 +135,7 @@ test("webhook processing failures return 5xx so Stripe retries", async () => {
   } as unknown as BillingService;
   const routes = createBillingRoutes({
     billing: service,
-    getUser: async () => null,
+    guard: testGuard(null),
     allowedOrigins: ["http://localhost:3000"],
   });
   const response = await routes.handle(

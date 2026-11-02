@@ -5,15 +5,20 @@ import {
   billingWebhookEvents,
   clients,
   createDatabase,
+  type Database,
+  member,
+  organization,
   user,
 } from "@seattrue/db";
 import type { EmailService } from "@seattrue/email";
 import { and, eq, inArray, isNotNull, like } from "drizzle-orm";
 import type Stripe from "stripe";
+import { ensurePersonalOrganization } from "./organizations";
 import { createPlanLimits, PlanLimitError } from "./plan-limits";
 import { createPlanRoutes } from "./plan-routes";
 import { createReconRoutes } from "./recon-routes";
 import { ClientLockedError, createReconService } from "./reconciliation";
+import { testGuard, testWorkspace } from "./testing";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const integrationTest = databaseUrl ? test : test.skip;
@@ -86,6 +91,26 @@ function fakeStripe(suffix: string) {
   return { stripe: stripe as unknown as Stripe, posts, sub };
 }
 
+/** Owner user + personal workspace, as sign-up creates them. */
+async function createWorkspace(db: Database, ownerUserId: string) {
+  const email = `${ownerUserId.replaceAll("-", "")}@northbeam-it.com`;
+  await db.insert(user).values({ id: ownerUserId, name: "Owner", email });
+  return ensurePersonalOrganization(db, {
+    id: ownerUserId,
+    name: "Owner",
+    email,
+  });
+}
+
+async function removeWorkspace(
+  db: Database,
+  organizationId: string,
+  userIds: string[],
+) {
+  await db.delete(organization).where(eq(organization.id, organizationId));
+  await db.delete(user).where(inArray(user.id, userIds));
+}
+
 function subscriptionUpdated(
   id: string,
   subscriptionId: string,
@@ -105,15 +130,22 @@ integrationTest(
     if (!databaseUrl) return;
     const connection = createDatabase(databaseUrl);
     const db = connection.db;
-    const ownerId = `plan-${crypto.randomUUID()}`;
-    const suffix = ownerId.replaceAll("-", "");
+    const ownerUserId = `plan-${crypto.randomUUID()}`;
+    const suffix = ownerUserId.replaceAll("-", "");
     const { stripe, posts, sub } = fakeStripe(suffix);
-    const sent: { to: string; subject: string; idempotencyKey?: string }[] = [];
+    const ownerId = await createWorkspace(db, ownerUserId);
+    const sent: {
+      to: string;
+      subject: string;
+      text: string;
+      idempotencyKey?: string;
+    }[] = [];
     const email = {
       enabled: true,
       send: async (message: {
         to: string;
         subject: string;
+        text: string;
         idempotencyKey?: string;
       }) => {
         sent.push(message);
@@ -140,12 +172,12 @@ integrationTest(
     const planRoutes = createPlanRoutes({
       billing,
       planLimits: limits,
-      getUser: async () => ({ id: ownerId }),
+      guard: testGuard(testWorkspace("owner", ownerId, ownerUserId)),
       allowedOrigins: [origin],
     });
     const reconRoutes = createReconRoutes({
       recon,
-      getUser: async () => ({ id: ownerId }),
+      guard: testGuard(testWorkspace("owner", ownerId, ownerUserId)),
       allowedOrigins: [origin],
       assertCanAddClient: limits.assertCanAddClient,
     });
@@ -177,24 +209,61 @@ integrationTest(
         await db
           .select({ name: clients.name })
           .from(clients)
-          .where(and(eq(clients.ownerId, ownerId), isNotNull(clients.lockedAt)))
+          .where(
+            and(
+              eq(clients.organizationId, ownerId),
+              isNotNull(clients.lockedAt),
+            ),
+          )
       )
         .map((row) => row.name)
         .sort();
 
-    await db.insert(user).values({
-      id: ownerId,
-      name: "Owner",
-      email: `${suffix}@northbeam-it.com`,
-    });
     await db
       .insert(billingCustomers)
-      .values({ userId: ownerId, stripeCustomerId: sub.customer });
+      .values({ organizationId: ownerId, stripeCustomerId: sub.customer });
+    // Two techs besides the owner: 3 users vs Solo's 2 seats.
+    const recentTech = `${ownerUserId}-recent`;
+    const olderTech = `${ownerUserId}-older`;
+    await db.insert(user).values([
+      { id: recentTech, name: "Rae", email: `rae-${suffix}@northbeam-it.com` },
+      { id: olderTech, name: "Oli", email: `oli-${suffix}@northbeam-it.com` },
+    ]);
+    await db.insert(member).values([
+      {
+        id: `mem-${recentTech}`,
+        organizationId: ownerId,
+        userId: recentTech,
+        role: "tech",
+        createdAt: new Date(Date.UTC(2026, 9, 2)),
+      },
+      {
+        id: `mem-${olderTech}`,
+        organizationId: ownerId,
+        userId: olderTech,
+        role: "admin",
+        createdAt: new Date(Date.UTC(2026, 8, 2)),
+      },
+    ]);
+    const suspendedMembers = async () =>
+      (
+        await db
+          .select({ id: member.id })
+          .from(member)
+          .where(
+            and(
+              eq(member.organizationId, ownerId),
+              isNotNull(member.suspendedAt),
+            ),
+          )
+      )
+        .map((row) => row.id)
+        .sort();
     // 152 clients; c000 is the most recently active, c151 the least.
     const base = Date.UTC(2026, 9, 1);
     await db.insert(clients).values(
       Array.from({ length: 152 }, (_, index) => ({
-        ownerId,
+        organizationId: ownerId,
         name: `c${String(index).padStart(3, "0")}`,
         lastActiveAt: new Date(base - index * 60_000),
       })),
@@ -204,7 +273,9 @@ integrationTest(
         await db
           .select({ id: clients.id })
           .from(clients)
-          .where(and(eq(clients.ownerId, ownerId), eq(clients.name, name)))
+          .where(
+            and(eq(clients.organizationId, ownerId), eq(clients.name, name)),
+          )
       )[0]?.id ?? "";
 
     try {
@@ -221,7 +292,21 @@ integrationTest(
           limit: 150,
           summary: "152 clients vs 150 on Solo",
         },
+        {
+          kind: "users",
+          current: 3,
+          limit: 2,
+          summary: "3 users vs 2 on Solo",
+        },
       ]);
+      // Owner first, then most recently active; the older admin is suspended.
+      expect(preflight.members.map((entry) => entry.id)).toEqual([
+        `mem_${ownerUserId}`,
+        `mem-${recentTech}`,
+        `mem-${olderTech}`,
+      ]);
+      expect(preflight.defaultKeepMemberIds).toEqual([`mem-${recentTech}`]);
+      expect(preflight.defaultSuspendMemberIds).toEqual([`mem-${olderTech}`]);
       expect(preflight.defaultLockClientIds).toEqual([
         await idOf("c150"),
         await idOf("c151"),
@@ -240,10 +325,21 @@ integrationTest(
       const keep = [await idOf("c150"), await idOf("c151")];
       for (let index = 0; index < 148; index++)
         keep.push(await idOf(`c${String(index).padStart(3, "0")}`));
+      // Keeping both techs would exceed the seats left beside the owner.
+      const tooMany = await post(planRoutes, "/billing/plan-change", {
+        plan: "solo",
+        confirm: "DOWNGRADE",
+        keepClientIds: keep,
+        keepMemberIds: [`mem-${recentTech}`, `mem-${olderTech}`],
+      });
+      expect(tooMany.status).toBe(422);
+      expect((await tooMany.json()).error.code).toBe("TOO_MANY_KEPT");
+      // Keep the older admin instead of the default.
       const scheduled = await post(planRoutes, "/billing/plan-change", {
         plan: "solo",
         confirm: "DOWNGRADE",
         keepClientIds: keep,
+        keepMemberIds: [`mem-${olderTech}`],
       });
       expect(scheduled.status).toBe(200);
       expect(await scheduled.json()).toMatchObject({
@@ -269,21 +365,28 @@ integrationTest(
       );
       // Nothing locked until Stripe actually moves the plan at period end.
       expect(await lockedNames()).toEqual([]);
+      expect(await suspendedMembers()).toEqual([]);
 
       // Period-end transition: webhook applies the stored keep-list.
       sub.lookupKey = "seattrue_solo_monthly";
       const transition = await deliver(2_000);
       expect(await lockedNames()).toEqual(["c148", "c149"]);
+      expect(await suspendedMembers()).toEqual([`mem-${recentTech}`]);
       expect(sent).toHaveLength(0); // In-app downgrade: user already confirmed.
 
       // Idempotent replay: same event and a later duplicate state change nothing.
       await billing.processWebhook(transition);
       await deliver(2_500);
       expect(await lockedNames()).toEqual(["c148", "c149"]);
+      expect(await suspendedMembers()).toEqual([`mem-${recentTech}`]);
+      // Full: the owner and the kept admin use both Solo seats.
+      await expect(limits.assertCanInvite(ownerId)).rejects.toBeInstanceOf(
+        PlanLimitError,
+      );
 
       // Locked clients are read-only and excluded; limits block new clients.
       await expect(
-        recon.setMapping(ownerId, "PX-1", await idOf("c148")),
+        recon.setMapping(ownerId, "PX-1", await idOf("c148"), null),
       ).rejects.toBeInstanceOf(ClientLockedError);
       await expect(limits.assertCanAddClient(ownerId)).rejects.toBeInstanceOf(
         PlanLimitError,
@@ -329,6 +432,7 @@ integrationTest(
       });
       expect(update?.key).toContain(`upgrade:${sub.id}:seattrue_team_monthly:`);
       expect(await lockedNames()).toEqual([]);
+      expect(await suspendedMembers()).toEqual([]);
       sub.lookupKey = "seattrue_team_monthly";
       await deliver(3_000);
       expect(await lockedNames()).toEqual([]);
@@ -338,20 +442,24 @@ integrationTest(
       const external = await deliver(4_000);
       const lockedExternally = await lockedNames();
       expect(lockedExternally).toHaveLength(2);
+      // Default policy: owner first, then the most recently active member.
+      expect(await suspendedMembers()).toEqual([`mem-${olderTech}`]);
       expect(sent).toHaveLength(1);
-      expect(sent[0]?.subject).toContain("2 clients locked");
+      expect(sent[0]?.subject).toContain("2 clients locked, 1 user suspended");
+      expect(sent[0]?.text).toContain("- Oli");
       expect(sent[0]?.idempotencyKey).toBe(
         `plan-lock:${ownerId}:${external.id}`,
       );
       await billing.processWebhook(external);
       await deliver(4_500);
       expect(await lockedNames()).toEqual(lockedExternally);
+      expect(await suspendedMembers()).toEqual([`mem-${olderTech}`]);
       expect(sent).toHaveLength(1);
     } finally {
       await db
         .delete(billingWebhookEvents)
         .where(like(billingWebhookEvents.stripeEventId, `evt_${suffix}_%`));
-      await db.delete(user).where(eq(user.id, ownerId));
+      await removeWorkspace(db, ownerId, [ownerUserId, recentTech, olderTech]);
       await connection.close();
     }
   },
@@ -363,9 +471,10 @@ integrationTest(
     if (!databaseUrl) return;
     const connection = createDatabase(databaseUrl);
     const db = connection.db;
-    const ownerId = `plan-${crypto.randomUUID()}`;
-    const suffix = ownerId.replaceAll("-", "");
+    const ownerUserId = `plan-${crypto.randomUUID()}`;
+    const suffix = ownerUserId.replaceAll("-", "");
     const { stripe, posts, sub } = fakeStripe(suffix);
+    const ownerId = await createWorkspace(db, ownerUserId);
     const recon = createReconService(db);
     let limits: ReturnType<typeof createPlanLimits> | undefined;
     const billing = createBillingService(
@@ -383,15 +492,12 @@ integrationTest(
       },
     );
     limits = createPlanLimits({ db, recon, billing });
-    await db.insert(user).values({
-      id: ownerId,
-      name: "Owner",
-      email: `${suffix}@northbeam-it.com`,
-    });
     await db
       .insert(billingCustomers)
-      .values({ userId: ownerId, stripeCustomerId: sub.customer });
-    await db.insert(clients).values([{ ownerId, name: "Only client" }]);
+      .values({ organizationId: ownerId, stripeCustomerId: sub.customer });
+    await db
+      .insert(clients)
+      .values([{ organizationId: ownerId, name: "Only client" }]);
     try {
       await billing.processWebhook(
         subscriptionUpdated(`evt_${suffix}_a`, sub.id, 1_000),
@@ -412,7 +518,9 @@ integrationTest(
       const locked = await db
         .select()
         .from(clients)
-        .where(and(eq(clients.ownerId, ownerId), isNotNull(clients.lockedAt)));
+        .where(
+          and(eq(clients.organizationId, ownerId), isNotNull(clients.lockedAt)),
+        );
       expect(locked).toEqual([]);
     } finally {
       await db
@@ -423,7 +531,7 @@ integrationTest(
             `evt_${suffix}_b`,
           ]),
         );
-      await db.delete(user).where(eq(user.id, ownerId));
+      await removeWorkspace(db, ownerId, [ownerUserId]);
       await connection.close();
     }
   },

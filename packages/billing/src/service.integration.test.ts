@@ -3,7 +3,7 @@ import {
   billingSubscriptions,
   billingWebhookEvents,
   createDatabase,
-  user,
+  organization,
 } from "@seattrue/db";
 import { eq, inArray } from "drizzle-orm";
 import type Stripe from "stripe";
@@ -116,7 +116,7 @@ function fakeStripe(suffix: string) {
           url: `https://checkout.stripe.test/${id}`,
           customer: `cus_${suffix}`,
           metadata: {
-            userId: undefined as string | undefined,
+            organizationId: undefined as string | undefined,
             planLookupKey: "seattrue_solo_monthly",
           },
         }),
@@ -181,11 +181,11 @@ databaseTest(
   "checkout, portal and webhooks are idempotent and gate access",
   async () => {
     const connection = createDatabase(process.env.TEST_DATABASE_URL ?? "");
-    const userId = crypto.randomUUID();
-    const suffix = userId.replaceAll("-", "");
+    const organizationId = crypto.randomUUID();
+    const suffix = organizationId.replaceAll("-", "");
     const { stripe, calls, state } = fakeStripe(suffix);
     const billing = createBillingService(connection.db, config, stripe);
-    const owner = { id: userId, email: `${suffix}@northbeam-it.com` };
+    const owner = { id: organizationId, email: `${suffix}@northbeam-it.com` };
     const subscriptionId = state.subscription.id;
     const eventIds: string[] = [];
     const event = (name: string) => {
@@ -193,9 +193,11 @@ databaseTest(
       eventIds.push(id);
       return id;
     };
-    await connection.db
-      .insert(user)
-      .values({ id: userId, name: "Owner", email: owner.email });
+    await connection.db.insert(organization).values({
+      id: organizationId,
+      name: "Owner's workspace",
+      slug: `billing-${suffix}`,
+    });
 
     try {
       // Checkout: one customer, stable idempotency keys, lookup-key prices.
@@ -205,7 +207,7 @@ databaseTest(
         (call) => call.method === "checkout.sessions.create",
       );
       expect(created[0]?.idempotencyKey).toBe(
-        `checkout:${userId}:seattrue_solo_monthly:attempt-1`,
+        `checkout:${organizationId}:seattrue_solo_monthly:attempt-1`,
       );
       expect(created[0]?.params).toMatchObject({
         mode: "subscription",
@@ -218,7 +220,9 @@ databaseTest(
         (call) => call.method === "customers.create",
       );
       expect(customerCalls).toHaveLength(1);
-      expect(customerCalls[0]?.idempotencyKey).toBe(`customer:${userId}`);
+      expect(customerCalls[0]?.idempotencyKey).toBe(
+        `customer:${organizationId}`,
+      );
 
       // Webhook: subscription becomes active; duplicate delivery is a no-op.
       const activeEvent = subscriptionEvent(
@@ -234,8 +238,8 @@ databaseTest(
         .from(billingWebhookEvents)
         .where(eq(billingWebhookEvents.stripeEventId, activeEvent.id));
       expect(recorded).toHaveLength(1);
-      expect(await billing.access(userId)).toBe("full");
-      const view = await billing.overview(userId);
+      expect(await billing.access(organizationId)).toBe("full");
+      const view = await billing.overview(organizationId);
       expect(view.subscription).toMatchObject({
         status: "active",
         planId: "solo",
@@ -248,7 +252,7 @@ databaseTest(
       ).rejects.toBeInstanceOf(ExistingSubscriptionError);
 
       // Portal uses the configured portal and returns to /app/billing.
-      const portal = await billing.portal(userId, "p1");
+      const portal = await billing.portal(organizationId, "p1");
       expect(portal?.url).toBe("https://billing.stripe.test/session");
       const portalCall = calls.find(
         (call) => call.method === "billingPortal.sessions.create",
@@ -257,7 +261,7 @@ databaseTest(
         configuration: "bpc_test_portal",
         return_url: "http://localhost:3000/app/billing",
       });
-      expect(portalCall?.idempotencyKey).toBe(`portal:${userId}:p1`);
+      expect(portalCall?.idempotencyKey).toBe(`portal:${organizationId}:p1`);
 
       // Payment fails: past_due with a grace window, then 3-D Secure link.
       state.subscription.status = "past_due";
@@ -285,10 +289,13 @@ databaseTest(
       expect(row?.pastDueSince?.getTime()).toBe(2_000_000);
       expect(row?.actionUrl).toBe("https://invoice.stripe.test/pay");
       expect(
-        await billing.access(userId, new Date(2_000_000 + 86_400_000)),
+        await billing.access(organizationId, new Date(2_000_000 + 86_400_000)),
       ).toBe("grace");
       expect(
-        await billing.access(userId, new Date(2_000_000 + 8 * 86_400_000)),
+        await billing.access(
+          organizationId,
+          new Date(2_000_000 + 8 * 86_400_000),
+        ),
       ).toBe("read_only");
 
       // An older event delivered late must not overwrite newer invoice details.
@@ -333,7 +340,7 @@ databaseTest(
           5_000,
         ),
       );
-      expect(await billing.access(userId)).toBe("read_only");
+      expect(await billing.access(organizationId)).toBe("read_only");
 
       // Plan moved to a price that isn't SeatTrue's: local entitlement dropped.
       state.subscription.lookupKey = "someone_elses_plan";
@@ -345,7 +352,7 @@ databaseTest(
           6_000,
         ),
       );
-      expect(await billing.access(userId)).toBe("none");
+      expect(await billing.access(organizationId)).toBe("none");
 
       // Unhandled event types are acknowledged without side effects.
       await billing.processWebhook({
@@ -363,7 +370,9 @@ databaseTest(
       await connection.db
         .delete(billingWebhookEvents)
         .where(inArray(billingWebhookEvents.stripeEventId, eventIds));
-      await connection.db.delete(user).where(eq(user.id, userId));
+      await connection.db
+        .delete(organization)
+        .where(eq(organization.id, organizationId));
       await connection.close();
     }
   },

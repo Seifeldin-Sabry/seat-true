@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   integer,
   jsonb,
@@ -11,11 +12,13 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth-schema";
+import { organization } from "./org-schema";
 
-const ownerId = () =>
-  text("owner_id")
+/** Workspace scope (Better Auth organization). Replaced owner_id in 0006. */
+const organizationId = () =>
+  text("organization_id")
     .notNull()
-    .references(() => user.id, { onDelete: "cascade" });
+    .references(() => organization.id, { onDelete: "cascade" });
 const createdAt = () =>
   timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
 
@@ -24,7 +27,7 @@ export const clients = pgTable(
   "clients",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    ownerId: ownerId(),
+    organizationId: organizationId(),
     name: varchar("name", { length: 160 }).notNull(),
     psaId: varchar("psa_id", { length: 64 }),
     status: varchar("status", { length: 16 })
@@ -42,7 +45,7 @@ export const clients = pgTable(
       .notNull(),
     createdAt: createdAt(),
   },
-  (table) => [index("clients_owner_id_idx").on(table.ownerId)],
+  (table) => [index("clients_organization_id_idx").on(table.organizationId)],
 );
 
 /** Distributor customer (e.g. Pax8 company ID) → PSA client. */
@@ -50,7 +53,7 @@ export const customerMappings = pgTable(
   "customer_mappings",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    ownerId: ownerId(),
+    organizationId: organizationId(),
     customerKey: varchar("customer_key", { length: 128 }).notNull(),
     clientId: uuid("client_id")
       .notNull()
@@ -58,8 +61,8 @@ export const customerMappings = pgTable(
     createdAt: createdAt(),
   },
   (table) => [
-    uniqueIndex("customer_mappings_owner_key_idx").on(
-      table.ownerId,
+    uniqueIndex("customer_mappings_organization_key_idx").on(
+      table.organizationId,
       table.customerKey,
     ),
   ],
@@ -70,7 +73,7 @@ export const agreementLines = pgTable(
   "agreement_lines",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    ownerId: ownerId(),
+    organizationId: organizationId(),
     clientId: uuid("client_id")
       .notNull()
       .references(() => clients.id, { onDelete: "cascade" }),
@@ -81,7 +84,7 @@ export const agreementLines = pgTable(
     createdAt: createdAt(),
   },
   (table) => [
-    index("agreement_lines_owner_id_idx").on(table.ownerId),
+    index("agreement_lines_organization_id_idx").on(table.organizationId),
     uniqueIndex("agreement_lines_client_sku_idx").on(table.clientId, table.sku),
   ],
 );
@@ -101,13 +104,15 @@ export const reconciliationRuns = pgTable(
   "reconciliation_runs",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    ownerId: ownerId(),
+    organizationId: organizationId(),
     source: varchar("source", { length: 32 }).notNull(),
     fileName: varchar("file_name", { length: 255 }).notNull(),
     vendorLines: jsonb("vendor_lines").$type<StoredVendorLine[]>().notNull(),
     createdAt: createdAt(),
   },
-  (table) => [index("reconciliation_runs_owner_id_idx").on(table.ownerId)],
+  (table) => [
+    index("reconciliation_runs_organization_id_idx").on(table.organizationId),
+  ],
 );
 
 export type ExceptionStatus = "open" | "approved" | "billed" | "dismissed";
@@ -116,7 +121,7 @@ export const reconciliationExceptions = pgTable(
   "reconciliation_exceptions",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    ownerId: ownerId(),
+    organizationId: organizationId(),
     runId: uuid("run_id")
       .notNull()
       .references(() => reconciliationRuns.id, { onDelete: "cascade" }),
@@ -140,17 +145,38 @@ export const reconciliationExceptions = pgTable(
       .default("open")
       .notNull(),
     resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    /** Raised by anyone for a second look; resolving is a separate permission. */
+    flagged: boolean("flagged").default(false).notNull(),
     createdAt: createdAt(),
   },
   (table) => [
-    index("reconciliation_exceptions_owner_run_idx").on(
-      table.ownerId,
+    index("reconciliation_exceptions_organization_run_idx").on(
+      table.organizationId,
       table.runId,
     ),
   ],
 );
 
-/** Landing-page waitlist; not owner scoped. */
+/** Discussion on an exception (techs comment, admins resolve). */
+export const exceptionComments = pgTable(
+  "exception_comments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: organizationId(),
+    exceptionId: uuid("exception_id")
+      .notNull()
+      .references(() => reconciliationExceptions.id, { onDelete: "cascade" }),
+    authorUserId: text("author_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    authorEmail: text("author_email").notNull(),
+    body: text("body").notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [index("exception_comments_exception_idx").on(table.exceptionId)],
+);
+
+/** Landing-page waitlist; not workspace scoped. */
 export const waitlistEntries = pgTable("waitlist_entries", {
   id: uuid("id").defaultRandom().primaryKey(),
   email: varchar("email", { length: 254 }).notNull().unique(),

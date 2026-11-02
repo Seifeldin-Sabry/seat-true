@@ -64,7 +64,7 @@ export class PlanChangeError extends Error {
 
 /** Called after each applied subscription state, so plan limits follow Stripe. */
 export type SubscriptionStateHook = (state: {
-  userId: string;
+  organizationId: string;
   planLookupKey: string | null;
   status: string;
   eventId: string;
@@ -77,6 +77,7 @@ export type PlanChangeResult =
       planId: PlanId;
       effectiveAt: string | null;
       keepClientIds: string[];
+      keepMemberIds: string[];
     };
 
 export type BillingOverview = {
@@ -101,7 +102,7 @@ export type BillingOverview = {
   access: Access;
 };
 
-type BillingUser = { id: string; email: string };
+type BillingAccount = { id: string; email: string };
 type SubscriptionRow = typeof billingSubscriptions.$inferSelect;
 
 function stripeId(value: string | { id: string } | null | undefined) {
@@ -153,51 +154,57 @@ export function createBillingService(
     return byKey;
   }
 
-  async function customerFor(user: BillingUser): Promise<string> {
+  async function customerFor(account: BillingAccount): Promise<string> {
     const existing = await db
       .select({ stripeCustomerId: billingCustomers.stripeCustomerId })
       .from(billingCustomers)
-      .where(eq(billingCustomers.userId, user.id))
+      .where(eq(billingCustomers.organizationId, account.id))
       .limit(1);
     if (existing[0]) return existing[0].stripeCustomerId;
 
     // Stripe's idempotency key covers concurrent first checkouts and retries if
     // customer creation succeeds but the database write fails.
     const created = await stripe.customers.create(
-      { email: user.email, metadata: { userId: user.id } },
-      { idempotencyKey: `customer:${user.id}` },
+      { email: account.email, metadata: { organizationId: account.id } },
+      { idempotencyKey: `customer:${account.id}` },
     );
     await db
       .insert(billingCustomers)
-      .values({ userId: user.id, stripeCustomerId: created.id })
+      .values({ organizationId: account.id, stripeCustomerId: created.id })
       .onConflictDoNothing();
 
     const stored = await db
       .select({ stripeCustomerId: billingCustomers.stripeCustomerId })
       .from(billingCustomers)
-      .where(eq(billingCustomers.userId, user.id))
+      .where(eq(billingCustomers.organizationId, account.id))
       .limit(1);
     if (!stored[0])
       throw new Error("Could not persist Stripe customer mapping");
     return stored[0].stripeCustomerId;
   }
 
-  async function subscriptionRows(userId: string) {
+  async function subscriptionRows(organizationId: string) {
     return db
       .select()
       .from(billingSubscriptions)
-      .where(eq(billingSubscriptions.userId, userId))
+      .where(eq(billingSubscriptions.organizationId, organizationId))
       .orderBy(desc(billingSubscriptions.updatedAt));
   }
 
-  async function access(userId: string, now = new Date()): Promise<Access> {
-    return accessFor(newestRelevant(await subscriptionRows(userId)), now);
+  async function access(
+    organizationId: string,
+    now = new Date(),
+  ): Promise<Access> {
+    return accessFor(
+      newestRelevant(await subscriptionRows(organizationId)),
+      now,
+    );
   }
 
-  async function overview(userId: string): Promise<BillingOverview> {
+  async function overview(organizationId: string): Promise<BillingOverview> {
     const [byKey, rows] = await Promise.all([
       prices(),
-      subscriptionRows(userId),
+      subscriptionRows(organizationId),
     ]);
     const current = newestRelevant(rows);
     return {
@@ -222,8 +229,9 @@ export function createBillingService(
             pastDueSince: current.pastDueSince?.toISOString() ?? null,
             actionUrl: current.actionUrl,
             scheduledPlanId:
-              planByLookupKey((await scheduledChange(userId))?.targetLookupKey)
-                ?.id ?? null,
+              planByLookupKey(
+                (await scheduledChange(organizationId))?.targetLookupKey,
+              )?.id ?? null,
           }
         : null,
       access: accessFor(current),
@@ -236,7 +244,7 @@ export function createBillingService(
    * and an open session is reused rather than creating a second payable one.
    */
   async function checkout(
-    user: BillingUser,
+    account: BillingAccount,
     planId: PlanId,
     attemptId: string = crypto.randomUUID(),
   ) {
@@ -246,17 +254,17 @@ export function createBillingService(
     const priceIds = new Set(
       [...(await prices()).values()].map((entry) => entry.id),
     );
-    const customer = await customerFor(user);
+    const customer = await customerFor(account);
 
     return db.transaction(async (tx) => {
       await tx.execute(
-        sql`SELECT pg_advisory_xact_lock(871302, hashtext(${user.id}))`,
+        sql`SELECT pg_advisory_xact_lock(871302, hashtext(${account.id}))`,
       );
 
       const stored = await tx
         .select({ status: billingSubscriptions.status })
         .from(billingSubscriptions)
-        .where(eq(billingSubscriptions.userId, user.id));
+        .where(eq(billingSubscriptions.organizationId, account.id));
       if (stored.some((row) => blockingSubscriptionStatuses.has(row.status))) {
         throw new ExistingSubscriptionError();
       }
@@ -283,7 +291,7 @@ export function createBillingService(
           expiresAt: billingCustomers.pendingSubscriptionCheckoutExpiresAt,
         })
         .from(billingCustomers)
-        .where(eq(billingCustomers.userId, user.id))
+        .where(eq(billingCustomers.organizationId, account.id))
         .limit(1);
       if (
         pending?.id &&
@@ -293,10 +301,10 @@ export function createBillingService(
         const session = await stripe.checkout.sessions.retrieve(pending.id);
         if (
           stripeId(session.customer) !== customer ||
-          session.metadata?.userId !== user.id
+          session.metadata?.organizationId !== account.id
         ) {
           throw new Error(
-            "Pending Checkout customer mapping does not match user",
+            "Pending Checkout customer mapping does not match workspace",
           );
         }
         if (
@@ -313,12 +321,15 @@ export function createBillingService(
         }
       }
 
-      const metadata = { userId: user.id, planLookupKey: plan.lookupKey };
+      const metadata = {
+        organizationId: account.id,
+        planLookupKey: plan.lookupKey,
+      };
       const session = await stripe.checkout.sessions.create(
         {
           mode: "subscription",
           customer,
-          client_reference_id: user.id,
+          client_reference_id: account.id,
           line_items: [{ price: price.id, quantity: 1 }],
           success_url: `${config.appOrigin}/app/billing?checkout=success`,
           cancel_url: `${config.appOrigin}/app/billing?checkout=cancelled`,
@@ -328,7 +339,7 @@ export function createBillingService(
           tax_id_collection: { enabled: true },
         },
         {
-          idempotencyKey: `checkout:${user.id}:${plan.lookupKey}:${attemptId}`,
+          idempotencyKey: `checkout:${account.id}:${plan.lookupKey}:${attemptId}`,
         },
       );
       if (!session.url)
@@ -341,19 +352,19 @@ export function createBillingService(
             session.expires_at * 1000,
           ),
         })
-        .where(eq(billingCustomers.userId, user.id));
+        .where(eq(billingCustomers.organizationId, account.id));
       return { url: session.url };
     });
   }
 
   async function portal(
-    userId: string,
+    organizationId: string,
     attemptId: string = crypto.randomUUID(),
   ) {
     const [customer] = await db
       .select({ stripeCustomerId: billingCustomers.stripeCustomerId })
       .from(billingCustomers)
-      .where(eq(billingCustomers.userId, userId))
+      .where(eq(billingCustomers.organizationId, organizationId))
       .limit(1);
     if (!customer) return null;
 
@@ -365,7 +376,7 @@ export function createBillingService(
           ? { configuration: config.portalConfigurationId }
           : {}),
       },
-      { idempotencyKey: `portal:${userId}:${attemptId}` },
+      { idempotencyKey: `portal:${organizationId}:${attemptId}` },
     );
     return { url: session.url };
   }
@@ -425,7 +436,7 @@ export function createBillingService(
       if (!customerId) throw new Error("Subscription has no Stripe customer");
 
       const [owner] = await tx
-        .select({ userId: billingCustomers.userId })
+        .select({ organizationId: billingCustomers.organizationId })
         .from(billingCustomers)
         .where(eq(billingCustomers.stripeCustomerId, customerId))
         .limit(1);
@@ -442,7 +453,7 @@ export function createBillingService(
             eq(billingSubscriptions.stripeSubscriptionId, subscription.id),
           );
         applied = {
-          userId: owner.userId,
+          organizationId: owner.organizationId,
           planLookupKey: null,
           status: subscription.status,
           eventId: event.id,
@@ -474,7 +485,7 @@ export function createBillingService(
 
       const state = {
         stripeSubscriptionId: subscription.id,
-        userId: owner.userId,
+        organizationId: owner.organizationId,
         stripeCustomerId: customerId,
         priceId: item.price.id,
         planLookupKey: item.price.lookup_key,
@@ -499,7 +510,7 @@ export function createBillingService(
         set: state,
       });
       applied = {
-        userId: owner.userId,
+        organizationId: owner.organizationId,
         planLookupKey: item.price.lookup_key,
         status: subscription.status,
         eventId: event.id,
@@ -511,13 +522,13 @@ export function createBillingService(
     if (committed) await hooks.onSubscriptionState?.(committed);
   }
 
-  async function scheduledChange(userId: string) {
+  async function scheduledChange(organizationId: string) {
     const [row] = await db
       .select()
       .from(billingPlanChanges)
       .where(
         and(
-          eq(billingPlanChanges.userId, userId),
+          eq(billingPlanChanges.organizationId, organizationId),
           eq(billingPlanChanges.status, "scheduled"),
         ),
       )
@@ -526,8 +537,11 @@ export function createBillingService(
     return row ?? null;
   }
 
-  async function cancelScheduledChanges(userId: string, attemptId: string) {
-    const pending = await scheduledChange(userId);
+  async function cancelScheduledChanges(
+    organizationId: string,
+    attemptId: string,
+  ) {
+    const pending = await scheduledChange(organizationId);
     if (!pending) return;
     if (pending.stripeScheduleId) {
       await stripe.subscriptionSchedules.release(
@@ -543,7 +557,7 @@ export function createBillingService(
       .set({ status: "canceled" })
       .where(
         and(
-          eq(billingPlanChanges.userId, userId),
+          eq(billingPlanChanges.organizationId, organizationId),
           eq(billingPlanChanges.status, "scheduled"),
         ),
       );
@@ -556,19 +570,23 @@ export function createBillingService(
    * moves the subscription to the new plan.
    */
   async function changePlan(
-    userId: string,
+    organizationId: string,
     planId: PlanId,
-    options: { keepClientIds?: string[]; attemptId?: string } = {},
+    options: {
+      keepClientIds?: string[];
+      keepMemberIds?: string[];
+      attemptId?: string;
+    } = {},
   ): Promise<PlanChangeResult> {
     const attemptId = options.attemptId ?? crypto.randomUUID();
     const target = planById(planId);
-    const row = newestRelevant(await subscriptionRows(userId));
+    const row = newestRelevant(await subscriptionRows(organizationId));
     if (!row || !["active", "trialing", "past_due"].includes(row.status)) {
       throw new PlanChangeError("Subscribe first, then change plans here.");
     }
     const current = planByLookupKey(row.planLookupKey);
     if (current?.id === target.id) {
-      await cancelScheduledChanges(userId, attemptId);
+      await cancelScheduledChanges(organizationId, attemptId);
       throw new PlanChangeError(`You're already on ${target.name}.`);
     }
     const targetPrice = (await prices()).get(target.lookupKey);
@@ -583,7 +601,7 @@ export function createBillingService(
     if (!item) throw new PlanChangeError("Subscription has no SeatTrue plan.");
 
     if (!current || target.rank > current.rank) {
-      await cancelScheduledChanges(userId, attemptId);
+      await cancelScheduledChanges(organizationId, attemptId);
       await stripe.subscriptions.update(
         subscription.id,
         {
@@ -597,7 +615,7 @@ export function createBillingService(
       return { kind: "upgraded", planId: target.id };
     }
 
-    await cancelScheduledChanges(userId, attemptId);
+    await cancelScheduledChanges(organizationId, attemptId);
     const scheduleId =
       stripeId(subscription.schedule) ??
       (
@@ -628,14 +646,16 @@ export function createBillingService(
       },
     );
     const keepClientIds = options.keepClientIds ?? [];
+    const keepMemberIds = options.keepMemberIds ?? [];
     const effectiveAt = periodEnd ? new Date(periodEnd * 1000) : null;
     await db.insert(billingPlanChanges).values({
       id: attemptId,
-      userId,
+      organizationId,
       stripeSubscriptionId: subscription.id,
       stripeScheduleId: scheduleId,
       targetLookupKey: target.lookupKey,
       keepClientIds,
+      keepMemberIds,
       status: "scheduled",
       effectiveAt,
     });
@@ -644,25 +664,29 @@ export function createBillingService(
       planId: target.id,
       effectiveAt: effectiveAt?.toISOString() ?? null,
       keepClientIds,
+      keepMemberIds,
     };
   }
 
-  /** The keep-list for a downgrade that just took effect; marks it applied. */
+  /** The keep-lists for a downgrade that just took effect; marks it applied. */
   async function takeScheduledKeepList(
-    userId: string,
+    organizationId: string,
     planLookupKey: string,
-  ): Promise<string[] | null> {
-    const pending = await scheduledChange(userId);
+  ): Promise<{ clientIds: string[]; memberIds: string[] } | null> {
+    const pending = await scheduledChange(organizationId);
     if (!pending || pending.targetLookupKey !== planLookupKey) return null;
     await db
       .update(billingPlanChanges)
       .set({ status: "applied" })
       .where(eq(billingPlanChanges.id, pending.id));
-    return pending.keepClientIds;
+    return {
+      clientIds: pending.keepClientIds,
+      memberIds: pending.keepMemberIds,
+    };
   }
 
-  async function currentPlanLookupKey(userId: string) {
-    const row = newestRelevant(await subscriptionRows(userId));
+  async function currentPlanLookupKey(organizationId: string) {
+    const row = newestRelevant(await subscriptionRows(organizationId));
     return row && accessFor(row) !== "read_only" ? row.planLookupKey : null;
   }
 

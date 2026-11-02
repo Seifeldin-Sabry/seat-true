@@ -6,13 +6,10 @@ import {
   planByLookupKey,
 } from "@seattrue/billing";
 import { Elysia, t } from "elysia";
+import type { AuditLog } from "./audit";
 import type { PlanLimits } from "./plan-limits";
+import type { WorkspaceGuard } from "./workspace";
 
-type PlanUser = { id: string };
-
-const unauthorized = {
-  error: { code: "UNAUTHORIZED" as const, message: "Sign in required." },
-};
 const invalidOrigin = {
   error: { code: "INVALID_ORIGIN" as const, message: "Origin not allowed." },
 };
@@ -24,7 +21,7 @@ const unavailable = {
 };
 const planSchema = t.Union([t.Literal("solo"), t.Literal("team")]);
 
-/** Typed confirmation required when a downgrade will lock clients. */
+/** Typed confirmation required when a downgrade locks clients or suspends users. */
 export const DOWNGRADE_CONFIRMATION = "DOWNGRADE";
 
 /**
@@ -34,20 +31,24 @@ export const DOWNGRADE_CONFIRMATION = "DOWNGRADE";
 export function createPlanRoutes(options: {
   billing: BillingService | null;
   planLimits: PlanLimits | null;
-  getUser: (headers: Headers) => Promise<PlanUser | null>;
+  audit?: AuditLog;
+  guard: WorkspaceGuard;
   allowedOrigins: string[];
 }) {
-  const { billing, planLimits, getUser } = options;
+  const { billing, planLimits, guard, audit } = options;
   const trustedOrigins = new Set(options.allowedOrigins);
 
   return new Elysia({ name: "plan-routes", prefix: "/billing/plan-change" })
     .get(
       "/preflight",
       async ({ request, query, status }) => {
-        const user = await getUser(request.headers);
-        if (!user) return status(401, unauthorized);
+        const access = await guard(request.headers, { billing: ["manage"] });
+        if (!access.ok) return status(access.status, access.body);
         if (!planLimits) return status(503, unavailable);
-        return planLimits.preflight(user.id, query.plan);
+        return planLimits.preflight(
+          access.workspace.organizationId,
+          query.plan,
+        );
       },
       { query: t.Object({ plan: planSchema }) },
     )
@@ -56,33 +57,45 @@ export function createPlanRoutes(options: {
       async ({ request, body, status }) => {
         if (!trustedOrigins.has(request.headers.get("origin") ?? ""))
           return status(403, invalidOrigin);
-        const user = await getUser(request.headers);
-        if (!user) return status(401, unauthorized);
+        const access = await guard(request.headers, { billing: ["manage"] });
+        if (!access.ok) return status(access.status, access.body);
         if (!billing || !planLimits) return status(503, unavailable);
+        const { workspace } = access;
+        const organizationId = workspace.organizationId;
 
         const current = planByLookupKey(
-          await billing.currentPlanLookupKey(user.id),
+          await billing.currentPlanLookupKey(organizationId),
         );
-        const preflight = await planLimits.preflight(user.id, body.plan);
-        const isDowngrade =
-          current !== null &&
-          preflight.limit !== null &&
-          (current.limits.clients ?? Number.POSITIVE_INFINITY) >
-            preflight.limit;
+        const target = planById(body.plan);
+        const preflight = await planLimits.preflight(organizationId, body.plan);
+        const isDowngrade = current !== null && target.rank < current.rank;
         let keepClientIds: string[] = [];
+        let keepMemberIds: string[] = [];
         if (isDowngrade && preflight.overages.length > 0) {
           if (body.confirm !== DOWNGRADE_CONFIRMATION) {
+            const effects = [
+              preflight.defaultLockClientIds.length
+                ? `locks ${preflight.defaultLockClientIds.length} clients`
+                : null,
+              preflight.defaultSuspendMemberIds.length
+                ? `suspends ${preflight.defaultSuspendMemberIds.length} users`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" and ");
             return status(422, {
               error: {
                 code: "CONFIRMATION_REQUIRED" as const,
-                message: `This downgrade locks ${preflight.defaultLockClientIds.length} clients. Type ${DOWNGRADE_CONFIRMATION} to confirm.`,
+                message: `This downgrade ${effects}. Type ${DOWNGRADE_CONFIRMATION} to confirm.`,
               },
             });
           }
-          const known = new Set(preflight.clients.map((client) => client.id));
+          const knownClients = new Set(
+            preflight.clients.map((client) => client.id),
+          );
           keepClientIds = (
             body.keepClientIds ?? preflight.defaultKeepClientIds
-          ).filter((id) => known.has(id));
+          ).filter((id) => knownClients.has(id));
           if (
             preflight.limit !== null &&
             keepClientIds.length > preflight.limit
@@ -94,17 +107,48 @@ export function createPlanRoutes(options: {
               },
             });
           }
+          // The owner always stays and takes one seat.
+          const otherMembers = new Set(
+            preflight.members
+              .filter((entry) => entry.role !== "owner")
+              .map((entry) => entry.id),
+          );
+          keepMemberIds = (
+            body.keepMemberIds ?? preflight.defaultKeepMemberIds
+          ).filter((id) => otherMembers.has(id));
+          const owners = preflight.members.length - otherMembers.size;
+          if (
+            preflight.memberLimit !== null &&
+            keepMemberIds.length + owners > preflight.memberLimit
+          ) {
+            return status(422, {
+              error: {
+                code: "TOO_MANY_KEPT" as const,
+                message: `Choose at most ${preflight.memberLimit - owners} people to keep besides the owner.`,
+              },
+            });
+          }
         }
 
         try {
-          const result = await billing.changePlan(user.id, body.plan, {
+          const result = await billing.changePlan(organizationId, body.plan, {
             keepClientIds,
+            keepMemberIds,
           });
           // Upgrades take effect now; unlock immediately instead of waiting
           // for the webhook (which will reach the same state).
           if (result.kind === "upgraded") {
-            await planLimits.apply(user.id, planById(body.plan).lookupKey);
+            await planLimits.apply(organizationId, target.lookupKey);
           }
+          await audit?.record({
+            organizationId,
+            actor: { userId: workspace.user.id, email: workspace.user.email },
+            action: "plan.change",
+            targetType: "plan",
+            targetId: target.id,
+            before: { planId: current?.id ?? null },
+            after: result,
+          });
           return result;
         } catch (error) {
           if (error instanceof PlanChangeError) {
@@ -132,6 +176,9 @@ export function createPlanRoutes(options: {
             plan: planSchema,
             keepClientIds: t.Optional(
               t.Array(t.String({ maxLength: 64 }), { maxItems: 1000 }),
+            ),
+            keepMemberIds: t.Optional(
+              t.Array(t.String({ maxLength: 128 }), { maxItems: 1000 }),
             ),
             confirm: t.Optional(t.String({ maxLength: 32 })),
           },

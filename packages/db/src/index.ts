@@ -5,10 +5,12 @@ export type {
   NewProject,
   Project,
   StoredVendorLine,
+  WorkspaceRole,
 } from "./schema";
 export {
   account,
   agreementLines,
+  auditLog,
   billingCustomers,
   billingPlanChanges,
   billingPurchases,
@@ -16,6 +18,10 @@ export {
   billingWebhookEvents,
   clients,
   customerMappings,
+  exceptionComments,
+  invitation,
+  member,
+  organization,
   projects,
   rateLimit,
   reconciliationExceptions,

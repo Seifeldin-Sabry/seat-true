@@ -69,6 +69,7 @@
       "name": "@seattrue/auth-policy",
       "version": "0.0.0",
       "dependencies": {
+        "better-auth": "1.7.6",
         "free-email-domains": "1.15.24",
       },
       "devDependencies": {

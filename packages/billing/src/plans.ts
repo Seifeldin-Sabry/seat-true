@@ -9,18 +9,18 @@ export const plans = [
     name: "Solo",
     lookupKey: "seattrue_solo_monthly",
     productId: "seattrue_solo",
-    description: "Up to 150 clients",
+    description: "Up to 150 clients, 2 users",
     unitAmount: 14900,
     rank: 1,
-    /** null = unlimited. `users` is reserved until workspaces have invites. */
-    limits: { clients: 150, users: 1 },
+    /** null = unlimited. `users` counts members plus pending invites. */
+    limits: { clients: 150, users: 2 },
   },
   {
     id: "team",
     name: "Team",
     lookupKey: "seattrue_team_monthly",
     productId: "seattrue_team",
-    description: "Unlimited clients",
+    description: "Unlimited clients and users",
     unitAmount: 24900,
     rank: 2,
     limits: { clients: null, users: null },

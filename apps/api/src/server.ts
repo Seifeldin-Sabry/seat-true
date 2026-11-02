@@ -7,6 +7,7 @@ import { createDatabase } from "@seattrue/db";
 import { createEmailService } from "@seattrue/email";
 import { createJobQueue } from "@seattrue/jobs";
 import { createApp } from "./app";
+import { createAuditLog } from "./audit";
 import { createAuthService } from "./auth";
 import { readApiEnvironment } from "./env";
 import { createLogger } from "./logger";
@@ -25,6 +26,7 @@ const jobs = createJobQueue({
 });
 const connection = createDatabase(environment.databaseUrl);
 const recon = createReconService(connection.db);
+const audit = createAuditLog(connection.db);
 // Billing's webhook hook and plan limits reference each other; wire lazily.
 let planLimits: PlanLimits | undefined;
 const billing = billingEnvironment
@@ -56,9 +58,16 @@ const auth = createAuthService(connection.db, {
   email,
   logger,
   ...(environment.google ? { google: environment.google } : {}),
+  appOrigin: environment.appOrigin,
+  seats: {
+    assertCanInvite: planLimits.assertCanInvite,
+    assertCanJoin: planLimits.assertCanJoin,
+  },
 });
 app = createApp({
   projects: createProjectRepository(connection.db),
+  db: connection.db,
+  audit,
   recon,
   planLimits,
   billing,

@@ -1,22 +1,30 @@
 import { cors } from "@elysia/cors";
 import { type BillingService, canWrite } from "@seattrue/billing";
+import type { Database } from "@seattrue/db";
 import { type JobQueue, projectCreatedPayloadSchema } from "@seattrue/jobs";
 import { Elysia, t } from "elysia";
+import { type AuditLog, createAuditLog } from "./audit";
 import type { AuthService } from "./auth";
 import { createBillingRoutes } from "./billing";
 import { jsonLogger, type Logger } from "./logger";
+import { createMembersRoutes } from "./members-routes";
 import type { PlanLimits } from "./plan-limits";
 import { createPlanRoutes } from "./plan-routes";
 import type { ProjectRepository } from "./projects";
 import { createReconRoutes } from "./recon-routes";
 import type { ReconService } from "./reconciliation";
+import { createWorkspaceGuard } from "./workspace";
 
+export type { AuditDto } from "./audit";
 export type { Logger } from "./logger";
+export type { InvitationDto, MemberDto } from "./members-routes";
+export type { DowngradePreflight } from "./plan-limits";
 export type { ProjectDto } from "./projects";
 export type {
   AgreementDto,
   ClientDetailDto,
   ClientSummaryDto,
+  CommentDto,
   ExceptionDto,
   MappingsDto,
   OverviewDto,
@@ -26,6 +34,9 @@ export type {
 
 export type AppOptions = {
   projects: ProjectRepository;
+  /** Enables /workspace, /members, /invitations and /audit. */
+  db?: Database;
+  audit?: AuditLog;
   recon: ReconService;
   planLimits?: PlanLimits;
   auth: AuthService;
@@ -52,6 +63,8 @@ const idSchema = t.Object({
 
 export function createApp({
   projects,
+  db,
+  audit = db ? createAuditLog(db) : undefined,
   recon,
   planLimits,
   auth,
@@ -62,6 +75,11 @@ export function createApp({
   logger = jsonLogger,
   onProjectCreated,
 }: AppOptions) {
+  const guard = createWorkspaceGuard(auth);
+  const canWriteWorkspace = billing
+    ? async (organizationId: string) =>
+        canWrite(await billing.access(organizationId))
+    : undefined;
   const requestDetails = new WeakMap<
     Request,
     { id: string; startedAt: number }
@@ -178,35 +196,41 @@ export function createApp({
       createBillingRoutes({
         billing: billing ?? null,
         allowedOrigins,
-        getUser: async (headers) =>
-          (await auth.getSession(headers))?.user ?? null,
+        guard,
       }),
     )
     .use(
       createReconRoutes({
         recon,
         allowedOrigins,
-        ...(billing
-          ? {
-              canWrite: async (userId: string) =>
-                canWrite(await billing.access(userId)),
-            }
-          : {}),
+        ...(canWriteWorkspace ? { canWrite: canWriteWorkspace } : {}),
         ...(planLimits
           ? { assertCanAddClient: planLimits.assertCanAddClient }
           : {}),
-        getUser: async (headers) =>
-          (await auth.getSession(headers))?.user ?? null,
+        guard,
       }),
     )
     .use(
       createPlanRoutes({
         billing: billing ?? null,
         planLimits: planLimits ?? null,
+        ...(audit ? { audit } : {}),
         allowedOrigins,
-        getUser: async (headers) =>
-          (await auth.getSession(headers))?.user ?? null,
+        guard,
       }),
+    )
+    .use(
+      db && audit
+        ? createMembersRoutes({
+            db,
+            auth,
+            guard,
+            audit,
+            planLimits: planLimits ?? null,
+            ...(canWriteWorkspace ? { canWrite: canWriteWorkspace } : {}),
+            allowedOrigins,
+          })
+        : new Elysia({ name: "members-routes-disabled" }),
     )
     .get("/health", () => ({ status: "ok" as const }))
     .post(

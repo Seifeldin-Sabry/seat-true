@@ -17,6 +17,13 @@ export {
   billingSubscriptions,
   billingWebhookEvents,
 } from "./billing-schema";
+export {
+  auditLog,
+  invitation,
+  member,
+  organization,
+  type WorkspaceRole,
+} from "./org-schema";
 
 export const projects = pgTable(
   "projects",
@@ -46,6 +53,7 @@ export {
   clients,
   customerMappings,
   type ExceptionStatus,
+  exceptionComments,
   reconciliationExceptions,
   reconciliationRuns,
   type StoredVendorLine,

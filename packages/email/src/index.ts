@@ -28,8 +28,17 @@ export type EmailSender = (
   error: { message: string } | null;
 }>;
 
+export type InvitationEmail = {
+  to: string;
+  url: string;
+  organizationName: string;
+  inviterName: string;
+  role: string;
+};
+
 type EmailOperations = {
   send(message: EmailMessage): Promise<{ id: string }>;
+  sendInvitationEmail(message: InvitationEmail): Promise<{ id: string }>;
   sendVerificationEmail(message: AccountEmail): Promise<{ id: string }>;
   sendPasswordResetEmail(message: AccountEmail): Promise<{ id: string }>;
 };
@@ -86,25 +95,53 @@ function accountUrl(url: string): string {
   return parsed.toString();
 }
 
+type ActionEmail = {
+  to: string;
+  eyebrow: string;
+  subject: string;
+  greeting: string;
+  explanation: string;
+  action: string;
+  url: string;
+};
+
+function actionMessage(message: ActionEmail): EmailMessage {
+  const url = accountUrl(message.url);
+  const { subject, action, explanation, greeting } = message;
+  const text = `${greeting}\n\n${explanation}\n\n${action}: ${url}\n\nIf the button does not work, paste the link into your browser.`;
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0;padding:32px 16px;background:#f7f8fa;color:#17202f;font-family:Arial,Helvetica,sans-serif"><main style="max-width:520px;margin:auto;padding:32px;border:1px solid #e5e7eb;border-radius:16px;background:#fff"><p style="margin:0 0 24px;color:#4b5f88;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase">${htmlEscape(message.eyebrow)}</p><h1 style="margin:0 0 20px;font-size:28px;line-height:1.2">${htmlEscape(subject)}</h1><p style="line-height:1.6">${htmlEscape(greeting)}</p><p style="line-height:1.6">${htmlEscape(explanation)}</p><p style="margin:28px 0"><a href="${htmlEscape(url)}" style="display:inline-block;padding:13px 20px;border-radius:8px;background:#304fc5;color:#fff;text-decoration:none;font-weight:700">${htmlEscape(action)}</a></p><p style="color:#64748b;font-size:13px;line-height:1.6">If the button does not work, copy this link:<br><a href="${htmlEscape(url)}" style="color:#304fc5;overflow-wrap:anywhere">${htmlEscape(url)}</a></p></main></body></html>`;
+  return { to: message.to, subject, html, text };
+}
+
 function accountMessage(
   kind: "verification" | "password-reset",
   message: AccountEmail,
 ): EmailMessage {
-  const url = accountUrl(message.url);
   const name = message.name?.trim();
-  const greeting = name ? `Hi ${name},` : "Hello,";
-  const safeGreeting = htmlEscape(greeting);
   const verification = kind === "verification";
-  const subject = verification
-    ? "Verify your email address"
-    : "Reset your password";
-  const action = verification ? "Verify email" : "Reset password";
-  const explanation = verification
-    ? "Confirm your email address to finish setting up your account."
-    : "A password reset was requested for your account. If this was not you, you can ignore this email.";
-  const text = `${greeting}\n\n${explanation}\n\n${action}: ${url}\n\nIf the button does not work, paste the link into your browser.`;
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0;padding:32px 16px;background:#f7f8fa;color:#17202f;font-family:Arial,Helvetica,sans-serif"><main style="max-width:520px;margin:auto;padding:32px;border:1px solid #e5e7eb;border-radius:16px;background:#fff"><p style="margin:0 0 24px;color:#4b5f88;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase">Account</p><h1 style="margin:0 0 20px;font-size:28px;line-height:1.2">${subject}</h1><p style="line-height:1.6">${safeGreeting}</p><p style="line-height:1.6">${explanation}</p><p style="margin:28px 0"><a href="${htmlEscape(url)}" style="display:inline-block;padding:13px 20px;border-radius:8px;background:#304fc5;color:#fff;text-decoration:none;font-weight:700">${action}</a></p><p style="color:#64748b;font-size:13px;line-height:1.6">If the button does not work, copy this link:<br><a href="${htmlEscape(url)}" style="color:#304fc5;overflow-wrap:anywhere">${htmlEscape(url)}</a></p></main></body></html>`;
-  return { to: message.to, subject, html, text };
+  return actionMessage({
+    to: message.to,
+    eyebrow: "Account",
+    subject: verification ? "Verify your email address" : "Reset your password",
+    greeting: name ? `Hi ${name},` : "Hello,",
+    explanation: verification
+      ? "Confirm your email address to finish setting up your account."
+      : "A password reset was requested for your account. If this was not you, you can ignore this email.",
+    action: verification ? "Verify email" : "Reset password",
+    url: message.url,
+  });
+}
+
+function invitationMessage(message: InvitationEmail): EmailMessage {
+  return actionMessage({
+    to: message.to,
+    eyebrow: "Invitation",
+    subject: `Join ${message.organizationName} on SeatTrue`,
+    greeting: "Hello,",
+    explanation: `${message.inviterName} invited you to the ${message.organizationName} workspace as ${message.role}. The link expires in 48 hours.`,
+    action: "Accept invitation",
+    url: message.url,
+  });
 }
 
 function createResendSender(apiKey: string): EmailSender {
@@ -137,6 +174,7 @@ export function createEmailService(
       send: unavailable,
       sendVerificationEmail: unavailable,
       sendPasswordResetEmail: unavailable,
+      sendInvitationEmail: unavailable,
     };
   }
 
@@ -173,6 +211,9 @@ export function createEmailService(
     },
     async sendPasswordResetEmail(message) {
       return send(accountMessage("password-reset", message));
+    },
+    async sendInvitationEmail(message) {
+      return send(invitationMessage(message));
     },
   };
 }

@@ -9,22 +9,22 @@ import {
   CsvRejectedError,
   type ReconService,
 } from "./reconciliation";
-
-type ReconUser = { id: string };
+import type { Workspace, WorkspaceGuard } from "./workspace";
 
 export type ReconRoutesOptions = {
   recon: ReconService;
   /** False when the workspace's subscription has lapsed (read-only, nothing deleted). */
-  canWrite?: (userId: string) => Promise<boolean>;
+  canWrite?: (organizationId: string) => Promise<boolean>;
   /** Throws PlanLimitError when another active client would exceed the plan. */
-  assertCanAddClient?: (userId: string) => Promise<void>;
-  getUser: (headers: Headers) => Promise<ReconUser | null>;
+  assertCanAddClient?: (organizationId: string) => Promise<void>;
+  guard: WorkspaceGuard;
   allowedOrigins: string[];
 };
 
-const unauthorized = {
-  error: { code: "UNAUTHORIZED" as const, message: "Sign in required." },
-};
+const actorOf = (workspace: Workspace) => ({
+  userId: workspace.user.id,
+  email: workspace.user.email,
+});
 const invalidOrigin = {
   error: { code: "INVALID_ORIGIN" as const, message: "Origin not allowed." },
 };
@@ -57,70 +57,75 @@ export function createReconRoutes({
   recon,
   canWrite = async () => true,
   assertCanAddClient = async () => {},
-  getUser,
+  guard,
   allowedOrigins,
 }: ReconRoutesOptions) {
   const trustedOrigins = new Set(allowedOrigins);
   const isTrusted = (request: Request) =>
     trustedOrigins.has(request.headers.get("origin") ?? "");
+  const exceptionNotFound = {
+    error: {
+      code: "EXCEPTION_NOT_FOUND" as const,
+      message: "Exception not found.",
+    },
+  };
+  const clientNotFound = {
+    error: { code: "CLIENT_NOT_FOUND" as const, message: "Client not found." },
+  };
 
   return (
     new Elysia({ name: "recon-routes" })
       .get("/recon/overview", async ({ request, status }) => {
-        const user = await getUser(request.headers);
-        if (!user) return status(401, unauthorized);
-        return recon.overview(user.id);
+        const access = await guard(request.headers);
+        if (!access.ok) return status(access.status, access.body);
+        return recon.overview(access.workspace.organizationId);
       })
       .get(
         "/recon/clients/:id",
         async ({ request, params, status }) => {
-          const user = await getUser(request.headers);
-          if (!user) return status(401, unauthorized);
-          const detail = await recon.client(user.id, params.id);
-          if (!detail) {
-            return status(404, {
-              error: {
-                code: "CLIENT_NOT_FOUND" as const,
-                message: "Client not found.",
-              },
-            });
-          }
+          const access = await guard(request.headers);
+          if (!access.ok) return status(access.status, access.body);
+          const detail = await recon.client(
+            access.workspace.organizationId,
+            params.id,
+          );
+          if (!detail) return status(404, clientNotFound);
           return detail;
         },
         { params: idParams },
       )
       .get("/recon/exceptions", async ({ request, status }) => {
-        const user = await getUser(request.headers);
-        if (!user) return status(401, unauthorized);
-        return { exceptions: await recon.exceptions(user.id) };
+        const access = await guard(request.headers);
+        if (!access.ok) return status(access.status, access.body);
+        return {
+          exceptions: await recon.exceptions(access.workspace.organizationId),
+        };
       })
       .patch(
         "/recon/exceptions/:id",
         async ({ request, params, body, status }) => {
           if (!isTrusted(request)) return status(403, invalidOrigin);
-          const user = await getUser(request.headers);
-          if (!user) return status(401, unauthorized);
-          if (!(await canWrite(user.id))) return status(402, readOnly);
+          const access = await guard(request.headers, {
+            exception: ["resolve"],
+          });
+          if (!access.ok) return status(access.status, access.body);
+          const { workspace } = access;
+          if (!(await canWrite(workspace.organizationId)))
+            return status(402, readOnly);
           let updated: Awaited<ReturnType<ReconService["setExceptionStatus"]>>;
           try {
             updated = await recon.setExceptionStatus(
-              user.id,
+              workspace.organizationId,
               params.id,
               body.status,
+              actorOf(workspace),
             );
           } catch (error) {
             if (error instanceof ClientLockedError)
               return status(423, clientLocked(error));
             throw error;
           }
-          if (!updated) {
-            return status(404, {
-              error: {
-                code: "EXCEPTION_NOT_FOUND" as const,
-                message: "Exception not found.",
-              },
-            });
-          }
+          if (!updated) return status(404, exceptionNotFound);
           return updated;
         },
         {
@@ -138,38 +143,118 @@ export function createReconRoutes({
           ),
         },
       )
-      .get("/recon/mappings", async ({ request, status }) => {
-        const user = await getUser(request.headers);
-        if (!user) return status(401, unauthorized);
-        return recon.mappings(user.id);
-      })
       .put(
-        "/recon/mappings",
-        async ({ request, body, status }) => {
+        "/recon/exceptions/:id/flag",
+        async ({ request, params, body, status }) => {
           if (!isTrusted(request)) return status(403, invalidOrigin);
-          const user = await getUser(request.headers);
-          if (!user) return status(401, unauthorized);
-          if (!(await canWrite(user.id))) return status(402, readOnly);
-          let saved: boolean;
+          const access = await guard(request.headers, { exception: ["flag"] });
+          if (!access.ok) return status(access.status, access.body);
+          const { workspace } = access;
+          if (!(await canWrite(workspace.organizationId)))
+            return status(402, readOnly);
+          let updated: Awaited<ReturnType<ReconService["setExceptionFlag"]>>;
           try {
-            saved = await recon.setMapping(
-              user.id,
-              body.customerKey.trim(),
-              body.clientId,
+            updated = await recon.setExceptionFlag(
+              workspace.organizationId,
+              params.id,
+              body.flagged,
+              actorOf(workspace),
             );
           } catch (error) {
             if (error instanceof ClientLockedError)
               return status(423, clientLocked(error));
             throw error;
           }
-          if (!saved) {
-            return status(404, {
-              error: {
-                code: "CLIENT_NOT_FOUND" as const,
-                message: "Client not found.",
-              },
-            });
+          if (!updated) return status(404, exceptionNotFound);
+          return updated;
+        },
+        {
+          params: idParams,
+          body: t.Object(
+            { flagged: t.Boolean() },
+            { additionalProperties: false },
+          ),
+        },
+      )
+      .get(
+        "/recon/exceptions/:id/comments",
+        async ({ request, params, status }) => {
+          const access = await guard(request.headers);
+          if (!access.ok) return status(access.status, access.body);
+          const comments = await recon.comments(
+            access.workspace.organizationId,
+            params.id,
+          );
+          if (!comments) return status(404, exceptionNotFound);
+          return { comments };
+        },
+        { params: idParams },
+      )
+      .post(
+        "/recon/exceptions/:id/comments",
+        async ({ request, params, body, status }) => {
+          if (!isTrusted(request)) return status(403, invalidOrigin);
+          const access = await guard(request.headers, {
+            exception: ["comment"],
+          });
+          if (!access.ok) return status(access.status, access.body);
+          const { workspace } = access;
+          if (!(await canWrite(workspace.organizationId)))
+            return status(402, readOnly);
+          let comment: Awaited<ReturnType<ReconService["addComment"]>>;
+          try {
+            comment = await recon.addComment(
+              workspace.organizationId,
+              params.id,
+              body.body.trim(),
+              actorOf(workspace),
+            );
+          } catch (error) {
+            if (error instanceof ClientLockedError)
+              return status(423, clientLocked(error));
+            throw error;
           }
+          if (!comment) return status(404, exceptionNotFound);
+          return status(201, comment);
+        },
+        {
+          params: idParams,
+          body: t.Object(
+            {
+              body: t.String({ minLength: 1, maxLength: 2000, pattern: "\\S" }),
+            },
+            { additionalProperties: false },
+          ),
+        },
+      )
+      .get("/recon/mappings", async ({ request, status }) => {
+        const access = await guard(request.headers);
+        if (!access.ok) return status(access.status, access.body);
+        return recon.mappings(access.workspace.organizationId);
+      })
+      .put(
+        "/recon/mappings",
+        async ({ request, body, status }) => {
+          if (!isTrusted(request)) return status(403, invalidOrigin);
+          const access = await guard(request.headers, { mapping: ["edit"] });
+          if (!access.ok) return status(access.status, access.body);
+          const { workspace } = access;
+          if (!(await canWrite(workspace.organizationId)))
+            return status(402, readOnly);
+          let saved: boolean;
+          try {
+            saved = await recon.setMapping(
+              workspace.organizationId,
+              body.customerKey.trim(),
+              body.clientId,
+              actorOf(workspace),
+            );
+          } catch (error) {
+            if (error instanceof ClientLockedError)
+              return status(423, clientLocked(error));
+            throw error;
+          }
+          if (!saved) return status(404, clientNotFound);
           return { success: true as const };
         },
         {
@@ -190,13 +275,18 @@ export function createReconRoutes({
         "/recon/runs",
         async ({ request, body, status }) => {
           if (!isTrusted(request)) return status(403, invalidOrigin);
-          const user = await getUser(request.headers);
-          if (!user) return status(401, unauthorized);
-          if (!(await canWrite(user.id))) return status(402, readOnly);
+          const access = await guard(request.headers, { run: ["upload"] });
+          if (!access.ok) return status(access.status, access.body);
+          const { organizationId } = access.workspace;
+          if (!(await canWrite(organizationId))) return status(402, readOnly);
           try {
             return status(
               201,
-              await recon.uploadRun(user.id, body.fileName.trim(), body.csv),
+              await recon.uploadRun(
+                organizationId,
+                body.fileName.trim(),
+                body.csv,
+              ),
             );
           } catch (error) {
             if (error instanceof CsvRejectedError) {
@@ -228,17 +318,21 @@ export function createReconRoutes({
         "/recon/clients",
         async ({ request, body, status }) => {
           if (!isTrusted(request)) return status(403, invalidOrigin);
-          const user = await getUser(request.headers);
-          if (!user) return status(401, unauthorized);
-          if (!(await canWrite(user.id))) return status(402, readOnly);
+          // Creating sets a markup, so it needs the markup permission too.
+          const access = await guard(request.headers, {
+            client: ["create", "markup"],
+          });
+          if (!access.ok) return status(access.status, access.body);
+          const { organizationId } = access.workspace;
+          if (!(await canWrite(organizationId))) return status(402, readOnly);
           try {
-            await assertCanAddClient(user.id);
+            await assertCanAddClient(organizationId);
           } catch (error) {
             if (error instanceof PlanLimitError)
               return status(402, planLimit(error));
             throw error;
           }
-          return status(201, await recon.createClient(user.id, body));
+          return status(201, await recon.createClient(organizationId, body));
         },
         {
           body: t.Object(
@@ -255,47 +349,70 @@ export function createReconRoutes({
         "/recon/clients/:id",
         async ({ request, params, body, status }) => {
           if (!isTrusted(request)) return status(403, invalidOrigin);
-          const user = await getUser(request.headers);
-          if (!user) return status(401, unauthorized);
-          if (!(await canWrite(user.id))) return status(402, readOnly);
-          if (!body.archived) {
+          const access = await guard(request.headers, {
+            client: [
+              ...(body.archived !== undefined ? (["archive"] as const) : []),
+              ...(body.markupPct !== undefined ? (["markup"] as const) : []),
+            ],
+          });
+          if (!access.ok) return status(access.status, access.body);
+          const { workspace } = access;
+          const { organizationId } = workspace;
+          if (!(await canWrite(organizationId))) return status(402, readOnly);
+          let updated: Awaited<ReturnType<ReconService["setArchived"]>> = null;
+          if (body.archived !== undefined) {
+            if (!body.archived) {
+              try {
+                await assertCanAddClient(organizationId);
+              } catch (error) {
+                if (error instanceof PlanLimitError)
+                  return status(402, planLimit(error));
+                throw error;
+              }
+            }
+            updated = await recon.setArchived(
+              organizationId,
+              params.id,
+              body.archived,
+            );
+            if (!updated) return status(404, clientNotFound);
+          }
+          if (body.markupPct !== undefined) {
             try {
-              await assertCanAddClient(user.id);
+              updated = await recon.setMarkup(
+                organizationId,
+                params.id,
+                body.markupPct,
+                actorOf(workspace),
+              );
             } catch (error) {
-              if (error instanceof PlanLimitError)
-                return status(402, planLimit(error));
+              if (error instanceof ClientLockedError)
+                return status(423, clientLocked(error));
               throw error;
             }
           }
-          const updated = await recon.setArchived(
-            user.id,
-            params.id,
-            body.archived,
-          );
-          if (!updated) {
-            return status(404, {
-              error: {
-                code: "CLIENT_NOT_FOUND" as const,
-                message: "Client not found.",
-              },
-            });
-          }
+          if (!updated) return status(404, clientNotFound);
           return updated;
         },
         {
           params: idParams,
           body: t.Object(
-            { archived: t.Boolean() },
-            { additionalProperties: false },
+            {
+              archived: t.Optional(t.Boolean()),
+              markupPct: t.Optional(t.Number({ minimum: 0, maximum: 500 })),
+            },
+            { additionalProperties: false, minProperties: 1 },
           ),
         },
       )
       .post("/recon/demo", async ({ request, status }) => {
         if (!isTrusted(request)) return status(403, invalidOrigin);
-        const user = await getUser(request.headers);
-        if (!user) return status(401, unauthorized);
-        if (!(await canWrite(user.id))) return status(402, readOnly);
-        return status(201, await recon.loadDemo(user.id));
+        // The demo replaces the workspace's data, so only the owner may load it.
+        const access = await guard(request.headers, { run: ["demo"] });
+        if (!access.ok) return status(access.status, access.body);
+        const { organizationId } = access.workspace;
+        if (!(await canWrite(organizationId))) return status(402, readOnly);
+        return status(201, await recon.loadDemo(organizationId));
       })
       // Public landing-page form. ponytail: no per-IP limit yet; add Upstash ratelimit before launch.
       .post(

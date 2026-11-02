@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { createReconRoutes } from "./recon-routes";
 import type { ReconService } from "./reconciliation";
+import { testGuard, testWorkspace } from "./testing";
 
 test("lapsed subscriptions are read-only: reads work, writes get 402", async () => {
   const recon = {
@@ -11,7 +12,7 @@ test("lapsed subscriptions are read-only: reads work, writes get 402", async () 
   } as unknown as ReconService;
   const routes = createReconRoutes({
     recon,
-    getUser: async () => ({ id: "user-1" }),
+    guard: testGuard(testWorkspace("owner")),
     allowedOrigins: ["http://localhost:3000"],
     canWrite: async () => false,
   });

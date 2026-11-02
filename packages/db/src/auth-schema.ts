@@ -44,6 +44,8 @@ export const session = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    /** Organization plugin: the workspace this session acts in. */
+    activeOrganizationId: text("active_organization_id"),
   },
   (table) => [index("session_user_id_idx").on(table.userId)],
 );

@@ -9,6 +9,7 @@ import type {
   UpdateProjectInput,
 } from "./projects";
 import type { ReconService } from "./reconciliation";
+import { testAuthService, testWorkspace } from "./testing";
 
 const silentLogger: Logger = { info() {}, warn() {}, error() {} };
 // Project tests never reach reconciliation routes.
@@ -21,17 +22,9 @@ const testUserId = "test-user-1";
 const allowedOrigin = "http://localhost:3000";
 
 function testAuth(userId: string | null = testUserId): AuthService {
-  return {
-    emailEnabled: false,
-    handler: async () => new Response("Not found", { status: 404 }),
-    getSession: async () =>
-      userId
-        ? {
-            user: { id: userId, email: `${userId}@example.test`, name: userId },
-            session: { id: "test-session", userId },
-          }
-        : null,
-  };
+  return testAuthService(
+    userId ? testWorkspace("owner", `org-${userId}`, userId) : null,
+  );
 }
 
 function memoryRepository(): ProjectRepository {

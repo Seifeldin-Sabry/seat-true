@@ -104,4 +104,29 @@ describe("optional Resend email", () => {
       }),
     ).rejects.toThrow("Account email URL must use HTTPS");
   });
+
+  test("invitation email names the workspace and escapes it", async () => {
+    const sent: Parameters<EmailSender>[] = [];
+    const email = createEmailService({
+      env: configured,
+      sender: async (...args) => {
+        sent.push(args);
+        return { data: { id: "mail_invite" }, error: null };
+      },
+    });
+    await email.sendInvitationEmail({
+      to: "tech@northbeam-it.com",
+      url: "https://app.example.test/accept-invite/inv_1",
+      organizationName: "<b>Northbeam</b>",
+      inviterName: "Ann",
+      role: "tech",
+    });
+    const message = sent[0]?.[0];
+    expect(message?.subject).toBe("Join <b>Northbeam</b> on SeatTrue");
+    expect(message?.html).toContain("&lt;b&gt;Northbeam&lt;/b&gt;");
+    expect(message?.html).not.toContain("<b>Northbeam</b>");
+    expect(message?.text).toContain(
+      "Accept invitation: https://app.example.test/accept-invite/inv_1",
+    );
+  });
 });

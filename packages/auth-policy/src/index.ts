@@ -45,3 +45,16 @@ export function emailMatchesDomain(
   if (!domain || !expected) return false;
   return domain === expected || domain.endsWith(`.${expected}`);
 }
+
+export {
+  ac,
+  invitableRoles,
+  isWorkspaceRole,
+  type Permissions,
+  roleCan,
+  rolePermissions,
+  roles,
+  statement,
+  type WorkspaceRole,
+  workspaceRoles,
+} from "./access";

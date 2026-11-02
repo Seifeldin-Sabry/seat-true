@@ -4,12 +4,11 @@ import {
   ExistingSubscriptionError,
 } from "@seattrue/billing";
 import { Elysia, t } from "elysia";
-
-type BillingUser = { id: string; email: string };
+import type { WorkspaceGuard } from "./workspace";
 
 export type BillingRoutesOptions = {
   billing?: BillingService | null;
-  getUser: (headers: Headers) => Promise<BillingUser | null>;
+  guard: WorkspaceGuard;
   allowedOrigins: string[];
 };
 
@@ -17,13 +16,6 @@ const unavailable = {
   error: {
     code: "BILLING_NOT_CONFIGURED" as const,
     message: "Billing is not configured for this deployment.",
-  },
-};
-
-const unauthorized = {
-  error: {
-    code: "UNAUTHORIZED" as const,
-    message: "Sign in required.",
   },
 };
 
@@ -36,14 +28,15 @@ const invalidOrigin = {
 
 export function createBillingRoutes({
   billing,
-  getUser,
+  guard,
   allowedOrigins,
 }: BillingRoutesOptions) {
   const trustedOrigins = new Set(allowedOrigins);
   return new Elysia({ name: "billing-routes", prefix: "/billing" })
     .get("/overview", async ({ request, status }) => {
-      const user = await getUser(request.headers);
-      if (!user) return status(401, unauthorized);
+      // Every member sees the plan and access state; changing it is owner-only.
+      const access = await guard(request.headers);
+      if (!access.ok) return status(access.status, access.body);
       if (!billing) {
         return {
           enabled: false as const,
@@ -53,7 +46,7 @@ export function createBillingRoutes({
         };
       }
       try {
-        return await billing.overview(user.id);
+        return await billing.overview(access.workspace.organizationId);
       } catch (error) {
         if (error instanceof BillingPriceConfigurationError)
           return status(503, {
@@ -70,11 +63,15 @@ export function createBillingRoutes({
       async ({ request, body, status }) => {
         if (!trustedOrigins.has(request.headers.get("origin") ?? ""))
           return status(403, invalidOrigin);
-        const user = await getUser(request.headers);
-        if (!user) return status(401, unauthorized);
+        const access = await guard(request.headers, { billing: ["manage"] });
+        if (!access.ok) return status(access.status, access.body);
         if (!billing) return status(503, unavailable);
+        const { workspace } = access;
         try {
-          return await billing.checkout(user, body.plan);
+          return await billing.checkout(
+            { id: workspace.organizationId, email: workspace.user.email },
+            body.plan,
+          );
         } catch (error) {
           if (error instanceof ExistingSubscriptionError) {
             return status(409, {
@@ -107,10 +104,10 @@ export function createBillingRoutes({
     .post("/portal", async ({ request, status }) => {
       if (!trustedOrigins.has(request.headers.get("origin") ?? ""))
         return status(403, invalidOrigin);
-      const user = await getUser(request.headers);
-      if (!user) return status(401, unauthorized);
+      const access = await guard(request.headers, { billing: ["manage"] });
+      if (!access.ok) return status(access.status, access.body);
       if (!billing) return status(503, unavailable);
-      const portal = await billing.portal(user.id);
+      const portal = await billing.portal(access.workspace.organizationId);
       if (!portal) {
         return status(404, {
           error: {

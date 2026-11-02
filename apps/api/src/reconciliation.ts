@@ -4,6 +4,7 @@ import {
   customerMappings,
   type Database,
   type ExceptionStatus,
+  exceptionComments,
   reconciliationExceptions,
   reconciliationRuns,
   type StoredVendorLine,
@@ -19,7 +20,17 @@ import {
   reconcile,
   type VendorLine,
 } from "@seattrue/recon";
-import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+} from "drizzle-orm";
+import { type Actor, type AuditAction, recordAudit } from "./audit";
 
 export type ClientSummaryDto = {
   id: string;
@@ -52,6 +63,16 @@ export type ExceptionDto = {
   monthlyImpactCents: number;
   summary: string;
   status: ExceptionStatus;
+  /** Raised for a second look (techs can flag; resolving needs an admin). */
+  flagged: boolean;
+  commentCount: number;
+};
+
+export type CommentDto = {
+  id: string;
+  authorEmail: string;
+  body: string;
+  createdAt: string;
 };
 
 export type RunDto = {
@@ -130,37 +151,70 @@ export type LimitClient = {
 };
 
 export type ReconService = {
-  overview(ownerId: string): Promise<OverviewDto>;
-  client(ownerId: string, clientId: string): Promise<ClientDetailDto | null>;
-  exceptions(ownerId: string): Promise<ExceptionDto[]>;
+  overview(organizationId: string): Promise<OverviewDto>;
+  client(
+    organizationId: string,
+    clientId: string,
+  ): Promise<ClientDetailDto | null>;
+  exceptions(organizationId: string): Promise<ExceptionDto[]>;
   setExceptionStatus(
-    ownerId: string,
+    organizationId: string,
     id: string,
     status: ExceptionStatus,
+    actor: Actor,
   ): Promise<ExceptionDto | null>;
-  mappings(ownerId: string): Promise<MappingsDto>;
-  /** Returns false when the client does not belong to the owner. */
+  mappings(organizationId: string): Promise<MappingsDto>;
+  setExceptionFlag(
+    organizationId: string,
+    id: string,
+    flagged: boolean,
+    actor: Actor,
+  ): Promise<ExceptionDto | null>;
+  /** Null when the exception isn't in this workspace. */
+  comments(organizationId: string, id: string): Promise<CommentDto[] | null>;
+  addComment(
+    organizationId: string,
+    id: string,
+    body: string,
+    actor: NonNullable<Actor>,
+  ): Promise<CommentDto | null>;
+  /** Returns false when the client is not in the workspace. */
   setMapping(
-    ownerId: string,
+    organizationId: string,
     customerKey: string,
     clientId: string,
+    actor: Actor,
   ): Promise<boolean>;
+  /** Null when the client isn't in the workspace. */
+  setMarkup(
+    organizationId: string,
+    clientId: string,
+    markupPct: number,
+    actor: Actor,
+  ): Promise<ClientSummaryDto | null>;
   /** Throws CsvRejectedError when the file cannot be parsed. */
-  uploadRun(ownerId: string, fileName: string, csv: string): Promise<RunDto>;
-  loadDemo(ownerId: string): Promise<RunDto>;
+  uploadRun(
+    organizationId: string,
+    fileName: string,
+    csv: string,
+  ): Promise<RunDto>;
+  loadDemo(organizationId: string): Promise<RunDto>;
   joinWaitlist(input: WaitlistInput): Promise<void>;
-  createClient(ownerId: string, input: ClientInput): Promise<ClientSummaryDto>;
-  /** Null when the client doesn't belong to the owner. */
+  createClient(
+    organizationId: string,
+    input: ClientInput,
+  ): Promise<ClientSummaryDto>;
+  /** Null when the client isn't in the workspace. */
   setArchived(
-    ownerId: string,
+    organizationId: string,
     clientId: string,
     archived: boolean,
   ): Promise<ClientSummaryDto | null>;
   /** Non-archived clients (locked included), for plan-limit decisions. */
-  limitClients(ownerId: string): Promise<LimitClient[]>;
+  limitClients(organizationId: string): Promise<LimitClient[]>;
   /** Locks and unlocks in one transaction, then re-runs the latest bill. */
   applyLocks(
-    ownerId: string,
+    organizationId: string,
     lockIds: string[],
     keepIds: string[],
     at: Date,
@@ -193,9 +247,17 @@ function toRunDto(run: RunRow): RunDto {
   };
 }
 
+const statusAction: Record<ExceptionStatus, AuditAction> = {
+  open: "exception.reopen",
+  approved: "exception.approve",
+  billed: "exception.billed",
+  dismissed: "exception.dismiss",
+};
+
 function toExceptionDto(
   row: ExceptionRow,
   clientNames: Map<string, string>,
+  commentCounts: Map<string, number> = new Map(),
 ): ExceptionDto {
   return {
     id: row.id,
@@ -214,6 +276,17 @@ function toExceptionDto(
     monthlyImpactCents: row.monthlyImpactCents,
     summary: row.summary,
     status: row.status,
+    flagged: row.flagged,
+    commentCount: commentCounts.get(row.id) ?? 0,
+  };
+}
+
+function toCommentDto(row: typeof exceptionComments.$inferSelect): CommentDto {
+  return {
+    id: row.id,
+    authorEmail: row.authorEmail,
+    body: row.body,
+    createdAt: row.createdAt.toISOString(),
   };
 }
 
@@ -223,31 +296,31 @@ function isLeakage(row: { kind: string }) {
 }
 
 export function createReconService(db: Database): ReconService {
-  async function latestRun(ownerId: string) {
+  async function latestRun(organizationId: string) {
     const [run] = await db
       .select()
       .from(reconciliationRuns)
-      .where(eq(reconciliationRuns.ownerId, ownerId))
+      .where(eq(reconciliationRuns.organizationId, organizationId))
       .orderBy(desc(reconciliationRuns.createdAt), desc(reconciliationRuns.id))
       .limit(1);
     return run ?? null;
   }
 
-  async function ownerClients(ownerId: string) {
+  async function organizationClients(organizationId: string) {
     return db
       .select()
       .from(clients)
-      .where(eq(clients.ownerId, ownerId))
+      .where(eq(clients.organizationId, organizationId))
       .orderBy(asc(clients.name));
   }
 
-  async function runExceptions(ownerId: string, runId: string) {
+  async function runExceptions(organizationId: string, runId: string) {
     return db
       .select()
       .from(reconciliationExceptions)
       .where(
         and(
-          eq(reconciliationExceptions.ownerId, ownerId),
+          eq(reconciliationExceptions.organizationId, organizationId),
           eq(reconciliationExceptions.runId, runId),
         ),
       )
@@ -258,19 +331,19 @@ export function createReconService(db: Database): ReconService {
    * Recompute exceptions for a run from current clients, mappings and
    * agreements. Statuses the user already set survive the recompute.
    */
-  async function recompute(ownerId: string, run: RunRow) {
+  async function recompute(organizationId: string, run: RunRow) {
     const [clientRows, mappingRows, agreementRows, previous] =
       await Promise.all([
-        ownerClients(ownerId),
+        organizationClients(organizationId),
         db
           .select()
           .from(customerMappings)
-          .where(eq(customerMappings.ownerId, ownerId)),
+          .where(eq(customerMappings.organizationId, organizationId)),
         db
           .select()
           .from(agreementLines)
-          .where(eq(agreementLines.ownerId, ownerId)),
-        runExceptions(ownerId, run.id),
+          .where(eq(agreementLines.organizationId, organizationId)),
+        runExceptions(organizationId, run.id),
       ]);
 
     // Locked and archived clients sit out reconciliation entirely: their bill
@@ -302,51 +375,60 @@ export function createReconService(db: Database): ReconService {
       ),
       agreements: agreementRows.filter((line) => !excluded.has(line.clientId)),
     });
-    const previousStatus = new Map(
-      previous.map((row) => [exceptionKey(row), row]),
-    );
+    // Rows that are still found keep their id, so status, flag and comments
+    // survive the recompute; rows no longer found are removed.
+    const previousByKey = new Map<string, ExceptionRow[]>();
+    for (const row of previous) {
+      const key = exceptionKey(row);
+      previousByKey.set(key, [...(previousByKey.get(key) ?? []), row]);
+    }
+    const updates: { id: string; values: (typeof found)[number] }[] = [];
+    const inserts: (typeof found)[number][] = [];
+    for (const exception of found) {
+      const kept = previousByKey.get(exceptionKey(exception))?.shift();
+      if (kept) updates.push({ id: kept.id, values: exception });
+      else inserts.push(exception);
+    }
+    const stale = [...previousByKey.values()].flat().map((row) => row.id);
 
     await db.transaction(async (tx) => {
-      await tx
-        .delete(reconciliationExceptions)
-        .where(
-          and(
-            eq(reconciliationExceptions.ownerId, ownerId),
-            eq(reconciliationExceptions.runId, run.id),
-          ),
-        );
-      if (found.length === 0) return;
-      await tx.insert(reconciliationExceptions).values(
-        found.map((exception) => {
-          const kept = previousStatus.get(exceptionKey(exception));
-          return {
+      if (stale.length)
+        await tx
+          .delete(reconciliationExceptions)
+          .where(inArray(reconciliationExceptions.id, stale));
+      // ponytail: one UPDATE per surviving row; batch it if runs reach thousands of exceptions.
+      for (const update of updates)
+        await tx
+          .update(reconciliationExceptions)
+          .set(update.values)
+          .where(eq(reconciliationExceptions.id, update.id));
+      if (inserts.length)
+        await tx.insert(reconciliationExceptions).values(
+          inserts.map((exception) => ({
             ...exception,
-            ownerId,
+            organizationId,
             runId: run.id,
-            status: kept?.status ?? ("open" as const),
-            resolvedAt: kept?.resolvedAt ?? null,
-          };
-        }),
-      );
+          })),
+        );
     });
   }
 
   async function storeRun(
-    ownerId: string,
+    organizationId: string,
     fileName: string,
     lines: VendorLine[],
   ) {
     const [run] = await db
       .insert(reconciliationRuns)
       .values({
-        ownerId,
+        organizationId,
         source: "pax8-csv",
         fileName,
         vendorLines: lines satisfies StoredVendorLine[],
       })
       .returning();
     if (!run) throw new Error("Run insert returned no row");
-    await recompute(ownerId, run);
+    await recompute(organizationId, run);
     return toRunDto(run);
   }
 
@@ -390,11 +472,16 @@ export function createReconService(db: Database): ReconService {
     });
   }
 
-  async function writableClient(ownerId: string, clientId: string) {
+  async function writableClient(organizationId: string, clientId: string) {
     const [client] = await db
       .select()
       .from(clients)
-      .where(and(eq(clients.ownerId, ownerId), eq(clients.id, clientId)))
+      .where(
+        and(
+          eq(clients.organizationId, organizationId),
+          eq(clients.id, clientId),
+        ),
+      )
       .limit(1);
     if (!client) return null;
     if (client.lockedAt) throw new ClientLockedError(client.name, "locked");
@@ -409,28 +496,61 @@ export function createReconService(db: Database): ReconService {
       .where(eq(clients.id, clientId));
   }
 
-  async function refresh(ownerId: string) {
-    const run = await latestRun(ownerId);
-    if (run) await recompute(ownerId, run);
+  async function refresh(organizationId: string) {
+    const run = await latestRun(organizationId);
+    if (run) await recompute(organizationId, run);
   }
 
-  async function mappingRowsFor(ownerId: string) {
+  async function mappingRowsFor(organizationId: string) {
     return db
       .select({
         customerKey: customerMappings.customerKey,
         clientId: customerMappings.clientId,
       })
       .from(customerMappings)
-      .where(eq(customerMappings.ownerId, ownerId));
+      .where(eq(customerMappings.organizationId, organizationId));
+  }
+
+  async function exceptionInWorkspace(organizationId: string, id: string) {
+    const [row] = await db
+      .select({
+        clientId: reconciliationExceptions.clientId,
+        status: reconciliationExceptions.status,
+        flagged: reconciliationExceptions.flagged,
+      })
+      .from(reconciliationExceptions)
+      .where(
+        and(
+          eq(reconciliationExceptions.organizationId, organizationId),
+          eq(reconciliationExceptions.id, id),
+        ),
+      )
+      .limit(1);
+    return row ?? null;
+  }
+
+  async function exceptionDto(organizationId: string, row: ExceptionRow) {
+    const [clientRows, [comments]] = await Promise.all([
+      organizationClients(organizationId),
+      db
+        .select({ total: count() })
+        .from(exceptionComments)
+        .where(eq(exceptionComments.exceptionId, row.id)),
+    ]);
+    return toExceptionDto(
+      row,
+      new Map(clientRows.map((client) => [client.id, client.name])),
+      new Map([[row.id, comments?.total ?? 0]]),
+    );
   }
 
   return {
-    async overview(ownerId) {
-      const run = await latestRun(ownerId);
+    async overview(organizationId) {
+      const run = await latestRun(organizationId);
       const [clientRows, exceptionRows, mappingRows] = await Promise.all([
-        ownerClients(ownerId),
-        run ? runExceptions(ownerId, run.id) : Promise.resolve([]),
-        mappingRowsFor(ownerId),
+        organizationClients(organizationId),
+        run ? runExceptions(organizationId, run.id) : Promise.resolve([]),
+        mappingRowsFor(organizationId),
       ]);
       const byKind = Object.fromEntries(
         exceptionKinds.map((kind) => [kind, { count: 0, cents: 0 }]),
@@ -457,27 +577,32 @@ export function createReconService(db: Database): ReconService {
       };
     },
 
-    async client(ownerId, clientId) {
+    async client(organizationId, clientId) {
       const [row] = await db
         .select()
         .from(clients)
-        .where(and(eq(clients.ownerId, ownerId), eq(clients.id, clientId)))
+        .where(
+          and(
+            eq(clients.organizationId, organizationId),
+            eq(clients.id, clientId),
+          ),
+        )
         .limit(1);
       if (!row) return null;
-      const run = await latestRun(ownerId);
+      const run = await latestRun(organizationId);
       const [exceptionRows, agreements, mappingRows] = await Promise.all([
-        run ? runExceptions(ownerId, run.id) : Promise.resolve([]),
+        run ? runExceptions(organizationId, run.id) : Promise.resolve([]),
         db
           .select()
           .from(agreementLines)
           .where(
             and(
-              eq(agreementLines.ownerId, ownerId),
+              eq(agreementLines.organizationId, organizationId),
               eq(agreementLines.clientId, clientId),
             ),
           )
           .orderBy(asc(agreementLines.productName)),
-        mappingRowsFor(ownerId),
+        mappingRowsFor(organizationId),
       ]);
       const own = exceptionRows.filter((entry) => entry.clientId === clientId);
       const [summary] = summarize([row], own, run, mappingRows);
@@ -500,58 +625,133 @@ export function createReconService(db: Database): ReconService {
       };
     },
 
-    async exceptions(ownerId) {
-      const run = await latestRun(ownerId);
+    async exceptions(organizationId) {
+      const run = await latestRun(organizationId);
       if (!run) return [];
-      const [rows, clientRows] = await Promise.all([
-        runExceptions(ownerId, run.id),
-        ownerClients(ownerId),
+      const [rows, clientRows, counts] = await Promise.all([
+        runExceptions(organizationId, run.id),
+        organizationClients(organizationId),
+        db
+          .select({ id: exceptionComments.exceptionId, total: count() })
+          .from(exceptionComments)
+          .where(eq(exceptionComments.organizationId, organizationId))
+          .groupBy(exceptionComments.exceptionId),
       ]);
       const names = new Map(
         clientRows.map((client) => [client.id, client.name]),
       );
-      return rows.map((row) => toExceptionDto(row, names));
+      const commentCounts = new Map(counts.map((row) => [row.id, row.total]));
+      return rows.map((row) => toExceptionDto(row, names, commentCounts));
     },
 
-    async setExceptionStatus(ownerId, id, status) {
-      const [existing] = await db
-        .select({ clientId: reconciliationExceptions.clientId })
-        .from(reconciliationExceptions)
-        .where(
-          and(
-            eq(reconciliationExceptions.ownerId, ownerId),
-            eq(reconciliationExceptions.id, id),
-          ),
-        )
-        .limit(1);
+    async setExceptionStatus(organizationId, id, status, actor) {
+      const existing = await exceptionInWorkspace(organizationId, id);
       if (!existing) return null;
       if (existing.clientId) {
-        await writableClient(ownerId, existing.clientId);
+        await writableClient(organizationId, existing.clientId);
         await touch(existing.clientId);
       }
-      const [row] = await db
-        .update(reconciliationExceptions)
-        .set({ status, resolvedAt: status === "open" ? null : new Date() })
-        .where(
-          and(
-            eq(reconciliationExceptions.ownerId, ownerId),
-            eq(reconciliationExceptions.id, id),
-          ),
-        )
-        .returning();
-      if (!row) return null;
-      const clientRows = await ownerClients(ownerId);
-      return toExceptionDto(
-        row,
-        new Map(clientRows.map((client) => [client.id, client.name])),
-      );
+      const row = await db.transaction(async (tx) => {
+        const [updated] = await tx
+          .update(reconciliationExceptions)
+          .set({ status, resolvedAt: status === "open" ? null : new Date() })
+          .where(
+            and(
+              eq(reconciliationExceptions.organizationId, organizationId),
+              eq(reconciliationExceptions.id, id),
+            ),
+          )
+          .returning();
+        if (!updated) return null;
+        await recordAudit(tx, {
+          organizationId,
+          actor,
+          action: statusAction[status],
+          targetType: "exception",
+          targetId: id,
+          before: { status: existing.status },
+          after: { status },
+        });
+        return updated;
+      });
+      return row ? exceptionDto(organizationId, row) : null;
     },
 
-    async mappings(ownerId) {
+    async setExceptionFlag(organizationId, id, flagged, actor) {
+      const existing = await exceptionInWorkspace(organizationId, id);
+      if (!existing) return null;
+      if (existing.clientId)
+        await writableClient(organizationId, existing.clientId);
+      const row = await db.transaction(async (tx) => {
+        const [updated] = await tx
+          .update(reconciliationExceptions)
+          .set({ flagged })
+          .where(eq(reconciliationExceptions.id, id))
+          .returning();
+        if (updated && existing.flagged !== flagged)
+          await recordAudit(tx, {
+            organizationId,
+            actor,
+            action: flagged ? "exception.flag" : "exception.unflag",
+            targetType: "exception",
+            targetId: id,
+            before: { flagged: existing.flagged },
+            after: { flagged },
+          });
+        return updated ?? null;
+      });
+      return row ? exceptionDto(organizationId, row) : null;
+    },
+
+    async comments(organizationId, id) {
+      if (!(await exceptionInWorkspace(organizationId, id))) return null;
+      const rows = await db
+        .select()
+        .from(exceptionComments)
+        .where(
+          and(
+            eq(exceptionComments.organizationId, organizationId),
+            eq(exceptionComments.exceptionId, id),
+          ),
+        )
+        .orderBy(asc(exceptionComments.createdAt));
+      return rows.map(toCommentDto);
+    },
+
+    async addComment(organizationId, id, body, actor) {
+      const existing = await exceptionInWorkspace(organizationId, id);
+      if (!existing) return null;
+      if (existing.clientId)
+        await writableClient(organizationId, existing.clientId);
+      return db.transaction(async (tx) => {
+        const [row] = await tx
+          .insert(exceptionComments)
+          .values({
+            organizationId,
+            exceptionId: id,
+            authorUserId: actor.userId,
+            authorEmail: actor.email,
+            body,
+          })
+          .returning();
+        if (!row) throw new Error("Comment insert returned no row");
+        await recordAudit(tx, {
+          organizationId,
+          actor,
+          action: "exception.comment",
+          targetType: "exception",
+          targetId: id,
+          after: { commentId: row.id, body },
+        });
+        return toCommentDto(row);
+      });
+    },
+
+    async mappings(organizationId) {
       const [run, clientRows, mappingRows] = await Promise.all([
-        latestRun(ownerId),
-        ownerClients(ownerId),
-        mappingRowsFor(ownerId),
+        latestRun(organizationId),
+        organizationClients(organizationId),
+        mappingRowsFor(organizationId),
       ]);
       const names = new Map(
         clientRows.map((client) => [client.id, client.name]),
@@ -582,22 +782,78 @@ export function createReconService(db: Database): ReconService {
       };
     },
 
-    async setMapping(ownerId, customerKey, clientId) {
-      const client = await writableClient(ownerId, clientId);
+    async setMapping(organizationId, customerKey, clientId, actor) {
+      const client = await writableClient(organizationId, clientId);
       if (!client) return false;
       await touch(client.id);
-      await db
-        .insert(customerMappings)
-        .values({ ownerId, customerKey, clientId })
-        .onConflictDoUpdate({
-          target: [customerMappings.ownerId, customerMappings.customerKey],
-          set: { clientId },
+      await db.transaction(async (tx) => {
+        const [before] = await tx
+          .select({ clientId: customerMappings.clientId })
+          .from(customerMappings)
+          .where(
+            and(
+              eq(customerMappings.organizationId, organizationId),
+              eq(customerMappings.customerKey, customerKey),
+            ),
+          )
+          .limit(1);
+        await tx
+          .insert(customerMappings)
+          .values({ organizationId, customerKey, clientId })
+          .onConflictDoUpdate({
+            target: [
+              customerMappings.organizationId,
+              customerMappings.customerKey,
+            ],
+            set: { clientId },
+          });
+        await recordAudit(tx, {
+          organizationId,
+          actor,
+          action: "mapping.change",
+          targetType: "customer",
+          targetId: customerKey,
+          before: before ? { clientId: before.clientId } : null,
+          after: { clientId, clientName: client.name },
         });
-      await refresh(ownerId);
+      });
+      await refresh(organizationId);
       return true;
     },
 
-    async uploadRun(ownerId, fileName, csv) {
+    async setMarkup(organizationId, clientId, markupPct, actor) {
+      const client = await writableClient(organizationId, clientId);
+      if (!client) return null;
+      const markupBps = Math.round(markupPct * 100);
+      const row = await db.transaction(async (tx) => {
+        const [updated] = await tx
+          .update(clients)
+          .set({ markupBps, lastActiveAt: new Date() })
+          .where(
+            and(
+              eq(clients.organizationId, organizationId),
+              eq(clients.id, clientId),
+            ),
+          )
+          .returning();
+        await recordAudit(tx, {
+          organizationId,
+          actor,
+          action: "client.markup",
+          targetType: "client",
+          targetId: clientId,
+          before: { markupPct: client.markupBps / 100 },
+          after: { markupPct: markupBps / 100 },
+        });
+        return updated ?? null;
+      });
+      if (!row) return null;
+      await refresh(organizationId);
+      const [summary] = summarize([row], [], null, []);
+      return summary ?? null;
+    },
+
+    async uploadRun(organizationId, fileName, csv) {
       let lines: VendorLine[];
       try {
         lines = parsePax8Csv(csv);
@@ -609,21 +865,23 @@ export function createReconService(db: Database): ReconService {
       if (lines.length === 0) {
         throw new CsvRejectedError("The file has a header but no rows.");
       }
-      return storeRun(ownerId, fileName, lines);
+      return storeRun(organizationId, fileName, lines);
     },
 
-    async loadDemo(ownerId) {
-      // ponytail: demo wipes the owner's data; fine while the product is demo-only.
+    async loadDemo(organizationId) {
+      // ponytail: demo wipes the workspace's data; owner-only while the product is demo-only.
       await db.transaction(async (tx) => {
         await tx
           .delete(reconciliationRuns)
-          .where(eq(reconciliationRuns.ownerId, ownerId));
-        await tx.delete(clients).where(eq(clients.ownerId, ownerId));
+          .where(eq(reconciliationRuns.organizationId, organizationId));
+        await tx
+          .delete(clients)
+          .where(eq(clients.organizationId, organizationId));
         const inserted = await tx
           .insert(clients)
           .values(
             demoClients.map((demo) => ({
-              ownerId,
+              organizationId,
               name: demo.name,
               psaId: demo.psaId,
               status: demo.status,
@@ -639,7 +897,7 @@ export function createReconService(db: Database): ReconService {
         );
         await tx.insert(customerMappings).values(
           demoClients.map((demo) => ({
-            ownerId,
+            organizationId,
             customerKey: demo.pax8CompanyId,
             clientId: idByRef.get(demo.ref) ?? "",
           })),
@@ -647,23 +905,23 @@ export function createReconService(db: Database): ReconService {
         await tx.insert(agreementLines).values(
           demoAgreements.map(({ clientRef, ...line }) => ({
             ...line,
-            ownerId,
+            organizationId,
             clientId: idByRef.get(clientRef) ?? "",
           })),
         );
       });
       return storeRun(
-        ownerId,
+        organizationId,
         "pax8-billing-2026-11.csv",
         parsePax8Csv(demoPax8Csv),
       );
     },
 
-    async createClient(ownerId, input) {
+    async createClient(organizationId, input) {
       const [row] = await db
         .insert(clients)
         .values({
-          ownerId,
+          organizationId,
           name: input.name.trim(),
           psaId: input.psaId?.trim() || null,
           markupBps: Math.round(input.markupPct * 100),
@@ -675,23 +933,28 @@ export function createReconService(db: Database): ReconService {
       return summary;
     },
 
-    async setArchived(ownerId, clientId, archived) {
+    async setArchived(organizationId, clientId, archived) {
       const [row] = await db
         .update(clients)
         .set({
           archivedAt: archived ? new Date() : null,
           ...(archived ? {} : { lastActiveAt: new Date() }),
         })
-        .where(and(eq(clients.ownerId, ownerId), eq(clients.id, clientId)))
+        .where(
+          and(
+            eq(clients.organizationId, organizationId),
+            eq(clients.id, clientId),
+          ),
+        )
         .returning();
       if (!row) return null;
-      await refresh(ownerId);
+      await refresh(organizationId);
       const [summary] = summarize([row], [], null, []);
       return summary ?? null;
     },
 
-    async limitClients(ownerId) {
-      const rows = await ownerClients(ownerId);
+    async limitClients(organizationId) {
+      const rows = await organizationClients(organizationId);
       return rows
         .filter((row) => !row.archivedAt)
         .map(({ id, name, lastActiveAt, lockedAt }) => ({
@@ -702,7 +965,7 @@ export function createReconService(db: Database): ReconService {
         }));
     },
 
-    async applyLocks(ownerId, lockIds, keepIds, at) {
+    async applyLocks(organizationId, lockIds, keepIds, at) {
       const result = await db.transaction(async (tx) => {
         const locked = lockIds.length
           ? await tx
@@ -710,7 +973,7 @@ export function createReconService(db: Database): ReconService {
               .set({ lockedAt: at })
               .where(
                 and(
-                  eq(clients.ownerId, ownerId),
+                  eq(clients.organizationId, organizationId),
                   inArray(clients.id, lockIds),
                   isNull(clients.lockedAt),
                 ),
@@ -723,7 +986,7 @@ export function createReconService(db: Database): ReconService {
               .set({ lockedAt: null })
               .where(
                 and(
-                  eq(clients.ownerId, ownerId),
+                  eq(clients.organizationId, organizationId),
                   inArray(clients.id, keepIds),
                   isNotNull(clients.lockedAt),
                 ),
@@ -736,7 +999,7 @@ export function createReconService(db: Database): ReconService {
         };
       });
       if (result.locked.length || result.unlocked.length)
-        await refresh(ownerId);
+        await refresh(organizationId);
       return result;
     },
 

@@ -8,6 +8,8 @@ export type ApiEnvironment = {
   authSecret: string;
   authCookieDomain?: string;
   allowedOrigins: string[];
+  /** The app's origin, for links in emails (invitations). */
+  appOrigin: string;
   logLevel: LogLevel;
   google?: { clientId: string; clientSecret: string };
 };
@@ -114,6 +116,9 @@ export function readApiEnvironment(
     assertOrigin(origin, "CORS origin");
   }
 
+  const appOrigin = env.APP_ORIGIN?.trim() || (allowedOrigins[0] as string);
+  assertOrigin(appOrigin, "APP_ORIGIN");
+
   const logLevel = env.LOG_LEVEL || "info";
   if (!isLogLevel(logLevel)) {
     throw new Error(
@@ -137,6 +142,7 @@ export function readApiEnvironment(
     authSecret,
     ...(authCookieDomain ? { authCookieDomain } : {}),
     allowedOrigins,
+    appOrigin,
     logLevel,
     ...(googleClientId && googleClientSecret
       ? {

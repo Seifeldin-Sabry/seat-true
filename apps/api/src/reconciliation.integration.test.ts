@@ -1,10 +1,16 @@
 import { expect, test } from "bun:test";
-import { createDatabase, user, waitlistEntries } from "@seattrue/db";
+import {
+  createDatabase,
+  organization,
+  user,
+  waitlistEntries,
+} from "@seattrue/db";
 import { eq, inArray } from "drizzle-orm";
 import { createApp } from "./app";
 import type { AuthService } from "./auth";
 import { createProjectRepository } from "./projects";
 import { CsvRejectedError, createReconService } from "./reconciliation";
+import { testAuthService, testWorkspace } from "./testing";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const integrationTest = databaseUrl ? test : test.skip;
@@ -18,13 +24,9 @@ integrationTest(
     const recon = createReconService(connection.db);
     const ownerId = `recon-${crypto.randomUUID()}`;
     const otherId = `recon-${crypto.randomUUID()}`;
-    await connection.db.insert(user).values(
-      [ownerId, otherId].map((id) => ({
-        id,
-        name: id,
-        email: `${id}@example.test`,
-      })),
-    );
+    await connection.db
+      .insert(organization)
+      .values([ownerId, otherId].map((id) => ({ id, name: id, slug: id })));
 
     try {
       const run = await recon.loadDemo(ownerId);
@@ -49,15 +51,40 @@ integrationTest(
           entry.clientName === "Harbor Dental Group",
       );
       if (!harbor) throw new Error("Expected Harbor unbilled seats");
-      await recon.setExceptionStatus(ownerId, harbor.id, "billed");
+      await recon.setExceptionStatus(ownerId, harbor.id, "billed", null);
+      // Flag and comment survive recomputes (exception ids are stable).
+      await recon.setExceptionFlag(ownerId, harbor.id, true, null);
+      await connection.db.insert(user).values({
+        id: ownerId,
+        name: "Tech",
+        email: `${ownerId}@northbeam-it.com`,
+      });
+      await recon.addComment(ownerId, harbor.id, "Check the PSA", {
+        userId: ownerId,
+        email: `${ownerId}@northbeam-it.com`,
+      });
 
       const summit = overview.clients.find((client) =>
         client.name.startsWith("Summit"),
       );
       if (!summit) throw new Error("Expected Summit client");
-      expect(await recon.setMapping(ownerId, "PX-21777", summit.id)).toBe(true);
+      expect(await recon.setMapping(ownerId, "PX-21777", summit.id, null)).toBe(
+        true,
+      );
 
       const fixed = await recon.overview(ownerId);
+      const harborAfter = (await recon.exceptions(ownerId)).find(
+        (entry) => entry.id === harbor.id,
+      );
+      expect(harborAfter).toMatchObject({
+        status: "billed",
+        flagged: true,
+        commentCount: 1,
+      });
+      expect(
+        (await recon.comments(ownerId, harbor.id))?.map((entry) => entry.body),
+      ).toEqual(["Check the PSA"]);
+      expect(await recon.comments(otherId, harbor.id)).toBeNull();
       // Maple's 9 Standard seats now count as unbilled for Summit at +18%.
       expect(fixed.leakageCents).toBe(54810 - 11250 + 9 * 1475);
       expect(fixed.recoveredCents).toBe(10560);
@@ -72,9 +99,11 @@ integrationTest(
       // Owner isolation.
       expect((await recon.overview(otherId)).run).toBeNull();
       expect(await recon.client(otherId, summit.id)).toBeNull();
-      expect(await recon.setMapping(otherId, "PX-1", summit.id)).toBe(false);
+      expect(await recon.setMapping(otherId, "PX-1", summit.id, null)).toBe(
+        false,
+      );
       expect(
-        await recon.setExceptionStatus(otherId, harbor.id, "dismissed"),
+        await recon.setExceptionStatus(otherId, harbor.id, "dismissed", null),
       ).toBeNull();
 
       await expect(
@@ -82,8 +111,9 @@ integrationTest(
       ).rejects.toBeInstanceOf(CsvRejectedError);
     } finally {
       await connection.db
-        .delete(user)
-        .where(inArray(user.id, [ownerId, otherId]));
+        .delete(organization)
+        .where(inArray(organization.id, [ownerId, otherId]));
+      await connection.db.delete(user).where(eq(user.id, ownerId));
       await connection.close();
     }
   },
@@ -94,19 +124,17 @@ integrationTest("routes enforce auth, origin and CSV validation", async () => {
   const connection = createDatabase(databaseUrl);
   const ownerId = `recon-${crypto.randomUUID()}`;
   await connection.db
-    .insert(user)
-    .values({ id: ownerId, name: ownerId, email: `${ownerId}@example.test` });
+    .insert(organization)
+    .values({ id: ownerId, name: ownerId, slug: ownerId });
   let signedIn = false;
+  const signedInAuth = testAuthService(testWorkspace("owner", ownerId));
+  const signedOutAuth = testAuthService(null);
   const auth: AuthService = {
-    emailEnabled: false,
-    handler: async () => new Response("Not found", { status: 404 }),
-    getSession: async () =>
-      signedIn
-        ? {
-            user: { id: ownerId, email: "x@example.test", name: "x" },
-            session: { id: "s", userId: ownerId },
-          }
-        : null,
+    ...signedInAuth,
+    getSession: (headers) =>
+      (signedIn ? signedInAuth : signedOutAuth).getSession(headers),
+    getWorkspaceSession: (headers) =>
+      (signedIn ? signedInAuth : signedOutAuth).getWorkspaceSession(headers),
   };
   const app = createApp({
     projects: createProjectRepository(connection.db),
@@ -177,7 +205,9 @@ integrationTest("routes enforce auth, origin and CSV validation", async () => {
     await connection.db
       .delete(waitlistEntries)
       .where(eq(waitlistEntries.email, email));
-    await connection.db.delete(user).where(eq(user.id, ownerId));
+    await connection.db
+      .delete(organization)
+      .where(eq(organization.id, ownerId));
     await connection.close();
   }
 });
