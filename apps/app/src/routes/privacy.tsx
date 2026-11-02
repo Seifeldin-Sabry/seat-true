@@ -190,17 +190,17 @@ function PrivacyPage() {
           [
             "Fly.io",
             "Application hosting",
-            "United States (US East, Virginia)",
+            "European Union (Frankfurt, Germany)",
           ],
           [
             "Neon",
             "PostgreSQL database and backups",
-            "United States (US East, same region as hosting)",
+            "European Union (AWS eu-central-1, Frankfurt, Germany)",
           ],
           [
             "Upstash",
             "Cache, rate limiting and background job queue",
-            "United States",
+            "European Union (eu-central-1, Frankfurt, Germany)",
           ],
           ["Resend", "Account and notification emails", "United States"],
           [
@@ -225,13 +225,18 @@ function PrivacyPage() {
 
       <h2 id="transfers">7. Transfers outside the EU</h2>
       <p>
-        Some of the providers above are based in, or process data in, the United
-        States. Where personal data leaves the European Economic Area, we rely
-        on the European Commission's adequacy decision for the EU-US Data
-        Privacy Framework where the recipient is certified under it, and
-        otherwise on the Standard Contractual Clauses adopted by the Commission
-        (Implementing Decision (EU) 2021/914) in the provider's data processing
-        terms. You can ask us for a copy of the relevant safeguards.
+        Your data is hosted and stored in the European Union: the application
+        runs on Fly.io in Frankfurt and the database (including backups) is on
+        Neon in AWS eu-central-1, Frankfurt. Some providers above (Stripe,
+        Google, Resend and the companies behind Fly.io, Neon and Upstash) are US
+        companies, and some, such as Resend for email delivery, process data in
+        the United States. Where personal data is transferred outside the
+        European Economic Area, we rely on the European Commission's adequacy
+        decision for the EU-US Data Privacy Framework where the recipient is
+        certified under it, and otherwise on the Standard Contractual Clauses
+        adopted by the Commission (Implementing Decision (EU) 2021/914) in the
+        provider's data processing terms. You can ask us for a copy of the
+        relevant safeguards.
       </p>
 
       <h2 id="sharing">8. Who else sees your data</h2>

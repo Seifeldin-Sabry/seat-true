@@ -3,7 +3,7 @@
 # Secrets (fly secrets set -a seattrue ...): DATABASE_URL, BETTER_AUTH_SECRET,
 # and optional UPSTASH_*, QSTASH_*, RESEND_*, EMAIL_FROM, STRIPE_*, GOOGLE_*.
 app = "seattrue"
-primary_region = "iad"
+primary_region = "fra"
 
 [build]
   dockerfile = "Dockerfile"

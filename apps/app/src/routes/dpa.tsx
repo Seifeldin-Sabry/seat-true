@@ -143,6 +143,11 @@ function DpaPage() {
 
       <h2 id="transfers">7. Transfers outside the EEA</h2>
       <p>
+        Customer Personal Data is hosted and stored in the European Union:
+        application hosting on Fly.io in Frankfurt, Germany, and the database
+        and its backups on Neon in AWS eu-central-1, Frankfurt, Germany.
+      </p>
+      <p>
         Where a sub-processor processes personal data outside the European
         Economic Area, SDX Studio ensures a valid transfer mechanism under
         Chapter V GDPR: the EU-US Data Privacy Framework adequacy decision where
