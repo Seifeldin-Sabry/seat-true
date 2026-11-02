@@ -11,9 +11,15 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as GlossaryRouteImport } from './routes/glossary'
+import { Route as LlmsFullDottxtRouteImport } from './routes/llms-full[.]txt'
+import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as RssDotxmlRouteImport } from './routes/rss[.]xml'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AcceptInviteInvitationIdRouteImport } from './routes/accept-invite.$invitationId'
 import { Route as ApiSplatRouteImport } from './routes/api.$'
 import { Route as AppIndexRouteImport } from './routes/app.index'
@@ -22,6 +28,9 @@ import { Route as AppBillingRouteImport } from './routes/app.billing'
 import { Route as AppExceptionsRouteImport } from './routes/app.exceptions'
 import { Route as AppMappingsRouteImport } from './routes/app.mappings'
 import { Route as AppMembersRouteImport } from './routes/app.members'
+import { Route as BlogIndexRouteImport } from './routes/blog.index'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as OgSplatRouteImport } from './routes/og.$'
 import { Route as AppClientsClientIdRouteImport } from './routes/app.clients.$clientId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -34,6 +43,21 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GlossaryRoute = GlossaryRouteImport.update({
+  id: '/glossary',
+  path: '/glossary',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsFullDottxtRoute = LlmsFullDottxtRouteImport.update({
+  id: '/llms-full.txt',
+  path: '/llms-full.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
+  id: '/llms.txt',
+  path: '/llms.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -44,9 +68,24 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RssDotxmlRoute = RssDotxmlRouteImport.update({
+  id: '/rss.xml',
+  path: '/rss.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AcceptInviteInvitationIdRoute =
@@ -90,6 +129,21 @@ const AppMembersRoute = AppMembersRouteImport.update({
   path: '/app/members',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OgSplatRoute = OgSplatRouteImport.update({
+  id: '/og/$',
+  path: '/og/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppClientsClientIdRoute = AppClientsClientIdRouteImport.update({
   id: '/app/clients/$clientId',
   path: '/app/clients/$clientId',
@@ -99,9 +153,15 @@ const AppClientsClientIdRoute = AppClientsClientIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/glossary': typeof GlossaryRoute
+  '/llms-full.txt': typeof LlmsFullDottxtRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/rss.xml': typeof RssDotxmlRoute
   '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/accept-invite/$invitationId': typeof AcceptInviteInvitationIdRoute
   '/api/$': typeof ApiSplatRoute
   '/app/audit': typeof AppAuditRoute
@@ -109,15 +169,24 @@ export interface FileRoutesByFullPath {
   '/app/exceptions': typeof AppExceptionsRoute
   '/app/mappings': typeof AppMappingsRoute
   '/app/members': typeof AppMembersRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/og/$': typeof OgSplatRoute
   '/app/': typeof AppIndexRoute
+  '/blog/': typeof BlogIndexRoute
   '/app/clients/$clientId': typeof AppClientsClientIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/glossary': typeof GlossaryRoute
+  '/llms-full.txt': typeof LlmsFullDottxtRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/rss.xml': typeof RssDotxmlRoute
   '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/accept-invite/$invitationId': typeof AcceptInviteInvitationIdRoute
   '/api/$': typeof ApiSplatRoute
   '/app/audit': typeof AppAuditRoute
@@ -125,16 +194,25 @@ export interface FileRoutesByTo {
   '/app/exceptions': typeof AppExceptionsRoute
   '/app/mappings': typeof AppMappingsRoute
   '/app/members': typeof AppMembersRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/og/$': typeof OgSplatRoute
   '/app': typeof AppIndexRoute
+  '/blog': typeof BlogIndexRoute
   '/app/clients/$clientId': typeof AppClientsClientIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/glossary': typeof GlossaryRoute
+  '/llms-full.txt': typeof LlmsFullDottxtRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/rss.xml': typeof RssDotxmlRoute
   '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/accept-invite/$invitationId': typeof AcceptInviteInvitationIdRoute
   '/api/$': typeof ApiSplatRoute
   '/app/audit': typeof AppAuditRoute
@@ -142,7 +220,10 @@ export interface FileRoutesById {
   '/app/exceptions': typeof AppExceptionsRoute
   '/app/mappings': typeof AppMappingsRoute
   '/app/members': typeof AppMembersRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/og/$': typeof OgSplatRoute
   '/app/': typeof AppIndexRoute
+  '/blog/': typeof BlogIndexRoute
   '/app/clients/$clientId': typeof AppClientsClientIdRoute
 }
 export interface FileRouteTypes {
@@ -150,9 +231,15 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/forgot-password'
+    | '/glossary'
+    | '/llms-full.txt'
+    | '/llms.txt'
     | '/login'
     | '/reset-password'
+    | '/robots.txt'
+    | '/rss.xml'
     | '/signup'
+    | '/sitemap.xml'
     | '/accept-invite/$invitationId'
     | '/api/$'
     | '/app/audit'
@@ -160,15 +247,24 @@ export interface FileRouteTypes {
     | '/app/exceptions'
     | '/app/mappings'
     | '/app/members'
+    | '/blog/$slug'
+    | '/og/$'
     | '/app/'
+    | '/blog/'
     | '/app/clients/$clientId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/forgot-password'
+    | '/glossary'
+    | '/llms-full.txt'
+    | '/llms.txt'
     | '/login'
     | '/reset-password'
+    | '/robots.txt'
+    | '/rss.xml'
     | '/signup'
+    | '/sitemap.xml'
     | '/accept-invite/$invitationId'
     | '/api/$'
     | '/app/audit'
@@ -176,15 +272,24 @@ export interface FileRouteTypes {
     | '/app/exceptions'
     | '/app/mappings'
     | '/app/members'
+    | '/blog/$slug'
+    | '/og/$'
     | '/app'
+    | '/blog'
     | '/app/clients/$clientId'
   id:
     | '__root__'
     | '/'
     | '/forgot-password'
+    | '/glossary'
+    | '/llms-full.txt'
+    | '/llms.txt'
     | '/login'
     | '/reset-password'
+    | '/robots.txt'
+    | '/rss.xml'
     | '/signup'
+    | '/sitemap.xml'
     | '/accept-invite/$invitationId'
     | '/api/$'
     | '/app/audit'
@@ -192,16 +297,25 @@ export interface FileRouteTypes {
     | '/app/exceptions'
     | '/app/mappings'
     | '/app/members'
+    | '/blog/$slug'
+    | '/og/$'
     | '/app/'
+    | '/blog/'
     | '/app/clients/$clientId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  GlossaryRoute: typeof GlossaryRoute
+  LlmsFullDottxtRoute: typeof LlmsFullDottxtRoute
+  LlmsDottxtRoute: typeof LlmsDottxtRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  RssDotxmlRoute: typeof RssDotxmlRoute
   SignupRoute: typeof SignupRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AcceptInviteInvitationIdRoute: typeof AcceptInviteInvitationIdRoute
   ApiSplatRoute: typeof ApiSplatRoute
   AppAuditRoute: typeof AppAuditRoute
@@ -209,7 +323,10 @@ export interface RootRouteChildren {
   AppExceptionsRoute: typeof AppExceptionsRoute
   AppMappingsRoute: typeof AppMappingsRoute
   AppMembersRoute: typeof AppMembersRoute
+  BlogSlugRoute: typeof BlogSlugRoute
+  OgSplatRoute: typeof OgSplatRoute
   AppIndexRoute: typeof AppIndexRoute
+  BlogIndexRoute: typeof BlogIndexRoute
   AppClientsClientIdRoute: typeof AppClientsClientIdRoute
 }
 
@@ -229,6 +346,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/glossary': {
+      id: '/glossary'
+      path: '/glossary'
+      fullPath: '/glossary'
+      preLoaderRoute: typeof GlossaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/llms-full.txt': {
+      id: '/llms-full.txt'
+      path: '/llms-full.txt'
+      fullPath: '/llms-full.txt'
+      preLoaderRoute: typeof LlmsFullDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/llms.txt': {
+      id: '/llms.txt'
+      path: '/llms.txt'
+      fullPath: '/llms.txt'
+      preLoaderRoute: typeof LlmsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -243,11 +381,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rss.xml': {
+      id: '/rss.xml'
+      path: '/rss.xml'
+      fullPath: '/rss.xml'
+      preLoaderRoute: typeof RssDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/accept-invite/$invitationId': {
@@ -306,6 +465,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMembersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/og/$': {
+      id: '/og/$'
+      path: '/og/$'
+      fullPath: '/og/$'
+      preLoaderRoute: typeof OgSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/clients/$clientId': {
       id: '/app/clients/$clientId'
       path: '/app/clients/$clientId'
@@ -319,9 +499,15 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  GlossaryRoute: GlossaryRoute,
+  LlmsFullDottxtRoute: LlmsFullDottxtRoute,
+  LlmsDottxtRoute: LlmsDottxtRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  RssDotxmlRoute: RssDotxmlRoute,
   SignupRoute: SignupRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   AcceptInviteInvitationIdRoute: AcceptInviteInvitationIdRoute,
   ApiSplatRoute: ApiSplatRoute,
   AppAuditRoute: AppAuditRoute,
@@ -329,7 +515,10 @@ const rootRouteChildren: RootRouteChildren = {
   AppExceptionsRoute: AppExceptionsRoute,
   AppMappingsRoute: AppMappingsRoute,
   AppMembersRoute: AppMembersRoute,
+  BlogSlugRoute: BlogSlugRoute,
+  OgSplatRoute: OgSplatRoute,
   AppIndexRoute: AppIndexRoute,
+  BlogIndexRoute: BlogIndexRoute,
   AppClientsClientIdRoute: AppClientsClientIdRoute,
 }
 export const routeTree = rootRouteImport
