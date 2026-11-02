@@ -57,6 +57,13 @@
       "when": 1793619926897,
       "tag": "0007_billing_imports",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793620544588,
+      "tag": "0008_integration_waitlist",
+      "breakpoints": true
     }
   ]
 }

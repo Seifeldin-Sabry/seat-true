@@ -55,6 +55,7 @@ export {
   customerMappings,
   type ExceptionStatus,
   exceptionComments,
+  integrationWaitlist,
   reconciliationExceptions,
   reconciliationRuns,
   type StoredBilledLine,

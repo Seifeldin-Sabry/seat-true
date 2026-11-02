@@ -153,6 +153,11 @@ function permissionMatrix(): {
     },
     { method: "DELETE", path: `/members/${id()}`, allowed: ownerOnly },
     { method: "GET", path: "/audit", allowed: opsAndUp },
+    {
+      method: "GET",
+      path: "/integrations/waitlist/counts",
+      allowed: ownerOnly,
+    },
   ];
 }
 

@@ -5,6 +5,7 @@ import type {
   ClientDetailDto,
   CommentDto,
   ExceptionDto,
+  IntegrationWaitlistCountDto,
   MappingsDto,
   OverviewDto,
   RunDto,
@@ -211,4 +212,27 @@ export async function setClientArchived(input: {
     throw new Error(apiErrorMessage(error, "Could not update client."));
   if (!data) throw new Error("Client response was empty.");
   return data;
+}
+
+export async function joinIntegrationWaitlist(input: {
+  slug: string;
+  email: string;
+  company?: string;
+}): Promise<void> {
+  const api = getApiClient();
+  // Slug is checked server-side against the Coming soon list.
+  const { error } = await api.integrations.waitlist.post(
+    input as Parameters<typeof api.integrations.waitlist.post>[0],
+  );
+  if (error) throw new Error(apiErrorMessage(error, "Could not sign you up."));
+}
+
+export async function getIntegrationWaitlistCounts(): Promise<
+  IntegrationWaitlistCountDto[]
+> {
+  const api = getApiClient();
+  const { data, error } = await api.integrations.waitlist.counts.get();
+  if (error)
+    throw new Error(apiErrorMessage(error, "Could not load waitlist counts."));
+  return data?.counts ?? [];
 }

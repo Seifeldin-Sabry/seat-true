@@ -6,7 +6,11 @@ import { useRef, useState } from "react";
 import { AppShell } from "../components/app-shell";
 import { requireWorkspaceMember } from "../lib/auth-navigation";
 import { exceptionKindLabels, formatCents } from "../lib/format";
-import type { BillingImportDto } from "../lib/recon-api";
+import { integrationBySlug } from "../lib/integrations";
+import {
+  type BillingImportDto,
+  getIntegrationWaitlistCounts,
+} from "../lib/recon-api";
 import {
   overviewQueryOptions,
   useLoadDemo,
@@ -70,6 +74,11 @@ function OverviewPage() {
   const busy = upload.isPending || demo.isPending || billing.isPending;
   const actionError = upload.error ?? billing.error ?? demo.error;
   const canUpload = can("run", "upload");
+  const waitlist = useQuery({
+    queryKey: ["integration-waitlist"],
+    queryFn: getIntegrationWaitlistCounts,
+    enabled: can("organization", "update"),
+  });
 
   function onBill(file: { fileName: string; csv: string }) {
     setNotice(null);
@@ -366,6 +375,28 @@ function OverviewPage() {
               </div>
             </section>
           </>
+        )}
+        {waitlist.data && (
+          <section
+            className="recon-panel"
+            aria-labelledby="waitlist-title"
+            style={{ marginTop: 16 }}
+          >
+            <h2 id="waitlist-title">Coming soon: notify-me sign-ups</h2>
+            <p>
+              Owners only. Counts across all of SeatTrue, not this workspace.
+            </p>
+            <ul className="recon-kinds">
+              {waitlist.data.map((entry) => (
+                <li key={entry.slug}>
+                  <span>
+                    {integrationBySlug.get(entry.slug)?.name ?? entry.slug}
+                  </span>
+                  <strong>{entry.count}</strong>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
       </main>
     </AppShell>

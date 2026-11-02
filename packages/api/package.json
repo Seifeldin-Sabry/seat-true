@@ -11,6 +11,10 @@
     "./contract": {
       "types": "./src/app.ts",
       "default": "./src/app.ts"
+    },
+    "./integration-waitlist": {
+      "types": "./src/integration-waitlist.ts",
+      "default": "./src/integration-waitlist.ts"
     }
   },
   "scripts": {

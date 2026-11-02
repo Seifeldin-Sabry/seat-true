@@ -216,3 +216,21 @@ export const waitlistEntries = pgTable("waitlist_entries", {
   seats: integer("seats"),
   createdAt: createdAt(),
 });
+
+/** "Notify me when it's live" sign-ups per Coming soon integration; not workspace scoped. */
+export const integrationWaitlist = pgTable(
+  "integration_waitlist",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    slug: varchar("slug", { length: 64 }).notNull(),
+    email: varchar("email", { length: 254 }).notNull(),
+    company: varchar("company", { length: 160 }),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex("integration_waitlist_email_slug_idx").on(
+      table.email,
+      table.slug,
+    ),
+  ],
+);

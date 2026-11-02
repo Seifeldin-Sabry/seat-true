@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { waitlistIntegrationSlugs } from "@seattrue/api/integration-waitlist";
 import { parsePost } from "./content/blog";
 import { glossary } from "./content/glossary";
 import { integrationPath, integrations } from "./integrations";
@@ -190,6 +191,10 @@ describe("integrations", () => {
       ["partner-center-csv", "CSV import"],
       ["psa-billing-csv", "CSV import"],
     ]);
+    // Every Coming soon page takes "notify me" sign-ups; the API's list matches.
+    expect(
+      integrations.filter((i) => i.status === "soon").map((i) => i.slug),
+    ).toEqual([...waitlistIntegrationSlugs]);
     // PSA API syncs stay "soon" until something connects to a PSA.
     expect(
       integrations

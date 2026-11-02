@@ -21,6 +21,7 @@ export {
   clients,
   customerMappings,
   exceptionComments,
+  integrationWaitlist,
   invitation,
   member,
   organization,

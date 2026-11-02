@@ -5,6 +5,7 @@ import { Elysia, t } from "elysia";
 import { type AuditLog, createAuditLog } from "./audit";
 import type { AuthService } from "./auth";
 import { createBillingRoutes } from "./billing";
+import { createIntegrationWaitlistRoutes } from "./integration-waitlist";
 import { jsonLogger, type Logger } from "./logger";
 import { createMembersRoutes } from "./members-routes";
 import type { PlanLimits } from "./plan-limits";
@@ -15,6 +16,7 @@ import type { ReconService } from "./reconciliation";
 import { createWorkspaceGuard } from "./workspace";
 
 export type { AuditDto } from "./audit";
+export type { IntegrationWaitlistCountDto } from "./integration-waitlist";
 export type { Logger } from "./logger";
 export type { InvitationDto, MemberDto } from "./members-routes";
 export type { DowngradePreflight } from "./plan-limits";
@@ -205,6 +207,7 @@ export function createApp({
         guard,
       }),
     )
+    .use(createIntegrationWaitlistRoutes({ db, guard, allowedOrigins }))
     .use(
       createPlanRoutes({
         billing: billing ?? null,
