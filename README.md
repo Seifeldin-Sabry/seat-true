@@ -18,40 +18,9 @@
 
 Try the API locally: sign up in the app at http://localhost:3000, then from the browser console on that origin run `await fetch("http://localhost:3001/recon/demo", { method: "POST", credentials: "include" })` followed by `await (await fetch("http://localhost:3001/recon/overview", { credentials: "include" })).json()`.
 
-Local Docker Postgres for tests runs on port **5433** (5432 is taken on this machine).
+Local Docker Postgres runs on port **5433** on this machine (5432 is taken); `.env` points `DATABASE_URL` and `TEST_DATABASE_URL` there. Start Docker first (`colima start`), then `bun run db:up`. Production secrets: see Fly.io deployment (`bun run secrets:set`, `secrets:fly`). Google sign-in turns on only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set; production redirect URI `https://api.<domain>/api/auth/callback/google`.
 
 ---
-
-## Environment files (dotenvx)
-
-| File | Committed | Used by |
-| --- | --- | --- |
-| `.env.development` | Yes, secrets encrypted | `bun run dev`, `build`, `db:*` |
-| `.env.production` | Yes, secrets encrypted | Fly runtime and release migrations |
-| `.env.test` | Yes, plain, no secrets | `bun run test`, `db:migrate:test`, CI |
-| `.env.keys` | **Never** (gitignored) | Holds `DOTENV_PRIVATE_KEY_DEVELOPMENT` / `_PRODUCTION`; keep a copy in your password manager |
-| `.env.example` | Yes | Lists every key |
-
-Only secrets are encrypted (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `RESEND_API_KEY`, `QSTASH_*`, `UPSTASH_REDIS_REST_TOKEN`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `GOOGLE_CLIENT_SECRET`); ports and origins stay readable.
-
-Set or change a value without it touching your shell history or a chat (paste between the quotes):
-
-```sh
-npx dotenvx set DATABASE_URL "<neon dev pooled url>" -f .env.development
-```
-
-Production on Fly decrypts `.env.production` at boot. Set the key once per Fly app (the value never prints):
-
-```sh
-fly secrets set DOTENV_PRIVATE_KEY_PRODUCTION="$(npx dotenvx keypair DOTENV_PRIVATE_KEY_PRODUCTION -f .env.production)" -c fly.api.toml
-```
-
-Databases: the app runtime uses Neon (`DATABASE_URL` in `.env.development` / `.env.production`). Tests always use local PostgreSQL from Docker Compose: `colima start`, then `bun run db:up`, then `bun run db:migrate:test`. Never point tests at Neon.
-
-Google sign-in (optional): create an OAuth client (Web application) in Google Cloud Console → APIs & Services → Credentials. Authorized redirect URIs: `http://localhost:3001/api/auth/callback/google` and `https://api.<your-domain>/api/auth/callback/google`. Then `npx dotenvx set GOOGLE_CLIENT_ID "..." -f .env.development --plain` and `npx dotenvx set GOOGLE_CLIENT_SECRET "..." -f .env.development`. Without both, the Google button stays hidden. Only Google Workspace accounts on company domains can sign in; personal mailboxes are rejected everywhere ("Please use your work email").
-
----
-
 
 Reusable full-stack starter with a Bun/Elysia API, two TanStack Start sites, and PostgreSQL (Neon in production), deployed to Fly.io. Projects CRUD shows the complete path from Drizzle through Elysia and typed Eden Treaty calls to a TanStack Query interface. Better Auth supplies email/password sessions. Optional integrations add Upstash Redis, Resend email, Upstash QStash jobs, and Stripe billing with both subscriptions and one-time purchases.
 
@@ -183,6 +152,8 @@ For a single app that also serves the landing page, remove `apps/web`, `fly.web.
 | `bun run lint`, `format`, `format:check` | Biome checks and formatting |
 | `bun run typecheck`, `test`, `check` | Typecheck, tests, or full verification |
 | `bun run db:up`, `db:down` | Start or stop local PostgreSQL |
+| `bun run secrets:set KEY value` | Encrypt a production secret into `.env.production` (no private key needed) |
+| `bun run secrets:fly [config] [file]` | Decrypt `.env.production` and stage all values as Fly secrets |
 | `bun run db:generate`, `db:migrate`, `db:seed`, `db:studio` | Database workflow |
 
 `bun run check` runs lint, typecheck, tests, and production builds. CI performs each check as a separate named step after starting PostgreSQL and applying migrations. CI needs no Stripe, Resend, or Upstash credentials. The optional `deploy` job ships to Fly after CI passes on `main`; see Fly.io deployment.
@@ -197,18 +168,19 @@ For a single app that also serves the landing page, remove `apps/web`, `fly.web.
 
 ## Fly.io deployment
 
-Three Fly apps deploy from the repository root, each with a root config: `fly.api.toml` (Bun API), `fly.app.toml` (Bun product app), and `fly.web.toml` (Bun landing site). Dockerfiles live in each app directory and use the repository root as build context. Replace `starter-*` app names, `example.com` hosts, and region in all three configs, then:
+Two Fly apps deploy from the repository root, each with a root config: `fly.api.toml` (Bun API) and `fly.app.toml` (Bun app, landing included). Dockerfiles live in each app directory and use the repository root as build context. Replace `starter-*` app names, `example.com` hosts, and region in both configs, then:
 
 ```sh
-fly apps create <slug>-api && fly apps create <slug>-app && fly apps create <slug>-web
-fly secrets set -a <slug>-api DATABASE_URL=... BETTER_AUTH_SECRET="$(openssl rand -base64 32)"
+fly apps create <slug>-api && fly apps create <slug>-app
+bun run secrets:set DATABASE_URL "postgres://..."          # encrypts into .env.production
+bun run secrets:set BETTER_AUTH_SECRET "$(openssl rand -base64 32)"
+bun run secrets:fly          # decrypts and stages every value on <slug>-api
 fly deploy -c fly.api.toml   # release_command runs Drizzle migrations first
 fly deploy -c fly.app.toml
-fly deploy -c fly.web.toml
-fly certs add api.example.com -a <slug>-api   # likewise app.example.com, example.com
+fly certs add api.example.com -a <slug>-api   # likewise app.example.com
 ```
 
-Add optional `UPSTASH_*`, `QSTASH_*`, `RESEND_*`/`EMAIL_FROM`, and `STRIPE_*` secrets the same way. Non-secret origins live in each config's `[env]`; `VITE_` origins are `[build.args]` because they compile into frontend bundles. Use a Neon connection string for `DATABASE_URL`, in the same region as `primary_region`. API reads the client address from `Fly-Client-IP` when `FLY_APP_NAME` is present, because the socket peer is Fly's proxy; Better Auth rate limits would otherwise share one bucket. Point Stripe's webhook at `https://api.example.com/billing/webhook`. For automatic deploys, create a token with `fly tokens create org`, store it as GitHub secret `FLY_API_TOKEN`, and set repository variable `FLY_DEPLOY=true`.
+Production secrets live in committed, encrypted `.env.production` (dotenvx). `secrets:set` encrypts with the public key in that file, so anyone (or any agent) can add or rotate a value without being able to read the others. The private key stays in ignored `.env.keys`; back it up in a password manager. `secrets:fly` decrypts the file and stages every value on the API app (`fly secrets set --stage`, one argument per value, no shell quoting); the next `fly deploy` applies them. Add optional `UPSTASH_*`, `QSTASH_*`, `RESEND_API_KEY`/`EMAIL_FROM`, and `STRIPE_*` the same way. The app (landing included) needs no secrets. Non-secret origins live in each config's `[env]`; `VITE_` origins are `[build.args]` because they compile into frontend bundles. Use a Neon connection string for `DATABASE_URL`, in the same region as `primary_region`. API reads the client address from `Fly-Client-IP` when `FLY_APP_NAME` is present, because the socket peer is Fly's proxy; Better Auth rate limits would otherwise share one bucket. Point Stripe's webhook at `https://api.example.com/billing/webhook`. For automatic deploys, GitHub stores only two secrets: `FLY_API_TOKEN` (`fly tokens create org`) and `DOTENV_PRIVATE_KEY_PRODUCTION` (from `.env.keys`). Set repository variable `FLY_DEPLOY=true`. The deploy job stages secrets from `.env.production` before deploying, so adding a secret is a commit, not a dashboard edit.
 
 ## Deployment notes
 
