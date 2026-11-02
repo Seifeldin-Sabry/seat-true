@@ -4,7 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ExternalLink, LoaderCircle } from "lucide-react";
 import { AppShell } from "../components/app-shell";
 import { PlanChange } from "../components/plan-change";
-import { requireSession } from "../lib/auth-navigation";
+import { requireWorkspaceMember } from "../lib/auth-navigation";
 import {
   billingOverviewQueryOptions,
   type PlanId,
@@ -12,17 +12,20 @@ import {
   useBillingPortal,
 } from "../lib/billing";
 import { formatCents } from "../lib/format";
+import { privateHead } from "../lib/seo";
 import { useCan } from "../lib/workspace";
 
 type BillingSearch = { checkout?: "success" | "cancelled" };
 
 export const Route = createFileRoute("/app/billing")({
   headers: () => ({ "Cache-Control": "private, no-store" }),
+  head: () => privateHead("Billing"),
   validateSearch: (search: Record<string, unknown>): BillingSearch =>
     search.checkout === "success" || search.checkout === "cancelled"
       ? { checkout: search.checkout }
       : {},
-  beforeLoad: ({ location }) => requireSession(location.href),
+  beforeLoad: ({ location, context }) =>
+    requireWorkspaceMember(location.href, context.queryClient),
   loader: ({ context }) =>
     context.queryClient.ensureQueryData(billingOverviewQueryOptions),
   component: BillingPage,
@@ -85,8 +88,8 @@ function BillingPage() {
             <h1 id="billing-title">Billing</h1>
             <p>
               Stripe charges your card automatically and emails every receipt
-              and invoice. Cancel any time; access continues to the end of the
-              paid period. No refunds.
+              and invoice. No refunds; cancel anytime and keep access until the
+              end of the paid period.
             </p>
           </div>
           {subscription && canManage && (
@@ -126,10 +129,11 @@ function BillingPage() {
 
         {data && !data.enabled && (
           <div className="empty-state">
-            <h3>Billing isn't configured yet</h3>
+            <h2>Plans open soon</h2>
             <p>
-              Set STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET with `bun run
-              secrets:set`, then run scripts/stripe-seed.ts.
+              Your workspace has full access while plans are being set up. Solo
+              is $149/month (up to 150 clients, 2 users); Team is $249/month
+              (unlimited).
             </p>
           </div>
         )}
@@ -192,7 +196,7 @@ function BillingPage() {
             <div className="recon-grid">
               {data.plans.map((plan) => (
                 <div className="recon-panel" key={plan.id}>
-                  <h2>{plan.name}</h2>
+                  <h3>{plan.name}</h3>
                   <p>{plan.description}</p>
                   <p>
                     <strong style={{ fontSize: "2rem" }}>

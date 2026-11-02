@@ -10,7 +10,7 @@
     "@seattrue/app#build": {
       "dependsOn": ["^build"],
       "outputs": [".output/**", ".tanstack/**"],
-      "env": ["APP_ORIGIN", "VITE_APP_ORIGIN", "VITE_WEB_ORIGIN"]
+      "env": ["APP_ORIGIN", "VITE_APP_ORIGIN", "VITE_WEB_ORIGIN", "SITE_URL"]
     },
     "dev": {
       "cache": false,
@@ -39,7 +39,8 @@
         "GOOGLE_CLIENT_ID",
         "GOOGLE_CLIENT_SECRET",
         "VITE_APP_ORIGIN",
-        "VITE_WEB_ORIGIN"
+        "VITE_WEB_ORIGIN",
+        "SITE_URL"
       ]
     },
     "typecheck": {

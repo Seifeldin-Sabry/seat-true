@@ -7,7 +7,6 @@ import {
   Gauge,
   History,
   Inbox,
-  Layers3,
   Link2,
   LogOut,
   Users,
@@ -21,6 +20,7 @@ import {
   workspaceQueryOptions,
 } from "../lib/workspace";
 import { BillingBanner } from "./billing-banner";
+import { Wordmark } from "./wordmark";
 
 const iconStroke = 1.8;
 const primaryLinks = [
@@ -78,16 +78,13 @@ export function AppShell({
     <div className="app-shell">
       <aside className="app-sidebar" aria-label="Workspace navigation">
         <div className="sidebar-main">
-          <Link
-            className="brand-lockup"
-            to="/app"
-            aria-label={`${brand.name} workspace home`}
-          >
-            <span className="brand-mark" aria-hidden="true">
-              <Layers3 size={22} strokeWidth={iconStroke} />
-            </span>
-            <span>{brand.name}</span>
-          </Link>
+          <div className="sidebar-wordmark">
+            <Wordmark
+              to="/app"
+              tone="on-deep"
+              label={`${brand.name} workspace home`}
+            />
+          </div>
 
           <div className="sidebar-section-label">
             {workspace.data?.organization?.name ?? "Workspace"}
@@ -175,10 +172,7 @@ export function AppShell({
       <div className="app-main-column">
         <header className="app-topbar">
           <div className="mobile-brand">
-            <span className="mobile-brand-mark" aria-hidden="true">
-              <Layers3 size={17} strokeWidth={iconStroke} />
-            </span>
-            <span>{brand.name}</span>
+            <Wordmark to="/app" label={`${brand.name} workspace home`} />
           </div>
           <div className="breadcrumb">
             <span>Workspace</span>

@@ -343,7 +343,8 @@ function LandingPage() {
               <ul>
                 <li>No per-licence fees</li>
                 <li>
-                  Cancel any time, effective at the end of the paid period
+                  No refunds; cancel anytime and keep access until the end of
+                  the paid period
                 </li>
                 <li>Founding price locked while you stay subscribed</li>
               </ul>
@@ -364,9 +365,8 @@ function LandingPage() {
                 and show every exception in dollars before you subscribe.
               </li>
               <li>
-                <strong>Cancel any time.</strong> Cancellation takes effect at
-                the end of the period you've paid for, and you keep access until
-                then.
+                <strong>Month to month.</strong> No refunds; cancel anytime and
+                keep access until the end of the paid period.
               </li>
               <li>
                 <strong>Founding price lock.</strong> The first 20 MSPs keep

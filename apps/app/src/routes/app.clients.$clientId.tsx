@@ -4,7 +4,7 @@ import type { ErrorComponentProps } from "@tanstack/react-router";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "../components/app-shell";
-import { requireSession } from "../lib/auth-navigation";
+import { requireWorkspaceMember } from "../lib/auth-navigation";
 import {
   exceptionKindLabels,
   exceptionStatusLabels,
@@ -15,11 +15,14 @@ import {
   useSetClientArchived,
   useSetClientMarkup,
 } from "../lib/recon-query";
+import { privateHead } from "../lib/seo";
 import { useCan } from "../lib/workspace";
 
 export const Route = createFileRoute("/app/clients/$clientId")({
   headers: () => ({ "Cache-Control": "private, no-store" }),
-  beforeLoad: ({ location }) => requireSession(location.href),
+  head: () => privateHead("Client"),
+  beforeLoad: ({ location, context }) =>
+    requireWorkspaceMember(location.href, context.queryClient),
   loader: ({ context, params }) =>
     context.queryClient.ensureQueryData(clientQueryOptions(params.clientId)),
   errorComponent: ClientError,
@@ -31,7 +34,7 @@ function ClientError({ error }: ErrorComponentProps) {
     <AppShell>
       <main className="app-content">
         <div className="load-error-panel" role="alert">
-          <h2>Client could not be loaded</h2>
+          <h1>Client could not be loaded</h1>
           <p>
             {error instanceof Error ? error.message : "Something went wrong."}
           </p>
@@ -85,7 +88,7 @@ function ClientPage() {
             <Link to="/app/billing">Upgrade to unlock</Link>
           </div>
         )}
-        <div className="recon-actions" style={{ marginBottom: 16 }}>
+        <div className="recon-actions client-actions">
           {can("client", "markup") && (
             <form
               className="inline-form"
@@ -99,17 +102,18 @@ function ClientPage() {
                 );
               }}
             >
-              <Label htmlFor="markup">Markup %</Label>
-              <Input
-                id="markup"
-                type="number"
-                min={0}
-                max={500}
-                step="0.01"
-                style={{ width: 100 }}
-                value={markupDraft ?? String(data.client.markupPct)}
-                onChange={(event) => setMarkupDraft(event.target.value)}
-              />
+              <div className="field-group markup-field">
+                <Label htmlFor="markup">Markup %</Label>
+                <Input
+                  id="markup"
+                  type="number"
+                  min={0}
+                  max={500}
+                  step="0.01"
+                  value={markupDraft ?? String(data.client.markupPct)}
+                  onChange={(event) => setMarkupDraft(event.target.value)}
+                />
+              </div>
               <Button
                 type="submit"
                 variant="outline"

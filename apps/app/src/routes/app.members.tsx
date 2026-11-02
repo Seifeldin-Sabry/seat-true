@@ -5,7 +5,8 @@ import { LoaderCircle, UserPlus } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { AppShell } from "../components/app-shell";
-import { requireSession } from "../lib/auth-navigation";
+import { requireWorkspaceMember } from "../lib/auth-navigation";
+import { privateHead } from "../lib/seo";
 import {
   type InvitableRole,
   membersQueryOptions,
@@ -18,7 +19,9 @@ import {
 
 export const Route = createFileRoute("/app/members")({
   headers: () => ({ "Cache-Control": "private, no-store" }),
-  beforeLoad: ({ location }) => requireSession(location.href),
+  head: () => privateHead("Members"),
+  beforeLoad: ({ location, context }) =>
+    requireWorkspaceMember(location.href, context.queryClient),
   loader: ({ context }) =>
     context.queryClient.ensureQueryData(membersQueryOptions),
   component: MembersPage,
@@ -111,7 +114,7 @@ function MembersPage() {
             ) : (
               <form className="inline-form" onSubmit={sendInvite}>
                 <div className="field-group">
-                  <Label htmlFor="invite-email">Email</Label>
+                  <Label htmlFor="invite-email">Work email</Label>
                   <Input
                     id="invite-email"
                     type="email"
@@ -152,7 +155,7 @@ function MembersPage() {
         )}
 
         <div className="recon-table-wrap" style={{ marginTop: 16 }}>
-          <table className="recon-table">
+          <table className="recon-table stack-table">
             <thead>
               <tr>
                 <th scope="col">Person</th>
@@ -169,14 +172,14 @@ function MembersPage() {
                   key={entry.id}
                   className={entry.suspended ? "is-resolved" : undefined}
                 >
-                  <td>
+                  <td data-label="Person">
                     <div>
                       {entry.name || entry.email}
                       {entry.isYou && " (you)"}
                     </div>
                     <div className="recon-summary">{entry.email}</div>
                   </td>
-                  <td>
+                  <td data-label="Role">
                     {can("member", "update") && entry.role !== "owner" ? (
                       <select
                         aria-label={`Role for ${entry.email}`}
@@ -202,8 +205,10 @@ function MembersPage() {
                       {roleDescriptions[entry.role]}
                     </div>
                   </td>
-                  <td>{formatDate(entry.lastActiveAt)}</td>
-                  <td>
+                  <td data-label="Last active">
+                    {formatDate(entry.lastActiveAt)}
+                  </td>
+                  <td data-label="Actions">
                     {can("member", "delete") && entry.role !== "owner" && (
                       <Button
                         size="sm"
@@ -227,17 +232,17 @@ function MembersPage() {
               ))}
               {data?.invitations.map((entry) => (
                 <tr key={entry.id}>
-                  <td>
+                  <td data-label="Person">
                     <div>{entry.email}</div>
                     <div className="recon-summary">
                       Invite expires {formatDate(entry.expiresAt)}
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Role">
                     <Badge variant="outline">{entry.role} · pending</Badge>
                   </td>
-                  <td>—</td>
-                  <td>
+                  <td data-label="Last active">—</td>
+                  <td data-label="Actions">
                     {can("invitation", "cancel") && (
                       <Button
                         size="sm"

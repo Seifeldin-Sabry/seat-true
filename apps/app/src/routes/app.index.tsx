@@ -5,18 +5,21 @@ import { FileUp, LoaderCircle, Sparkles } from "lucide-react";
 import type { ChangeEvent } from "react";
 import { useRef, useState } from "react";
 import { AppShell } from "../components/app-shell";
-import { requireSession } from "../lib/auth-navigation";
+import { requireWorkspaceMember } from "../lib/auth-navigation";
 import { exceptionKindLabels, formatCents } from "../lib/format";
 import {
   overviewQueryOptions,
   useLoadDemo,
   useUploadRun,
 } from "../lib/recon-query";
+import { privateHead } from "../lib/seo";
 import { useCan } from "../lib/workspace";
 
 export const Route = createFileRoute("/app/")({
   headers: () => ({ "Cache-Control": "private, no-store" }),
-  beforeLoad: ({ location }) => requireSession(location.href),
+  head: () => privateHead("Overview"),
+  beforeLoad: ({ location, context }) =>
+    requireWorkspaceMember(location.href, context.queryClient),
   loader: ({ context }) =>
     context.queryClient.ensureQueryData(overviewQueryOptions),
   component: OverviewPage,
@@ -141,7 +144,7 @@ function OverviewPage() {
 
         {data && !data.run && (
           <div className="empty-state">
-            <h3>No bill reconciled yet</h3>
+            <h2>No bill reconciled yet</h2>
             <p>
               Upload last month's Pax8 export, or load the demo MSP to see what
               SeatTrue finds.

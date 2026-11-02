@@ -34,7 +34,7 @@ body {
   font-family: var(--type-display);
   font-size: 19px;
   font-weight: 600;
-  letter-spacing: -0.055em;
+  letter-spacing: -0.03em;
   text-decoration: none;
 }
 
@@ -76,7 +76,7 @@ body {
   font-family: var(--type-display);
   font-size: clamp(140px, 18vw, 240px);
   font-weight: 600;
-  letter-spacing: -0.115em;
+  letter-spacing: -0.03em;
   line-height: 0.8;
 }
 
@@ -86,7 +86,7 @@ body {
   font-family: var(--type-display);
   font-size: clamp(40px, 4.5vw, 61px);
   font-weight: 600;
-  letter-spacing: -0.072em;
+  letter-spacing: -0.03em;
   line-height: 1.08;
 }
 
@@ -183,7 +183,7 @@ body {
   font-family: var(--type-display);
   font-size: 19px;
   font-weight: 600;
-  letter-spacing: -0.055em;
+  letter-spacing: -0.03em;
   text-decoration: none;
   white-space: nowrap;
 }
@@ -417,7 +417,7 @@ body {
   font-family: var(--type-display);
   font-size: clamp(45px, 5vw, 69px);
   font-weight: 600;
-  letter-spacing: -0.075em;
+  letter-spacing: -0.03em;
   line-height: 1.06;
   overflow-wrap: anywhere;
 }
@@ -467,14 +467,14 @@ body {
   font-family: var(--type-display);
   font-size: 38px;
   font-weight: 500;
-  letter-spacing: -0.065em;
+  letter-spacing: -0.03em;
   line-height: 1;
   white-space: nowrap;
 }
 
 .fact-item-secondary strong {
   font-size: 22px;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.03em;
 }
 
 .fact-divider {
@@ -571,7 +571,7 @@ body {
   font-family: var(--type-display);
   font-size: clamp(27px, 2.7vw, 36px);
   font-weight: 600;
-  letter-spacing: -0.06em;
+  letter-spacing: -0.03em;
   line-height: 1.2;
 }
 
@@ -727,7 +727,7 @@ body {
   font-family: var(--type-display);
   font-size: 22px;
   font-weight: 600;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.03em;
 }
 
 .empty-state p {
@@ -797,7 +797,7 @@ body {
   font-family: var(--type-display);
   font-size: 27px;
   font-weight: 600;
-  letter-spacing: -0.06em;
+  letter-spacing: -0.03em;
   line-height: 1.18;
 }
 
@@ -967,7 +967,8 @@ body {
     border-bottom: 2px solid transparent;
     color: var(--muted-foreground);
     background: transparent;
-    font-size: 12px;
+    font-size: 13px;
+    white-space: nowrap;
     font-weight: 600;
     text-decoration: none;
   }
@@ -1168,7 +1169,7 @@ body {
   font-family: var(--type-display);
   font-size: clamp(1.8rem, 4vw, 3rem);
   font-weight: 600;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
 }
 .recon-stat-note {
@@ -1718,7 +1719,7 @@ body {
   font-family: var(--st-display);
   font-size: 3.4rem;
   font-weight: 800;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
 }
 .st-price ul {
   display: grid;
@@ -1933,12 +1934,17 @@ body {
 .inline-form {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
   align-items: end;
+  margin-top: 14px;
+}
+
+.inline-form .field-group:first-child {
+  flex: 1 1 240px;
 }
 
 .inline-form select {
-  min-height: 36px;
+  min-height: 40px;
   padding: 0 8px;
   border: 1px solid var(--border);
   border-radius: 7px;
@@ -1980,4 +1986,60 @@ body {
   outline: 3px solid currentColor;
   outline-offset: 3px;
   border-radius: 6px;
+}
+
+.sidebar-wordmark {
+  padding: 2px 13px 24px;
+}
+
+/* Tables marked .stack-table become one card per row on phones instead of scrolling sideways. */
+@media (max-width: 640px) {
+  .stack-table thead {
+    display: none;
+  }
+  .stack-table,
+  .stack-table tbody,
+  .stack-table tr,
+  .stack-table td {
+    display: block;
+    width: 100%;
+  }
+  .stack-table tr {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .stack-table td {
+    padding: 4px 0;
+    border: 0;
+    text-align: left;
+  }
+  .stack-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--muted-foreground);
+    font-family: var(--type-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .stack-table td.num {
+    text-align: left;
+  }
+  .stack-table td[data-label="Problem"]::before,
+  .stack-table td[data-label="Actions"]::before {
+    display: none;
+  }
+}
+
+.client-actions {
+  align-items: end;
+  margin-bottom: 28px;
+}
+
+.inline-form > .markup-field {
+  flex: 0 0 120px;
+}
+
+.signout-button {
+  font-size: 14px;
 }

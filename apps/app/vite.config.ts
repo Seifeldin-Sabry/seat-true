@@ -5,6 +5,8 @@ import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
+  // SITE_URL (the public domain) is the one non-VITE_ variable the client may read.
+  envPrefix: ["VITE_", "SITE_URL"],
   server: {
     port: 3000,
     strictPort: true,

@@ -5,7 +5,7 @@ import { Flag, MessageSquare } from "lucide-react";
 import type { FormEvent } from "react";
 import { Fragment, useMemo, useState } from "react";
 import { AppShell } from "../components/app-shell";
-import { requireSession } from "../lib/auth-navigation";
+import { requireWorkspaceMember } from "../lib/auth-navigation";
 import {
   exceptionKindLabels,
   exceptionStatusLabels,
@@ -19,11 +19,14 @@ import {
   useSetExceptionFlag,
   useSetExceptionStatus,
 } from "../lib/recon-query";
+import { privateHead } from "../lib/seo";
 import { useCan } from "../lib/workspace";
 
 export const Route = createFileRoute("/app/exceptions")({
   headers: () => ({ "Cache-Control": "private, no-store" }),
-  beforeLoad: ({ location }) => requireSession(location.href),
+  head: () => privateHead("Exceptions"),
+  beforeLoad: ({ location, context }) =>
+    requireWorkspaceMember(location.href, context.queryClient),
   loader: ({ context }) =>
     context.queryClient.ensureQueryData(exceptionsQueryOptions),
   component: ExceptionsPage,
@@ -104,7 +107,7 @@ function ExceptionsPage() {
 
         {visible.length === 0 ? (
           <div className="empty-state">
-            <h3>Nothing here</h3>
+            <h2>Nothing here</h2>
             <p>
               {rows.length === 0 ? (
                 <>
@@ -118,7 +121,7 @@ function ExceptionsPage() {
           </div>
         ) : (
           <div className="recon-table-wrap">
-            <table className="recon-table">
+            <table className="recon-table stack-table">
               <thead>
                 <tr>
                   <th scope="col">Problem</th>
@@ -144,7 +147,7 @@ function ExceptionsPage() {
                           : undefined
                       }
                     >
-                      <td>
+                      <td data-label="Problem">
                         <Badge
                           variant={
                             exception.kind === "overbilled"
@@ -155,7 +158,7 @@ function ExceptionsPage() {
                           {exceptionKindLabels[exception.kind]}
                         </Badge>
                       </td>
-                      <td>
+                      <td data-label="Client">
                         {exception.clientId ? (
                           <Link
                             to="/app/clients/$clientId"
@@ -167,19 +170,19 @@ function ExceptionsPage() {
                           exception.clientName
                         )}
                       </td>
-                      <td>
+                      <td data-label="Detail">
                         <div>{exception.productName}</div>
                         <div className="recon-summary">{exception.summary}</div>
                       </td>
-                      <td className="num">
+                      <td className="num" data-label="Bill / billed">
                         {exception.vendorQuantity} / {exception.billedQuantity}
                       </td>
-                      <td className="num">
+                      <td className="num" data-label="Impact / mo">
                         <strong>
                           {formatCents(exception.monthlyImpactCents)}
                         </strong>
                       </td>
-                      <td>
+                      <td data-label="Action">
                         {can("exception", "resolve") ? (
                           <RowActions
                             exception={exception}

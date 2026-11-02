@@ -1,12 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "../components/app-shell";
-import { requireSession } from "../lib/auth-navigation";
+import { requireWorkspaceMember } from "../lib/auth-navigation";
+import { privateHead } from "../lib/seo";
 import { auditQueryOptions } from "../lib/workspace";
 
 export const Route = createFileRoute("/app/audit")({
   headers: () => ({ "Cache-Control": "private, no-store" }),
-  beforeLoad: ({ location }) => requireSession(location.href),
+  head: () => privateHead("Audit log"),
+  beforeLoad: ({ location, context }) =>
+    requireWorkspaceMember(location.href, context.queryClient),
+  loader: ({ context }) => context.queryClient.prefetchQuery(auditQueryOptions),
   component: AuditPage,
 });
 
@@ -63,14 +67,17 @@ function AuditPage() {
 
         {audit.data && audit.data.length === 0 && (
           <div className="empty-state">
-            <h3>Nothing yet</h3>
-            <p>Resolving exceptions, mapping changes and invites show here.</p>
+            <h2>Nothing logged yet</h2>
+            <p>
+              Approvals, dismissals, mapping and markup changes, invites and
+              plan changes appear here with who made them.
+            </p>
           </div>
         )}
 
         {audit.data && audit.data.length > 0 && (
           <div className="recon-table-wrap">
-            <table className="recon-table">
+            <table className="recon-table stack-table">
               <thead>
                 <tr>
                   <th scope="col">When</th>
@@ -83,21 +90,27 @@ function AuditPage() {
               <tbody>
                 {audit.data.map((entry) => (
                   <tr key={entry.id}>
-                    <td>
+                    <td data-label="When">
                       {new Intl.DateTimeFormat("en-US", {
                         dateStyle: "medium",
                         timeStyle: "short",
                       }).format(new Date(entry.createdAt))}
                     </td>
-                    <td>{entry.actorEmail ?? "SeatTrue (billing)"}</td>
-                    <td>
+                    <td data-label="Who">
+                      {entry.actorEmail ?? "SeatTrue (billing)"}
+                    </td>
+                    <td data-label="What">
                       <div>{actionLabels[entry.action] ?? entry.action}</div>
                       <div className="recon-summary">
                         {entry.targetType} {entry.targetId ?? ""}
                       </div>
                     </td>
-                    <td className="recon-summary">{describe(entry.before)}</td>
-                    <td className="recon-summary">{describe(entry.after)}</td>
+                    <td className="recon-summary" data-label="Before">
+                      {describe(entry.before)}
+                    </td>
+                    <td className="recon-summary" data-label="After">
+                      {describe(entry.after)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

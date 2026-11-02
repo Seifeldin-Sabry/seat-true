@@ -134,7 +134,8 @@ export function PlanChange({
       ) : (
         <p>
           Upgrades take effect now and are invoiced immediately. Downgrades
-          start at the end of the period you've paid for. No credits or refunds.
+          start at the end of the period you've paid for. No refunds; cancel
+          anytime and keep access until the end of the paid period.
         </p>
       )}
       {notice && (

@@ -3,14 +3,17 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "../components/app-shell";
-import { requireSession } from "../lib/auth-navigation";
+import { requireWorkspaceMember } from "../lib/auth-navigation";
 import { formatCents } from "../lib/format";
 import { mappingsQueryOptions, useSaveMapping } from "../lib/recon-query";
+import { privateHead } from "../lib/seo";
 import { useCan } from "../lib/workspace";
 
 export const Route = createFileRoute("/app/mappings")({
   headers: () => ({ "Cache-Control": "private, no-store" }),
-  beforeLoad: ({ location }) => requireSession(location.href),
+  head: () => privateHead("Mappings"),
+  beforeLoad: ({ location, context }) =>
+    requireWorkspaceMember(location.href, context.queryClient),
   loader: ({ context }) =>
     context.queryClient.ensureQueryData(mappingsQueryOptions),
   component: MappingsPage,
