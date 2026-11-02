@@ -38,6 +38,7 @@
         "STRIPE_PORTAL_CONFIG_ID",
         "GOOGLE_CLIENT_ID",
         "GOOGLE_CLIENT_SECRET",
+        "PLATFORM_ADMIN_EMAILS",
         "VITE_APP_ORIGIN",
         "VITE_WEB_ORIGIN",
         "SITE_URL"
@@ -66,7 +67,8 @@
         "STRIPE_WEBHOOK_SECRET",
         "STRIPE_PORTAL_CONFIG_ID",
         "GOOGLE_CLIENT_ID",
-        "GOOGLE_CLIENT_SECRET"
+        "GOOGLE_CLIENT_SECRET",
+        "PLATFORM_ADMIN_EMAILS"
       ]
     },
     "db:generate": {

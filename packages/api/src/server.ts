@@ -88,6 +88,7 @@ export function createServerApp({ env, getSocketIp }: ServerAppOptions) {
     auth,
     allowedOrigins: environment.allowedOrigins,
     getClientIp: clientIp,
+    platformAdminEmails: environment.platformAdminEmails,
     logger,
     ...(jobs.enabled
       ? {

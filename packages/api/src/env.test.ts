@@ -72,3 +72,20 @@ test("Google sign-in is optional but needs both credentials", () => {
     }).google,
   ).toEqual({ clientId: "id", clientSecret: "secret" });
 });
+
+test("platform admins come from PLATFORM_ADMIN_EMAILS; empty means nobody", () => {
+  expect(readApiEnvironment(valid).platformAdminEmails).toEqual([]);
+  expect(
+    readApiEnvironment({ ...valid, PLATFORM_ADMIN_EMAILS: " " })
+      .platformAdminEmails,
+  ).toEqual([]);
+  expect(
+    readApiEnvironment({
+      ...valid,
+      PLATFORM_ADMIN_EMAILS: "Ops@SeatTrue.com, founder@seattrue.com,",
+    }).platformAdminEmails,
+  ).toEqual(["ops@seattrue.com", "founder@seattrue.com"]);
+  expect(() =>
+    readApiEnvironment({ ...valid, PLATFORM_ADMIN_EMAILS: "not-an-email" }),
+  ).toThrow("PLATFORM_ADMIN_EMAILS");
+});

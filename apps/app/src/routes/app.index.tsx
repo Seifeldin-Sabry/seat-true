@@ -18,7 +18,7 @@ import {
   useUploadRun,
 } from "../lib/recon-query";
 import { privateHead } from "../lib/seo";
-import { useCan } from "../lib/workspace";
+import { useCan, workspaceQueryOptions } from "../lib/workspace";
 
 export const Route = createFileRoute("/app/")({
   headers: () => ({ "Cache-Control": "private, no-store" }),
@@ -74,10 +74,11 @@ function OverviewPage() {
   const busy = upload.isPending || demo.isPending || billing.isPending;
   const actionError = upload.error ?? billing.error ?? demo.error;
   const canUpload = can("run", "upload");
+  const workspace = useQuery(workspaceQueryOptions);
   const waitlist = useQuery({
     queryKey: ["integration-waitlist"],
     queryFn: getIntegrationWaitlistCounts,
-    enabled: can("organization", "update"),
+    enabled: workspace.data?.platformAdmin === true,
   });
 
   function onBill(file: { fileName: string; csv: string }) {
@@ -384,7 +385,8 @@ function OverviewPage() {
           >
             <h2 id="waitlist-title">Coming soon: notify-me sign-ups</h2>
             <p>
-              Owners only. Counts across all of SeatTrue, not this workspace.
+              SeatTrue staff only. Counts across all of SeatTrue, not this
+              workspace.
             </p>
             <ul className="recon-kinds">
               {waitlist.data.map((entry) => (

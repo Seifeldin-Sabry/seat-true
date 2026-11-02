@@ -54,9 +54,29 @@ export type AuthEnvironment = {
 };
 
 export type AuthenticatedSession = {
-  user: { id: string; email: string; name: string };
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    /** Missing means not verified. */
+    emailVerified?: boolean;
+  };
   session: { id: string; userId: string };
 };
+
+/**
+ * SeatTrue staff, from PLATFORM_ADMIN_EMAILS. Only a verified address counts,
+ * so nobody can claim an admin email by signing up with it unverified.
+ */
+export function isPlatformAdmin(
+  user: AuthenticatedSession["user"],
+  adminEmails: readonly string[],
+): boolean {
+  return (
+    user.emailVerified === true &&
+    adminEmails.includes(user.email.trim().toLowerCase())
+  );
+}
 
 export type { Membership } from "./organizations";
 
@@ -389,6 +409,7 @@ export function createAuthService(
         id: current.user.id,
         email: current.user.email,
         name: current.user.name,
+        emailVerified: current.user.emailVerified,
       },
       session: {
         id: current.session.id,

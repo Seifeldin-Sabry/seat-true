@@ -22,16 +22,35 @@ integrationTest(
     const ip = `10.9.${run}`;
     const email = `notify-${run}@northbeam-it.com`;
     let role: WorkspaceRole | null = null;
-    const appFor = () =>
-      createApp({
+    let userId = `user-${run}`;
+    let verified = true;
+    const staffId = `staff-${run}`;
+    const appFor = () => {
+      const auth = testAuthService(
+        role ? testWorkspace(role, "org-test", userId) : null,
+      );
+      return createApp({
         projects: createProjectRepository(db),
         db,
         recon: createReconService(db),
-        auth: testAuthService(role ? testWorkspace(role) : null),
+        auth: {
+          ...auth,
+          getSession: async (headers) => {
+            const current = await auth.getSession(headers);
+            return (
+              current && {
+                ...current,
+                user: { ...current.user, emailVerified: verified },
+              }
+            );
+          },
+        },
+        platformAdminEmails: [`${staffId}@northbeam-it.com`],
         allowedOrigins: [appOrigin],
         getClientIp: () => ip,
         logger: { info() {}, warn() {}, error() {} },
       });
+    };
     const signUp = (body: unknown, origin = appOrigin) =>
       appFor().handle(
         new Request(`${appOrigin}/api/integrations/waitlist`, {
@@ -89,13 +108,19 @@ integrationTest(
       expect(await allowRequest(db, key, 1, 1000, 10_500)).toBe(false);
       expect(await allowRequest(db, key, 1, 1000, 12_000)).toBe(true);
 
-      // Counts: owners only.
+      // Counts: platform admins only. A workspace owner is not enough.
       expect((await counts()).status).toBe(401);
-      for (const denied of ["admin", "tech"] as const) {
+      for (const denied of ["owner", "admin", "tech"] as const) {
         role = denied;
-        expect((await counts()).status).toBe(403);
+        const response = await counts();
+        expect(response.status).toBe(403);
+        expect((await response.json()).error.code).toBe("FORBIDDEN");
       }
-      role = "owner";
+      // A listed address only counts once verified.
+      userId = staffId;
+      verified = false;
+      expect((await counts()).status).toBe(403);
+      verified = true;
       const response = await counts();
       expect(response.status).toBe(200);
       const body = (await response.json()) as {

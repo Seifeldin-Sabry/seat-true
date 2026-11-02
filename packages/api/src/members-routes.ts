@@ -7,7 +7,11 @@ import type { Database } from "@seattrue/db";
 import { APIError } from "better-auth/api";
 import { Elysia, t } from "elysia";
 import type { AuditLog } from "./audit";
-import type { AuthService, OrganizationApi } from "./auth";
+import {
+  type AuthService,
+  isPlatformAdmin,
+  type OrganizationApi,
+} from "./auth";
 import { listPendingInvitations, listSeatMembers } from "./organizations";
 import { PlanLimitError, type PlanLimits } from "./plan-limits";
 import type { Workspace, WorkspaceGuard } from "./workspace";
@@ -37,6 +41,7 @@ export type MembersRoutesOptions = {
   planLimits?: PlanLimits | null;
   canWrite?: (organizationId: string) => Promise<boolean>;
   allowedOrigins: string[];
+  platformAdminEmails?: readonly string[];
 };
 
 const invalidOrigin = {
@@ -154,6 +159,11 @@ export function createMembersRoutes(options: MembersRoutesOptions) {
             ? { id: active.organizationId, name: active.organizationName }
             : null,
           role: active?.role ?? null,
+          /** SeatTrue staff (PLATFORM_ADMIN_EMAILS); UI gating only. */
+          platformAdmin: isPlatformAdmin(
+            current.user,
+            options.platformAdminEmails ?? [],
+          ),
           suspended: Boolean(active?.suspendedAt),
           permissions:
             active && !active.suspendedAt ? rolePermissions(active.role) : {},

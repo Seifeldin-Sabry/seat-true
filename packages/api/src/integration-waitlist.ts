@@ -5,7 +5,7 @@ import {
 import { type Database, integrationWaitlist, rateLimit } from "@seattrue/db";
 import { count, sql } from "drizzle-orm";
 import { Elysia, t } from "elysia";
-import type { WorkspaceGuard } from "./workspace";
+import { type AuthService, isPlatformAdmin } from "./auth";
 
 /**
  * Coming soon integrations that take sign-ups. Must equal the "soon" slugs in
@@ -51,7 +51,9 @@ export async function allowRequest(
 
 export type IntegrationWaitlistOptions = {
   db: Database;
-  guard: WorkspaceGuard;
+  auth: Pick<AuthService, "getSession">;
+  /** Who may read the SeatTrue-wide counts. Empty means nobody. */
+  platformAdminEmails: readonly string[];
   allowedOrigins: string[];
   /** Sign-ups per client IP per window. */
   limit?: { max: number; windowMs: number };
@@ -59,7 +61,8 @@ export type IntegrationWaitlistOptions = {
 
 export function createIntegrationWaitlistRoutes({
   db,
-  guard,
+  auth,
+  platformAdminEmails,
   allowedOrigins,
   limit = { max: 5, windowMs: 10 * 60_000 },
 }: IntegrationWaitlistOptions) {
@@ -122,13 +125,23 @@ export function createIntegrationWaitlistRoutes({
           ),
         },
       )
-      // ponytail: counts are SeatTrue-wide, shown to any workspace owner; move
-      // behind a platform-admin check if that ever exists.
+      // SeatTrue-wide demand: platform admins only, never workspace owners.
       .get("/integrations/waitlist/counts", async ({ request, status }) => {
-        const access = await guard(request.headers, {
-          organization: ["update"],
-        });
-        if (!access.ok) return status(access.status, access.body);
+        const current = await auth.getSession(request.headers);
+        if (!current)
+          return status(401, {
+            error: {
+              code: "UNAUTHORIZED" as const,
+              message: "Sign in required.",
+            },
+          });
+        if (!isPlatformAdmin(current.user, platformAdminEmails))
+          return status(403, {
+            error: {
+              code: "FORBIDDEN" as const,
+              message: "Only SeatTrue staff can see this.",
+            },
+          });
         const rows = await db
           .select({ slug: integrationWaitlist.slug, count: count() })
           .from(integrationWaitlist)

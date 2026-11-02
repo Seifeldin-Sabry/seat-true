@@ -50,6 +50,8 @@ export type AppOptions = {
   jobs?: Pick<JobQueue, "enabled" | "verify"> | null;
   allowedOrigins: string[];
   getClientIp?: (request: Request) => string | null;
+  /** SeatTrue staff emails (PLATFORM_ADMIN_EMAILS). Default: nobody. */
+  platformAdminEmails?: readonly string[];
   logger?: Logger;
   onProjectCreated?: (event: {
     projectId: string;
@@ -77,6 +79,7 @@ export function createApp({
   jobs,
   allowedOrigins,
   getClientIp,
+  platformAdminEmails = [],
   logger = jsonLogger,
   onProjectCreated,
 }: AppOptions) {
@@ -207,7 +210,14 @@ export function createApp({
         guard,
       }),
     )
-    .use(createIntegrationWaitlistRoutes({ db, guard, allowedOrigins }))
+    .use(
+      createIntegrationWaitlistRoutes({
+        db,
+        auth,
+        platformAdminEmails,
+        allowedOrigins,
+      }),
+    )
     .use(
       createPlanRoutes({
         billing: billing ?? null,
@@ -226,6 +236,7 @@ export function createApp({
         planLimits: planLimits ?? null,
         ...(canWriteWorkspace ? { canWrite: canWriteWorkspace } : {}),
         allowedOrigins,
+        platformAdminEmails,
       }),
     )
     .get("/health", () => ({ status: "ok" as const }))

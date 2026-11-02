@@ -7,6 +7,8 @@ export type ApiEnvironment = {
   authSecret: string;
   allowedOrigins: string[];
   logLevel: LogLevel;
+  /** Lower-cased; empty means nobody is a platform admin. */
+  platformAdminEmails: string[];
   google?: { clientId: string; clientSecret: string };
 };
 
@@ -64,9 +66,22 @@ export function readApiEnvironment(
     );
   }
 
+  const platformAdminEmails = (env.PLATFORM_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+  const invalidAdmin = platformAdminEmails.find(
+    (email) => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email),
+  );
+  if (invalidAdmin)
+    throw new Error(
+      `PLATFORM_ADMIN_EMAILS must be comma-separated email addresses: ${invalidAdmin}`,
+    );
+
   return {
     databaseUrl,
     authSecret,
+    platformAdminEmails,
     // The API is served from the app's own origin, so it is the only one
     // trusted for cookie-carrying writes.
     allowedOrigins: [appOrigin],

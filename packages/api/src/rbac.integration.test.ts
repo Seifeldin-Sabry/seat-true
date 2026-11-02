@@ -27,6 +27,8 @@ type Allowed = Record<WorkspaceRole, boolean>;
 const everyone: Allowed = { owner: true, admin: true, tech: true };
 const opsAndUp: Allowed = { owner: true, admin: true, tech: false };
 const ownerOnly: Allowed = { owner: true, admin: false, tech: false };
+/** Platform-admin routes: no workspace role is enough. */
+const nobody: Allowed = { owner: false, admin: false, tech: false };
 
 /** Every API route with the roles allowed to call it. */
 function permissionMatrix(): {
@@ -156,7 +158,7 @@ function permissionMatrix(): {
     {
       method: "GET",
       path: "/integrations/waitlist/counts",
-      allowed: ownerOnly,
+      allowed: nobody,
     },
   ];
 }
