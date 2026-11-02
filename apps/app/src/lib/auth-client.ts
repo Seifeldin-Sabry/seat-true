@@ -1,7 +1,8 @@
 import { createAuthClient } from "better-auth/react";
-import { httpOrigin } from "./http-origin";
+import { appOrigin } from "./http-origin";
 
+// Better Auth is served by the API at /api/auth/* on this same origin.
 export const authClient = createAuthClient({
-  baseURL: httpOrigin(import.meta.env.VITE_API_ORIGIN, "VITE_API_ORIGIN"),
+  baseURL: appOrigin(),
   fetchOptions: { credentials: "include" },
 });

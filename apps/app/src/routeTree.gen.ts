@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AcceptInviteInvitationIdRouteImport } from './routes/accept-invite.$invitationId'
+import { Route as ApiSplatRouteImport } from './routes/api.$'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppAuditRouteImport } from './routes/app.audit'
 import { Route as AppBillingRouteImport } from './routes/app.billing'
@@ -54,6 +55,11 @@ const AcceptInviteInvitationIdRoute =
     path: '/accept-invite/$invitationId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiSplatRoute = ApiSplatRouteImport.update({
+  id: '/api/$',
+  path: '/api/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/app/',
   path: '/app/',
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/accept-invite/$invitationId': typeof AcceptInviteInvitationIdRoute
+  '/api/$': typeof ApiSplatRoute
   '/app/audit': typeof AppAuditRoute
   '/app/billing': typeof AppBillingRoute
   '/app/exceptions': typeof AppExceptionsRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/accept-invite/$invitationId': typeof AcceptInviteInvitationIdRoute
+  '/api/$': typeof ApiSplatRoute
   '/app/audit': typeof AppAuditRoute
   '/app/billing': typeof AppBillingRoute
   '/app/exceptions': typeof AppExceptionsRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/accept-invite/$invitationId': typeof AcceptInviteInvitationIdRoute
+  '/api/$': typeof ApiSplatRoute
   '/app/audit': typeof AppAuditRoute
   '/app/billing': typeof AppBillingRoute
   '/app/exceptions': typeof AppExceptionsRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/accept-invite/$invitationId'
+    | '/api/$'
     | '/app/audit'
     | '/app/billing'
     | '/app/exceptions'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/accept-invite/$invitationId'
+    | '/api/$'
     | '/app/audit'
     | '/app/billing'
     | '/app/exceptions'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/accept-invite/$invitationId'
+    | '/api/$'
     | '/app/audit'
     | '/app/billing'
     | '/app/exceptions'
@@ -191,6 +203,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   AcceptInviteInvitationIdRoute: typeof AcceptInviteInvitationIdRoute
+  ApiSplatRoute: typeof ApiSplatRoute
   AppAuditRoute: typeof AppAuditRoute
   AppBillingRoute: typeof AppBillingRoute
   AppExceptionsRoute: typeof AppExceptionsRoute
@@ -242,6 +255,13 @@ declare module '@tanstack/react-router' {
       path: '/accept-invite/$invitationId'
       fullPath: '/accept-invite/$invitationId'
       preLoaderRoute: typeof AcceptInviteInvitationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$': {
+      id: '/api/$'
+      path: '/api/$'
+      fullPath: '/api/$'
+      preLoaderRoute: typeof ApiSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/': {
@@ -303,6 +323,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   AcceptInviteInvitationIdRoute: AcceptInviteInvitationIdRoute,
+  ApiSplatRoute: ApiSplatRoute,
   AppAuditRoute: AppAuditRoute,
   AppBillingRoute: AppBillingRoute,
   AppExceptionsRoute: AppExceptionsRoute,

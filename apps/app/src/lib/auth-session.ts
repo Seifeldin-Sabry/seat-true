@@ -3,7 +3,8 @@ import {
   getRequestHeaders,
   setResponseHeader,
 } from "@tanstack/react-start/server";
-import { httpOrigin } from "./http-origin";
+import { getServerApi } from "../server/api";
+import { appOrigin } from "./http-origin";
 
 export type SessionUser = {
   id: string;
@@ -24,16 +25,13 @@ function isSessionUser(value: unknown): value is SessionUser {
 export const getSessionUser = createServerFn({ method: "GET" }).handler(
   async (): Promise<SessionUser | null> => {
     setResponseHeader("Cache-Control", "private, no-store");
-    const origin = httpOrigin(
-      process.env.API_INTERNAL_ORIGIN || process.env.API_ORIGIN,
-      "API_INTERNAL_ORIGIN or API_ORIGIN",
-    );
-
+    // In-process call into the API's Better Auth handler; no HTTP hop.
     const cookie = getRequestHeaders().get("cookie");
-    const response = await fetch(new URL("/api/auth/get-session", origin), {
-      ...(cookie ? { headers: { cookie } } : {}),
-      cache: "no-store",
-    });
+    const response = await getServerApi().app.fetch(
+      new Request(new URL("/api/auth/get-session", appOrigin()), {
+        ...(cookie ? { headers: { cookie } } : {}),
+      }),
+    );
 
     if (response.status === 401) return null;
     if (!response.ok) {

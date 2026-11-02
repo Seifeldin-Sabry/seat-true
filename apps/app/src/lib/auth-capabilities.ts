@@ -5,7 +5,7 @@ async function getAuthCapabilities(): Promise<{
   emailEnabled: boolean;
   googleEnabled: boolean;
 }> {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { data, error } = await api.auth.capabilities.get();
   if (error || !data) {
     throw new Error("Account service is unavailable. Try again shortly.");

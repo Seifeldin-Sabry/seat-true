@@ -151,7 +151,7 @@ integrationTest("routes enforce auth, origin and CSV validation", async () => {
     origin = appOrigin,
   ) =>
     app.handle(
-      new Request(`http://localhost${path}`, {
+      new Request(`http://localhost/api${path}`, {
         method,
         headers: { Origin: origin, "Content-Type": "application/json" },
         ...(body ? { body: JSON.stringify(body) } : {}),

@@ -9,7 +9,6 @@ import { createReconService } from "./reconciliation";
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const authSecret = process.env.BETTER_AUTH_SECRET;
 const integrationTest = databaseUrl && authSecret ? test : test.skip;
-const apiOrigin = "http://localhost:3001";
 const appOrigin = "http://localhost:3000";
 
 function sessionCookie(response: Response): string {
@@ -29,7 +28,7 @@ function request(
   body?: Record<string, string>,
 ) {
   return app.handle(
-    new Request(`${apiOrigin}${path}`, {
+    new Request(`${appOrigin}/api${path}`, {
       method,
       headers: {
         Origin: appOrigin,
@@ -48,7 +47,7 @@ integrationTest(
 
     const connection = createDatabase(databaseUrl);
     const auth = createAuthService(connection.db, {
-      apiOrigin,
+      baseURL: appOrigin,
       secret: authSecret,
       trustedOrigins: [appOrigin],
     });
@@ -66,7 +65,7 @@ integrationTest(
       const response = await request(
         app,
         "POST",
-        "/api/auth/sign-up/email",
+        "/auth/sign-up/email",
         undefined,
         {
           name: label,
@@ -148,7 +147,7 @@ integrationTest(
       const signedOut = await request(
         app,
         "POST",
-        "/api/auth/sign-out",
+        "/auth/sign-out",
         firstCookie,
         {},
       );

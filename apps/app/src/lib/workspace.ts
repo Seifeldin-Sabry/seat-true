@@ -15,7 +15,7 @@ export type { AuditDto, InvitationDto, MemberDto };
 export type InvitableRole = "admin" | "tech";
 
 async function getWorkspace() {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { data, error } = await api.workspace.get();
   if (error)
     throw new Error(apiErrorMessage(error, "Could not load workspace."));
@@ -52,7 +52,7 @@ export function useCan() {
 }
 
 async function listMembers() {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { data, error } = await api.members.get();
   if (error) throw new Error(apiErrorMessage(error, "Could not load members."));
   if (!data) throw new Error("Members response was empty.");
@@ -65,7 +65,7 @@ export const membersQueryOptions = queryOptions({
 });
 
 async function listAudit(): Promise<AuditDto[]> {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { data, error } = await api.audit.get();
   if (error)
     throw new Error(apiErrorMessage(error, "Could not load the audit log."));
@@ -90,7 +90,7 @@ function useWorkspaceMutation<Input>(run: (input: Input) => Promise<unknown>) {
 export function useInvite() {
   return useWorkspaceMutation(
     async (input: { email: string; role: InvitableRole }) => {
-      const api = await getApiClient();
+      const api = getApiClient();
       const { data, error } = await api.members.invitations.post(input);
       if (error)
         throw new Error(apiErrorMessage(error, "Could not send the invite."));
@@ -101,7 +101,7 @@ export function useInvite() {
 
 export function useCancelInvite() {
   return useWorkspaceMutation(async (id: string) => {
-    const api = await getApiClient();
+    const api = getApiClient();
     const { error } = await api.members.invitations({ id }).delete();
     if (error)
       throw new Error(apiErrorMessage(error, "Could not cancel the invite."));
@@ -111,7 +111,7 @@ export function useCancelInvite() {
 export function useChangeRole() {
   return useWorkspaceMutation(
     async (input: { id: string; role: InvitableRole }) => {
-      const api = await getApiClient();
+      const api = getApiClient();
       const { error } = await api
         .members({ id: input.id })
         .patch({ role: input.role });
@@ -123,7 +123,7 @@ export function useChangeRole() {
 
 export function useRemoveMember() {
   return useWorkspaceMutation(async (id: string) => {
-    const api = await getApiClient();
+    const api = getApiClient();
     const { error } = await api.members({ id }).delete();
     if (error)
       throw new Error(apiErrorMessage(error, "Could not remove the member."));
@@ -135,7 +135,7 @@ export function useSwitchWorkspace() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (organizationId: string) => {
-      const api = await getApiClient();
+      const api = getApiClient();
       const { error } = await api.workspace.active.put({ organizationId });
       if (error)
         throw new Error(apiErrorMessage(error, "Could not switch workspace."));
@@ -145,7 +145,7 @@ export function useSwitchWorkspace() {
 }
 
 export async function getInvitation(id: string) {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { data, error } = await api.invitations({ id }).get();
   if (error)
     throw new Error(
@@ -159,7 +159,7 @@ export function useAcceptInvitation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const api = await getApiClient();
+      const api = getApiClient();
       const { error } = await api.invitations({ id }).accept.post();
       if (error)
         throw new Error(

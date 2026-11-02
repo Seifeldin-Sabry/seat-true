@@ -1,35 +1,33 @@
 import { treaty } from "@elysia/eden";
 import type { App } from "@seattrue/api/contract";
 import { createIsomorphicFn } from "@tanstack/react-start";
-import { httpOrigin } from "./http-origin";
+import { getRequestHeaders } from "@tanstack/react-start/server";
+import { getServerApi } from "../server/api";
+import { appOrigin } from "./http-origin";
 
-const apiOrigin = createIsomorphicFn()
-  .server(() =>
-    httpOrigin(
-      process.env.API_INTERNAL_ORIGIN || process.env.API_ORIGIN,
-      "API_INTERNAL_ORIGIN or API_ORIGIN",
-    ),
-  )
-  .client(() => httpOrigin(import.meta.env.VITE_API_ORIGIN, "VITE_API_ORIGIN"));
-
-const requestHeaders = createIsomorphicFn()
-  .server(async () => {
-    const { getRequestHeaders } = await import("@tanstack/react-start/server");
-    const cookie = getRequestHeaders().get("cookie");
-    return {
-      origin: httpOrigin(process.env.APP_ORIGIN, "APP_ORIGIN"),
-      ...(cookie ? { cookie } : {}),
-    };
+/**
+ * Eden client for the API under /api on this same origin. On the server it
+ * calls Elysia in-process (no HTTP), forwarding the visitor's cookie so SSR
+ * reads are authenticated; in the browser it is a same-origin fetch. The
+ * TanStack Start compiler drops the server branch and its imports from the
+ * browser bundle.
+ *
+ * Synchronous on purpose: `.api` is a proxy whose `then` would become a
+ * request, so it must never be returned from an async function or awaited.
+ */
+export const getApiClient = createIsomorphicFn()
+  .server(() => {
+    const incoming = getRequestHeaders();
+    const headers: Record<string, string> = { origin: appOrigin() };
+    for (const name of ["cookie", "fly-client-ip"]) {
+      const value = incoming.get(name);
+      if (value) headers[name] = value;
+    }
+    return treaty<App>(getServerApi().app, { headers }).api;
   })
-  .client(async () => ({}));
-
-export async function getApiClient() {
-  const headers = await requestHeaders();
-  return treaty<App>(apiOrigin(), {
-    fetch: { credentials: "include" },
-    headers,
-  });
-}
+  .client(
+    () => treaty<App>(appOrigin(), { fetch: { credentials: "include" } }).api,
+  );
 
 export function apiErrorMessage(error: unknown, fallback: string): string {
   if (error && typeof error === "object") {

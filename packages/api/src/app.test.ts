@@ -97,7 +97,7 @@ function testApp(
 describe("API contract", () => {
   test("returns health without a database query", async () => {
     const response = await testApp().handle(
-      new Request("http://localhost/health"),
+      new Request("http://localhost/api/health"),
     );
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ status: "ok" });
@@ -120,7 +120,7 @@ describe("API contract", () => {
       { name: "x".repeat(121) },
     ]) {
       const response = await app.handle(
-        new Request("http://localhost/projects", {
+        new Request("http://localhost/api/projects", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -141,12 +141,12 @@ describe("API contract", () => {
     expect(writes).toBe(0);
 
     const badId = await app.handle(
-      new Request("http://localhost/projects/not-a-uuid"),
+      new Request("http://localhost/api/projects/not-a-uuid"),
     );
     expect(badId.status).toBe(422);
 
     const emptyPatch = await app.handle(
-      new Request(`http://localhost/projects/${crypto.randomUUID()}`, {
+      new Request(`http://localhost/api/projects/${crypto.randomUUID()}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Origin: allowedOrigin },
         body: "{}",
@@ -156,7 +156,9 @@ describe("API contract", () => {
   });
 
   test("supports typed Eden Treaty create, list, update, and delete", async () => {
-    const client = treaty(testApp(), { headers: { Origin: allowedOrigin } });
+    const client = treaty(testApp(), {
+      headers: { Origin: allowedOrigin },
+    }).api;
 
     const created = await client.projects.post({
       name: "  Example  ",
@@ -199,7 +201,7 @@ describe("API contract", () => {
     ];
     for (const [path, method] of routes) {
       const response = await app.handle(
-        new Request(`http://localhost${path}`, {
+        new Request(`http://localhost/api${path}`, {
           method,
           headers: {
             "Content-Type": "application/json",
@@ -221,10 +223,10 @@ describe("API contract", () => {
     const repository = memoryRepository();
     const first = treaty(testApp(repository, "owner-one"), {
       headers: { Origin: allowedOrigin },
-    });
+    }).api;
     const second = treaty(testApp(repository, "owner-two"), {
       headers: { Origin: allowedOrigin },
-    });
+    }).api;
     const created = await first.projects.post({ name: "Private project" });
     if (!created.data || "error" in created.data)
       throw new Error("Create failed");
@@ -240,28 +242,6 @@ describe("API contract", () => {
     expect((await first.projects({ id }).get()).status).toBe(200);
   });
 
-  test("allows only configured browser origins", async () => {
-    const app = testApp();
-    const allowed = await app.handle(
-      new Request("http://localhost/health", {
-        headers: { Origin: "http://localhost:3000" },
-      }),
-    );
-    const denied = await app.handle(
-      new Request("http://localhost/health", {
-        headers: { Origin: "https://untrusted.example" },
-      }),
-    );
-
-    expect(allowed.headers.get("access-control-allow-origin")).toBe(
-      "http://localhost:3000",
-    );
-    expect(allowed.headers.get("access-control-allow-credentials")).toBe(
-      "true",
-    );
-    expect(denied.headers.get("access-control-allow-origin")).toBeNull();
-  });
-
   test("rejects missing and foreign Origin on project mutations", async () => {
     let writes = 0;
     const repository = memoryRepository();
@@ -273,7 +253,7 @@ describe("API contract", () => {
 
     for (const origin of [undefined, "https://attacker.example"]) {
       const response = await app.handle(
-        new Request("http://localhost/projects", {
+        new Request("http://localhost/api/projects", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -296,7 +276,7 @@ describe("API contract", () => {
       throw new Error("database password should stay private");
     };
     const response = await testApp(repository).handle(
-      new Request("http://localhost/projects"),
+      new Request("http://localhost/api/projects"),
     );
 
     expect(response.status).toBe(500);
@@ -331,9 +311,11 @@ describe("API contract", () => {
     for (const [path, expectedStatus] of [
       ["/health?ignore=secret", 200],
       ["/projects", 500],
-      ["/api/auth/example", 418],
+      ["/auth/example", 418],
     ] as const) {
-      const response = await app.handle(new Request(`http://localhost${path}`));
+      const response = await app.handle(
+        new Request(`http://localhost/api${path}`),
+      );
       expect(response.status).toBe(expectedStatus);
       expect(response.headers.get("x-request-id")).toBeTruthy();
     }
@@ -343,7 +325,7 @@ describe("API contract", () => {
       (entry) => entry.event === "request_complete",
     );
     expect(completed.map((entry) => entry.status)).toEqual([200, 500, 418]);
-    expect(completed[0]?.path).toBe("/health");
+    expect(completed[0]?.path).toBe("/api/health");
     for (const entry of completed) {
       expect(typeof entry.requestId).toBe("string");
       expect(typeof entry.durationMs).toBe("number");
@@ -372,7 +354,7 @@ describe("API contract", () => {
     });
 
     const created = await app.handle(
-      new Request("http://localhost/projects", {
+      new Request("http://localhost/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json", Origin: allowedOrigin },
         body: JSON.stringify({ name: "Persisted" }),
@@ -381,7 +363,7 @@ describe("API contract", () => {
     expect(created.status).toBe(201);
     const project = await created.json();
     expect(
-      (await app.handle(new Request("http://localhost/projects"))).status,
+      (await app.handle(new Request("http://localhost/api/projects"))).status,
     ).toBe(200);
     expect(warnings).toHaveLength(1);
     expect(warnings[0]?.event).toBe("project_job_enqueue_failed");
@@ -406,7 +388,7 @@ describe("API contract", () => {
     });
     const callback = (signature: string | null, body: unknown) =>
       app.handle(
-        new Request("http://localhost/jobs/project-created", {
+        new Request("http://localhost/api/jobs/project-created", {
           method: "POST",
           headers: signature ? { "Upstash-Signature": signature } : {},
           body: JSON.stringify(body),
@@ -436,7 +418,7 @@ describe("API contract", () => {
       logger: silentLogger,
     });
     const response = await app.handle(
-      new Request("http://localhost/jobs/project-created", {
+      new Request("http://localhost/api/jobs/project-created", {
         method: "POST",
         body: "{}",
       }),
@@ -454,7 +436,7 @@ describe("API contract", () => {
       logger: silentLogger,
     });
     const response = await app.handle(
-      new Request("http://localhost/auth/capabilities"),
+      new Request("http://localhost/api/auth/capabilities"),
     );
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({

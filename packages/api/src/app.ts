@@ -1,4 +1,3 @@
-import { cors } from "@elysia/cors";
 import { type BillingService, canWrite } from "@seattrue/billing";
 import type { Database } from "@seattrue/db";
 import { type JobQueue, projectCreatedPayloadSchema } from "@seattrue/jobs";
@@ -41,7 +40,7 @@ export type AppOptions = {
   planLimits?: PlanLimits;
   auth: AuthService;
   billing?: BillingService | null;
-  /** QStash queue whose signed callbacks land on POST /jobs/:name. */
+  /** QStash queue whose signed callbacks land on POST /api/jobs/:name. */
   jobs?: Pick<JobQueue, "enabled" | "verify"> | null;
   allowedOrigins: string[];
   getClientIp?: (request: Request) => string | null;
@@ -85,16 +84,8 @@ export function createApp({
     { id: string; startedAt: number }
   >();
 
-  return new Elysia({ name: "seattrue-api" })
-    .use(
-      cors({
-        origin: allowedOrigins,
-        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization"],
-        exposeHeaders: ["X-Request-ID"],
-        credentials: true,
-      }),
-    )
+  // Served by the app's /api/$ route on the same origin, so no CORS.
+  return new Elysia({ name: "seattrue-api", prefix: "/api" })
     .onRequest(({ request, set }) => {
       // Only Bun's socket address may populate the header consumed by Better Auth.
       request.headers.delete("x-real-ip");

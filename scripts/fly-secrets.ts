@@ -3,12 +3,12 @@
  * per secret so values never pass through shell quoting.
  *
  *   bun run secrets:fly [fly-config] [env-file]
- *   defaults: fly.api.toml .env.production
+ *   defaults: fly.toml .env.production
  *
  * Decryption needs .env.keys locally or DOTENV_PRIVATE_KEY_PRODUCTION in CI.
  * Secrets are staged; the next `fly deploy` applies them.
  */
-const [config = "fly.api.toml", file = ".env.production"] = Bun.argv.slice(2);
+const [config = "fly.toml", file = ".env.production"] = Bun.argv.slice(2);
 
 const decrypted = Bun.spawnSync(
   ["dotenvx", "get", "-f", file, "--format", "json", "--strict", "--no-native"],

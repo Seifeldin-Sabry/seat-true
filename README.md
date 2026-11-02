@@ -10,20 +10,20 @@
 | Distributor import | **Done for CSV.** Header aliases cover Pax8 API `InvoiceItem` field names and Microsoft Partner Center reconciliation columns (`BillableQuantity`, `EffectiveUnitPrice`). Real Pax8 *portal* CSV headers are unverified. |
 | Adapters | `VendorSource` / `PsaSource` interfaces exist in `packages/recon/src/types.ts`; only the CSV source is implemented. No Pax8 API, HaloPSA or Autotask calls yet. |
 | Database | **Workspace-scoped** (Better Auth organization, `organization_id`): `clients`, `customer_mappings`, `agreement_lines`, `reconciliation_runs`, `reconciliation_exceptions`, `exception_comments`, `audit_log`, billing tables. Plugin tables `organization`, `member` (+ `suspended_at`), `invitation`. `waitlist_entries` is global. Migrations `0004`–`0006` moved from owner ids to organizations. |
-| API (`apps/api/src/recon-routes.ts`, `members-routes.ts`) | **Done, integration tested, role-checked.** `GET /recon/overview`, `GET /recon/clients/:id`, `PATCH /recon/clients/:id` (archive, markup), `GET /recon/exceptions`, `PATCH /recon/exceptions/:id` (open / approved / billed / dismissed), `PUT /recon/exceptions/:id/flag`, `GET`/`POST /recon/exceptions/:id/comments`, `GET`/`PUT /recon/mappings` (re-runs reconciliation and keeps statuses, flags and comments), `POST /recon/runs` (CSV upload), `POST /recon/demo` (owner; loads "Northbeam IT", 8 clients, $548.10/mo leakage), `GET /workspace`, `PUT /workspace/active`, `/members` (+ invitations), `/invitations/:id(/accept)`, `GET /audit`, public `POST /waitlist`. |
+| API (`packages/api/src/recon-routes.ts`, `members-routes.ts`) | **Done, integration tested, role-checked.** Served by the app under `/api` (one Fly app, no separate API machine). `GET /recon/overview`, `GET /recon/clients/:id`, `PATCH /recon/clients/:id` (archive, markup), `GET /recon/exceptions`, `PATCH /recon/exceptions/:id` (open / approved / billed / dismissed), `PUT /recon/exceptions/:id/flag`, `GET`/`POST /recon/exceptions/:id/comments`, `GET`/`PUT /recon/mappings` (re-runs reconciliation and keeps statuses, flags and comments), `POST /recon/runs` (CSV upload), `POST /recon/demo` (owner; loads "Northbeam IT", 8 clients, $548.10/mo leakage), `GET /workspace`, `PUT /workspace/active`, `/members` (+ invitations), `/invitations/:id(/accept)`, `GET /audit`, public `POST /waitlist`. |
 | Product app UI | **Built.** Overview + CSV upload, exceptions inbox (flag, comments), mappings, per-client page (markup, archive), billing, Members (`/app/members`), Audit log (`/app/audit`), accept-invite page (`/accept-invite/:id`), workspace switcher. Controls hide by role. |
 | Landing page + waitlist form | **Built** (`apps/app/src/routes/index.tsx`). |
 | Auth | Better Auth email/password (work email only) + optional Google; organization plugin with owner / admin / tech. Magic link not wired. |
 | Roles & seats | **Done, integration tested.** See [Roles & permissions](#roles--permissions). |
 | Billing | Stripe Solo/Team, per workspace. See below; live secrets still to set. |
 
-Try the API locally: sign up in the app at http://localhost:3000, then from the browser console on that origin run `await fetch("http://localhost:3001/recon/demo", { method: "POST", credentials: "include" })` followed by `await (await fetch("http://localhost:3001/recon/overview", { credentials: "include" })).json()`.
+Try the API locally: sign up in the app at http://localhost:3000, then from the browser console on that origin run `await fetch("/api/recon/demo", { method: "POST" })` followed by `await (await fetch("/api/recon/overview")).json()`.
 
-Local Docker Postgres runs on port **5433** on this machine (5432 is taken); `.env` points `DATABASE_URL` and `TEST_DATABASE_URL` there. Start Docker first (`colima start`), then `bun run db:up`. Production secrets: see Fly.io deployment (`bun run secrets:set`, `secrets:fly`). Google sign-in turns on only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set; production redirect URI `https://api.<domain>/api/auth/callback/google`.
+Local Docker Postgres runs on port **5433** on this machine (5432 is taken); `.env` points `DATABASE_URL` and `TEST_DATABASE_URL` there. Start Docker first (`colima start`), then `bun run db:up`. Production secrets: see Fly.io deployment (`bun run secrets:set`, `secrets:fly`). Google sign-in turns on only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set; redirect URIs `http://localhost:3000/api/auth/callback/google` (local) and `https://<domain>/api/auth/callback/google` (production).
 
 ---
 
-Reusable full-stack starter with a Bun/Elysia API, two TanStack Start sites, and PostgreSQL (Neon in production), deployed to Fly.io. Projects CRUD shows the complete path from Drizzle through Elysia and typed Eden Treaty calls to a TanStack Query interface. Better Auth supplies email/password sessions. Optional integrations add Upstash Redis, Resend email, Upstash QStash jobs, and Stripe billing with both subscriptions and one-time purchases.
+Full-stack app: one TanStack Start server that also serves the Elysia API under `/api` (Elysia's [TanStack Start integration](https://elysiajs.com/integrations/tanstack-start)), and PostgreSQL (Neon in production), deployed to Fly.io. Projects CRUD shows the complete path from Drizzle through Elysia and typed Eden Treaty calls to a TanStack Query interface. Better Auth supplies email/password sessions. Optional integrations add Upstash Redis, Resend email, Upstash QStash jobs, and Stripe billing with both subscriptions and one-time purchases.
 
 ## First run
 
@@ -37,7 +37,7 @@ bun run db:migrate
 bun run dev
 ```
 
-Open [app](http://localhost:3000), [landing site](http://localhost:3002), and [API health](http://localhost:3001/health). Create an account in the app, then create, edit, and delete projects. Billing page remains usable in a disabled state until Stripe is configured.
+Everything runs on one port: open [the app](http://localhost:3000) (landing at `/`, product at `/app`) and [API health](http://localhost:3000/api/health). Create an account in the app, then create, edit, and delete projects. Billing page remains usable in a disabled state until Stripe is configured.
 
 PostgreSQL binds to localhost. If port 5432 is occupied, change `POSTGRES_PORT`, `DATABASE_URL`, and `TEST_DATABASE_URL` to port 5433 in `.env` before starting Compose. To add the optional sample project, register first, set `SEED_USER_EMAIL` to that account's email, then run `bun run db:seed`. Seed is safe to rerun. Without that variable it exits without inserting data.
 
@@ -57,7 +57,7 @@ Two flat monthly plans, resolved by Stripe lookup key so sandbox and live both w
 - Billing belongs to the workspace: `billing_customers`, `billing_subscriptions` and `billing_plan_changes` are keyed by `organization_id`; Stripe metadata and idempotency keys use the organization id. Only the owner (`billing:manage`) can check out, open the portal or change plan; every member sees the Billing page.
 
 **TODO (Seif):**
-1. `bun run secrets:set STRIPE_SECRET_KEY "sk_live_..."` and, once the API domain exists, create the webhook endpoint `https://api.<domain>/billing/webhook` with the events above, then `bun run secrets:set STRIPE_WEBHOOK_SECRET "whsec_..."`.
+1. `bun run secrets:set STRIPE_SECRET_KEY "sk_live_..."` and, once the domain exists, create the webhook endpoint `https://<domain>/api/billing/webhook` with the events above, then `bun run secrets:set STRIPE_WEBHOOK_SECRET "whsec_..."`.
 2. `bun run secrets:set STRIPE_PORTAL_CONFIG_ID "bpc_1UXGFQEmKiht8PXgdUn9Lalf"`.
 3. For a sandbox: put a test key in `.env`, run `bun run stripe:seed` (idempotent; creates products, prices and the portal config), and copy the printed portal ID into `.env`.
 4. Enable Stripe's "Email customers about successful payments" and invoice emails, plus Smart Retries.
@@ -92,9 +92,8 @@ Every workspace is a Better Auth organization ([organization plugin](https://www
 
 | Path | Purpose |
 | --- | --- |
-| `apps/api` | Bun/Elysia server, Better Auth, validated project and billing routes, Eden contract |
-| `apps/app` | TanStack Start product app, projects dashboard, authentication, billing |
-| `apps/web` | Separate TanStack Start landing site |
+| `apps/app` | TanStack Start app: landing, product UI, and `routes/api.$.ts`, which forwards every `/api/*` request untouched to the Elysia app |
+| `packages/api` | Elysia API (`prefix: "/api"`), Better Auth, validated routes, services, `createServerApp` wiring, Eden `App` type |
 | `packages/db` | Drizzle schema, Postgres.js connection, SQL migrations, seed |
 | `packages/billing` | Stripe checkout, customer portal, webhook reconciliation |
 | `packages/cache` | Optional Upstash Redis cache and Better Auth rate-limit storage |
@@ -102,7 +101,7 @@ Every workspace is a Better Auth organization ([organization plugin](https://www
 | `packages/jobs` | Optional Upstash QStash job queue; API receives signed callbacks |
 | `packages/ui` | Shared shadcn-style controls, Tailwind tokens, brand settings |
 
-The app imports `@seattrue/api/contract` as a **type only** and calls API routes through Eden Treaty. Its browser bundle contains no database or API runtime module. Query options define one projects cache key; `useCreateProject`, `useUpdateProject`, and `useDeleteProject` await invalidation on success. Server rendering uses a request-scoped QueryClient and forwards the session cookie for API reads.
+`apps/app/src/lib/api.ts` builds Eden Treaty with `createIsomorphicFn`: on the server `treaty(app).api` calls Elysia in-process (no HTTP) with the visitor's cookie and the app origin; in the browser `treaty<App>(window.location.origin).api` fetches same-origin. The server branch imports the API dynamically, so the browser bundle contains no database or API runtime module. Query options define one projects cache key; `useCreateProject`, `useUpdateProject`, and `useDeleteProject` await invalidation on success. Server rendering uses a request-scoped QueryClient and forwards the session cookie for API reads.
 
 ## Environment
 
@@ -113,15 +112,9 @@ Copy `.env.example` to ignored `.env` for local development. In staging and prod
 | `POSTGRES_PORT` | Docker host port, default 5432 |
 | `DATABASE_URL` | PostgreSQL URL used by API, seed, Drizzle generation, Studio, and migrations in the current environment |
 | `TEST_DATABASE_URL` | PostgreSQL integration-test URL; use an isolated disposable database outside local development |
-| `API_HOST`, `API_PORT` | Bun API listen address and port |
-| `API_ORIGIN` | Public API/Auth origin; Better Auth uses it as base URL |
-| `API_INTERNAL_ORIGIN` | Optional app-server-only API URL on a private network; defaults to `API_ORIGIN` |
-| `VITE_API_ORIGIN` | Public browser API origin; normally same as `API_ORIGIN` |
-| `APP_ORIGIN` | Public product app origin, used for SSR requests, auth trust, and Stripe return URLs |
+| `APP_ORIGIN` | Public app origin. Better Auth base URL, the only trusted origin for writes, Stripe return URLs, QStash callback base (`/api/jobs/*`), email links |
 | `VITE_APP_ORIGIN`, `VITE_WEB_ORIGIN` | Public links compiled into frontend builds |
-| `CORS_ORIGINS` | Exact comma-separated browser origins trusted by API |
 | `BETTER_AUTH_SECRET` | 32+ character signing secret; production startup rejects example value |
-| `AUTH_COOKIE_DOMAIN` | Optional shared parent domain for HTTPS sibling API/app subdomains |
 | `SEED_USER_EMAIL` | Existing registered email to receive sample project |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Optional Upstash pair; both or neither |
 | `REDIS_KEY_NAMESPACE` | Redis key prefix to separate deployments |
@@ -142,7 +135,7 @@ Change `packages/db/src/schema.ts` and related schema files, run `bun run db:gen
 
 Email/password registration, sign-in, sign-out, and database-backed sessions work without another service. Projects and billing routes require a session; project records are scoped to the session user. Better Auth rate limits use PostgreSQL by default. With both Upstash values present, rate-limit counters use Redis while sessions remain in PostgreSQL. Partial Upstash configuration fails at API startup.
 
-Localhost works across the app/API ports. For HTTPS sibling hosts such as `app.example.com` and `api.example.com`, set `AUTH_COOKIE_DOMAIN=example.com`; both hosts must match that domain. If hosts belong to different registrable domains, place an API/auth reverse proxy on the app's origin to avoid third-party cookie failures. Keep `API_ORIGIN` public; use `API_INTERNAL_ORIGIN` only when the app server needs a private route to the API. API rate limits use Bun's direct socket IP and discard incoming forwarding headers. Behind a reverse proxy, that IP belongs to the proxy; add per-client rate limiting at the proxy if needed.
+Better Auth is served at `/api/auth/*` on the app's own origin, so its cookies are plain first-party host cookies; there is no cross-subdomain cookie setup. Rate limits use the socket IP from TanStack Start's `getRequestIP` (or `Fly-Client-IP` on Fly) and discard incoming forwarding headers.
 
 Without Resend, signup works immediately and email verification and password-reset delivery remain off. Set both `RESEND_API_KEY` and `EMAIL_FROM` to enable verification on signup and password-reset emails; partial configuration fails at API startup. App shows check-inbox/resend and forgot/reset-password flows only when email delivery is enabled. Verify sender domain with Resend. Set both server-side `APP_ORIGIN` and build-time `VITE_APP_ORIGIN` to the same public app URL so verification and recovery links return to the correct host. Social login is not included.
 
@@ -157,22 +150,22 @@ Billing is optional. Create a recurring Price and a one-time Price in Stripe tes
 For local webhook forwarding, install Stripe CLI and run:
 
 ```sh
-stripe listen --forward-to http://localhost:3001/billing/webhook
+stripe listen --forward-to http://localhost:3000/api/billing/webhook
 ```
 
-Copy the printed `whsec_...` value into `STRIPE_WEBHOOK_SECRET`, restart API, then use Stripe test cards through the billing page. Configure the same webhook endpoint and event types in Stripe for deployment: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, and `customer.subscription.created`, `.updated`, `.deleted`. Configure Customer Portal in Stripe before offering its link. No Stripe credentials are committed, and live payment processing needs a real Stripe account and webhook endpoint.
+Copy the printed `whsec_...` value into `STRIPE_WEBHOOK_SECRET`, restart `bun run dev`, then use Stripe test cards through the billing page. Configure the same webhook endpoint and event types in Stripe for deployment: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, and `customer.subscription.created`, `.updated`, `.deleted`. Configure Customer Portal in Stripe before offering its link. No Stripe credentials are committed, and live payment processing needs a real Stripe account and webhook endpoint.
 
 Billing records demonstrate integration; they do not grant application entitlements yet. Add an explicit server-side entitlement check for paid product features. For production billing, enable email verification/recovery and reconcile operational exceptions from Stripe Dashboard.
 
 ### QStash jobs
 
-Jobs are optional. With no `QSTASH_*` values, API runs without a queue and never publishes. With all three set, creating a project publishes a `project-created` message after the database write succeeds. QStash then calls `POST {API_ORIGIN}/jobs/project-created`; API verifies the `Upstash-Signature` JWT against the raw body and that public URL, re-reads the committed project by owner and ID, and logs the outcome. Messages carry identifiers only, use a stable deduplication ID, and retry three times before landing in the QStash dead letter queue. Non-2xx responses trigger retries, so handlers must be idempotent. Partial configuration fails at startup. Enqueue failure produces a warning while the saved project remains available; use a transactional outbox if future jobs must be delivered reliably.
+Jobs are optional. With no `QSTASH_*` values, API runs without a queue and never publishes. With all three set, creating a project publishes a `project-created` message after the database write succeeds. QStash then calls `POST {APP_ORIGIN}/api/jobs/project-created`; API verifies the `Upstash-Signature` JWT against the raw body and that public URL, re-reads the committed project by owner and ID, and logs the outcome. Messages carry identifiers only, use a stable deduplication ID, and retry three times before landing in the QStash dead letter queue. Non-2xx responses trigger retries, so handlers must be idempotent. Partial configuration fails at startup. Enqueue failure produces a warning while the saved project remains available; use a transactional outbox if future jobs must be delivered reliably.
 
-Locally, set `QSTASH_DEV=true`: the SDK downloads and starts the QStash dev server on port 8080 and uses its deterministic keys, so callbacks reach `localhost:3001` without a tunnel. Dev mode is ignored when `NODE_ENV=production`. In production, copy the token and both signing keys from the Upstash console into API secrets. API itself is the worker; there is nothing separate to deploy. Add a job by extending `JobName`, adding a publish method in `packages/jobs/src/queue.ts`, and adding a matching signed route.
+Locally, set `QSTASH_DEV=true`: the SDK downloads and starts the QStash dev server on port 8080 and uses its deterministic keys, so callbacks reach `localhost:3000/api/jobs/*` without a tunnel. Dev mode is ignored when `NODE_ENV=production`. In production, copy the token and both signing keys from the Upstash console into API secrets. API itself is the worker; there is nothing separate to deploy. Add a job by extending `JobName`, adding a publish method in `packages/jobs/src/queue.ts`, and adding a matching signed route.
 
 ### Choose modules
 
-Core dependency path: product app calls the API through an Eden contract; API uses PostgreSQL through `packages/db`. Better Auth lives in the API and stores sessions in PostgreSQL. Both frontends share `packages/ui`; `apps/web` can be removed independently. API opts into `packages/cache`, `packages/email`, `packages/jobs`, and `packages/billing` at startup. Jobs use the database directly in their worker; billing owns its own database tables. Email and jobs have no dependency on each other.
+Core dependency path: product app calls the API through an Eden contract; API uses PostgreSQL through `packages/db`. Better Auth lives in the API and stores sessions in PostgreSQL. The app uses `packages/ui`. The API opts into `packages/cache`, `packages/email`, `packages/jobs`, and `packages/billing` at startup. Jobs use the database directly in their worker; billing owns its own database tables. Email and jobs have no dependency on each other.
 
 **Disable at runtime:** leave Upstash Redis, Resend, or QStash credentials blank, or leave all four Stripe settings blank. Their packages remain installed, but core app still runs. Partial configuration fails fast. Keep provider secrets on API servers, never in `VITE_` variables.
 
@@ -180,23 +173,22 @@ Core dependency path: product app calls the API through an Eden contract; API us
 
 | Module | Files and wiring to remove |
 | --- | --- |
-| Upstash | Delete `packages/cache`; remove `@seattrue/cache` from `apps/api/package.json`, `createCache` and `secondaryStorage` wiring from `apps/api/src/server.ts`, and cache type/option from `apps/api/src/auth.ts`. Set Better Auth rate-limit storage to `database`. |
-| Resend | Delete `packages/email`; remove API package dependency and email setup in `apps/api/src/server.ts` and `apps/api/src/auth.ts`. Remove `/auth/capabilities` from `apps/api/src/app.ts`, `apps/app/src/lib/auth-capabilities.ts`, `apps/app/src/routes/forgot-password.tsx`, `apps/app/src/routes/reset-password.tsx`, `apps/app/src/components/recovery-screen.tsx`, and conditional controls in `apps/app/src/components/auth-screen.tsx`. Basic email/password auth remains. |
-| QStash | Delete `packages/jobs`; remove API package dependency, queue setup in `apps/api/src/server.ts`, and `jobs` option, `/jobs/project-created` route, and `onProjectCreated` hook in `apps/api/src/app.ts`. Projects CRUD remains. |
-| Stripe | Delete `packages/billing` and `apps/api/src/billing.ts`; remove billing imports/options/routes from `apps/api/src/server.ts` and `app.ts` and API package dependency. Remove `apps/app/src/routes/billing.tsx`, `apps/app/src/lib/billing.ts`, `apps/app/src/billing-styles.css`, links in `apps/app/src/components/app-shell.tsx`, and billing copy in `apps/web/src/routes/index.tsx`. Remove `packages/db/src/billing-schema.ts` and billing exports from its `schema.ts` and `index.ts`. |
+| Upstash | Delete `packages/cache`; remove `@seattrue/cache` from `packages/api/package.json`, `createCache` and `secondaryStorage` wiring from `packages/api/src/server.ts`, and cache type/option from `packages/api/src/auth.ts`. Set Better Auth rate-limit storage to `database`. |
+| Resend | Delete `packages/email`; remove API package dependency and email setup in `packages/api/src/server.ts` and `packages/api/src/auth.ts`. Remove `/auth/capabilities` from `packages/api/src/app.ts`, `apps/app/src/lib/auth-capabilities.ts`, `apps/app/src/routes/forgot-password.tsx`, `apps/app/src/routes/reset-password.tsx`, `apps/app/src/components/recovery-screen.tsx`, and conditional controls in `apps/app/src/components/auth-screen.tsx`. Basic email/password auth remains. |
+| QStash | Delete `packages/jobs`; remove API package dependency, queue setup in `packages/api/src/server.ts`, and `jobs` option, `/jobs/project-created` route, and `onProjectCreated` hook in `packages/api/src/app.ts`. Projects CRUD remains. |
+| Stripe | Delete `packages/billing` and `packages/api/src/billing.ts`; remove billing imports/options/routes from `packages/api/src/server.ts` and `app.ts` and API package dependency. Remove `apps/app/src/routes/billing.tsx`, `apps/app/src/lib/billing.ts`, `apps/app/src/billing-styles.css`, links in `apps/app/src/components/app-shell.tsx`, and billing copy in `apps/web/src/routes/index.tsx`. Remove `packages/db/src/billing-schema.ts` and billing exports from its `schema.ts` and `index.ts`. |
 
 For each removal, delete corresponding variables from `.env.example` and `turbo.json`, update relevant tests and package manifests, then run `bun install` to refresh `bun.lock`. For Stripe schema removal on an existing database, generate and review a **new** Drizzle migration, apply it to local PostgreSQL with `bun run db:migrate`, and keep previously applied migration history. After deleting frontend routes, regenerate `apps/app/src/routeTree.gen.ts` with `bun run --cwd apps/app build`. Finish with `bun run check`.
 
-For a single app that also serves the landing page, remove `apps/web`, `fly.web.toml`, the CI "Deploy landing site" step, its `turbo.json` tasks, and root `dev:web`/`start:web` scripts and `dev` filter; point `VITE_WEB_ORIGIN` at the app origin and add public routes to `apps/app`. Projects CRUD is a removable sample: replace its table, repository, routes, UI, tests, seed, and related job with domain features; migrate deployed databases instead of rewriting applied SQL.
+Projects CRUD is a removable sample: replace its table, repository, routes, UI, tests, seed, and related job with domain features; migrate deployed databases instead of rewriting applied SQL.
 
 ## Commands
 
 | Command | Purpose |
 | --- | --- |
-| `bun run dev` | Start API, app, and landing together |
-| `bun run dev:api`, `dev:app`, `dev:web` | Start one service |
+| `bun run dev` | Start the app (API included) on port 3000 |
 | `bun run build` | Build all workspaces |
-| `bun run start:api`, `start:app`, `start:web` | Start built services |
+| `bun run start` | Start the built app |
 | `bun run lint`, `format`, `format:check` | Biome checks and formatting |
 | `bun run typecheck`, `test`, `check` | Typecheck, tests, or full verification |
 | `bun run db:up`, `db:down` | Start or stop local PostgreSQL |
@@ -216,22 +208,21 @@ For a single app that also serves the landing page, remove `apps/web`, `fly.web.
 
 ## Fly.io deployment
 
-Two Fly apps deploy from the repository root, each with a root config: `fly.api.toml` (Bun API) and `fly.app.toml` (Bun app, landing included). Dockerfiles live in each app directory and use the repository root as build context. Replace `starter-*` app names, `example.com` hosts, and region in both configs, then:
+One Fly app, `seattrue`, deploys from the repository root with `fly.toml` and the root `Dockerfile` (builds `apps/app`, which includes the API). Its `release_command` runs Drizzle migrations before new machines start. Replace the `seattrue.fly.dev` origins with your domain once it exists, then:
 
 ```sh
-fly apps create <slug>-api && fly apps create <slug>-app
+fly apps create seattrue
 bun run secrets:set DATABASE_URL "postgres://..."          # encrypts into .env.production
 bun run secrets:set BETTER_AUTH_SECRET "$(openssl rand -base64 32)"
-bun run secrets:fly          # decrypts and stages every value on <slug>-api
-fly deploy -c fly.api.toml   # release_command runs Drizzle migrations first
-fly deploy -c fly.app.toml
-fly certs add api.example.com -a <slug>-api   # likewise app.example.com
+bun run secrets:fly          # decrypts and stages every value on the app (fly.toml)
+fly deploy                   # release_command runs Drizzle migrations first
+fly certs add <domain> -a seattrue
 ```
 
-Production secrets live in committed, encrypted `.env.production` (dotenvx). `secrets:set` encrypts with the public key in that file, so anyone (or any agent) can add or rotate a value without being able to read the others. The private key stays in ignored `.env.keys`; back it up in a password manager. `secrets:fly` decrypts the file and stages every value on the API app (`fly secrets set --stage`, one argument per value, no shell quoting); the next `fly deploy` applies them. Add optional `UPSTASH_*`, `QSTASH_*`, `RESEND_API_KEY`/`EMAIL_FROM`, and `STRIPE_*` the same way. The app (landing included) needs no secrets. Non-secret origins live in each config's `[env]`; `VITE_` origins are `[build.args]` because they compile into frontend bundles. Use a Neon connection string for `DATABASE_URL`, in the same region as `primary_region`. API reads the client address from `Fly-Client-IP` when `FLY_APP_NAME` is present, because the socket peer is Fly's proxy; Better Auth rate limits would otherwise share one bucket. Point Stripe's webhook at `https://api.example.com/billing/webhook`. For automatic deploys, GitHub stores only two secrets: `FLY_API_TOKEN` (`fly tokens create org`) and `DOTENV_PRIVATE_KEY_PRODUCTION` (from `.env.keys`). Set repository variable `FLY_DEPLOY=true`. The deploy job stages secrets from `.env.production` before deploying, so adding a secret is a commit, not a dashboard edit.
+Production secrets live in committed, encrypted `.env.production` (dotenvx). `secrets:set` encrypts with the public key in that file, so anyone (or any agent) can add or rotate a value without being able to read the others. The private key stays in ignored `.env.keys`; back it up in a password manager. `secrets:fly` decrypts the file and stages every value (`fly secrets set --stage`, one argument per value, no shell quoting); the next `fly deploy` applies them. Add optional `UPSTASH_*`, `QSTASH_*`, `RESEND_API_KEY`/`EMAIL_FROM`, `STRIPE_*` and `GOOGLE_*` the same way. `APP_ORIGIN` lives in `[env]`; `VITE_` origins are `[build.args]` because they compile into the browser bundle. Use a Neon connection string for `DATABASE_URL`, in the same region as `primary_region`. The API reads the client address from `Fly-Client-IP` when `FLY_APP_NAME` is present, because the socket peer is Fly's proxy. Point Stripe's webhook at `https://<domain>/api/billing/webhook` and the Google OAuth redirect at `https://<domain>/api/auth/callback/google`. Health check: `GET /api/health`. For automatic deploys, GitHub stores only two secrets: `FLY_API_TOKEN` (`fly tokens create org`) and `DOTENV_PRIVATE_KEY_PRODUCTION` (from `.env.keys`). Set repository variable `FLY_DEPLOY=true`. The deploy job stages secrets from `.env.production` before deploying, so adding a secret is a commit, not a dashboard edit.
 
 ## Deployment notes
 
-Deploy all three outputs on Bun; Nitro selects its Bun preset when built with Bun. Root `start:*` commands set `NODE_ENV=production`. Provide server secrets only to API and migration jobs; app server needs its public and optional internal API origins. Set `VITE_` origins at frontend build time. Run committed migrations before starting revised API code. Keep app/API hosts on the same site or proxy API through app origin. Set explicit CORS origins and a fresh `BETTER_AUTH_SECRET`; serve public traffic over HTTPS. Protected app routes send `Cache-Control: private, no-store`; keep that policy at the hosting layer.
+Deploy the single output on Bun; Nitro selects its Bun preset when built with Bun. Root `start` sets `NODE_ENV=production`. Set `VITE_` origins at build time. Run committed migrations before starting revised code (Fly's `release_command` does). Same-origin API means no CORS configuration. Set a fresh `BETTER_AUTH_SECRET`; serve public traffic over HTTPS. Protected app routes send `Cache-Control: private, no-store`; keep that policy at the hosting layer.
 
 TanStack Start is currently a release candidate and its Vite hosting guide uses Nitro 3 beta; both are pinned to compatible published versions here. Validate host-specific output and cookie behavior before deploying. GitHub Actions workflow lives in `.github/workflows/ci.yml`.

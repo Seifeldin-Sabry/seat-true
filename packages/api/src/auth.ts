@@ -34,10 +34,10 @@ import {
 import { PlanLimitError } from "./plan-limits";
 
 export type AuthEnvironment = {
-  apiOrigin: string;
+  /** Public app origin; Better Auth serves /api/auth/* on it. */
+  baseURL: string;
   secret: string;
   trustedOrigins: string[];
-  cookieDomain?: string;
   secondaryStorage?: BetterAuthSecondaryStorage;
   getClientIp?: (request: Request) => string | null;
   email?: EmailService;
@@ -169,7 +169,7 @@ export async function requireWorkEmail<T extends { email: string }>(
 export function createAuth(db: Database, environment: AuthEnvironment) {
   const email = environment.email;
   return betterAuth({
-    baseURL: environment.apiOrigin,
+    baseURL: environment.baseURL,
     secret: environment.secret,
     trustedOrigins: environment.trustedOrigins,
     database: drizzleAdapter(db, {
@@ -238,18 +238,9 @@ export function createAuth(db: Database, environment: AuthEnvironment) {
         }
       : {}),
     advanced: {
-      // Auth handler receives a sanitized x-real-ip injected from Bun's socket.
+      // Auth handler receives a sanitized x-real-ip set by the API's onRequest.
       // Never trust the client's raw forwarding headers for rate-limit keys.
       ipAddress: { ipAddressHeaders: ["x-real-ip"] },
-      ...(environment.cookieDomain
-        ? {
-            useSecureCookies: true,
-            crossSubDomainCookies: {
-              enabled: true,
-              domain: environment.cookieDomain,
-            },
-          }
-        : {}),
     },
     ...(environment.secondaryStorage
       ? { secondaryStorage: environment.secondaryStorage }

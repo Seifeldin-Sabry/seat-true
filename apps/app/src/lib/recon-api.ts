@@ -19,7 +19,7 @@ export type {
 export type ExceptionStatus = ExceptionDto["status"];
 
 export async function getOverview(): Promise<OverviewDto> {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { data, error } = await api.recon.overview.get();
   if (error)
     throw new Error(apiErrorMessage(error, "Could not load overview."));
@@ -28,7 +28,7 @@ export async function getOverview(): Promise<OverviewDto> {
 }
 
 export async function getClientDetail(id: string): Promise<ClientDetailDto> {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { data, error } = await api.recon.clients({ id }).get();
   if (error) throw new Error(apiErrorMessage(error, "Could not load client."));
   if (!data) throw new Error("Client response was empty.");
@@ -36,7 +36,7 @@ export async function getClientDetail(id: string): Promise<ClientDetailDto> {
 }
 
 export async function listExceptions(): Promise<ExceptionDto[]> {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { data, error } = await api.recon.exceptions.get();
   if (error)
     throw new Error(apiErrorMessage(error, "Could not load exceptions."));
@@ -48,7 +48,7 @@ export async function setExceptionStatus(
   id: string,
   status: ExceptionStatus,
 ): Promise<ExceptionDto> {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { data, error } = await api.recon.exceptions({ id }).patch({ status });
   if (error)
     throw new Error(apiErrorMessage(error, "Could not update exception."));
@@ -57,7 +57,7 @@ export async function setExceptionStatus(
 }
 
 export async function getMappings(): Promise<MappingsDto> {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { data, error } = await api.recon.mappings.get();
   if (error)
     throw new Error(apiErrorMessage(error, "Could not load mappings."));
@@ -69,7 +69,7 @@ export async function saveMapping(input: {
   customerKey: string;
   clientId: string;
 }): Promise<void> {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { error } = await api.recon.mappings.put(input);
   if (error) throw new Error(apiErrorMessage(error, "Could not save mapping."));
 }
@@ -78,7 +78,7 @@ export async function uploadRun(input: {
   fileName: string;
   csv: string;
 }): Promise<RunDto> {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { data, error } = await api.recon.runs.post(input);
   if (error)
     throw new Error(apiErrorMessage(error, "Could not read that file."));
@@ -87,7 +87,7 @@ export async function uploadRun(input: {
 }
 
 export async function loadDemo(): Promise<RunDto> {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { data, error } = await api.recon.demo.post();
   if (error)
     throw new Error(apiErrorMessage(error, "Could not load demo data."));
@@ -100,7 +100,7 @@ export async function joinWaitlist(input: {
   company?: string;
   seats?: number;
 }): Promise<void> {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { error } = await api.waitlist.post(input);
   if (error)
     throw new Error(apiErrorMessage(error, "Could not join the waitlist."));
@@ -110,7 +110,7 @@ export async function setClientMarkup(input: {
   id: string;
   markupPct: number;
 }) {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { data, error } = await api.recon
     .clients({ id: input.id })
     .patch({ markupPct: input.markupPct });
@@ -123,7 +123,7 @@ export async function setExceptionFlag(input: {
   id: string;
   flagged: boolean;
 }) {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { data, error } = await api.recon
     .exceptions({ id: input.id })
     .flag.put({ flagged: input.flagged });
@@ -133,7 +133,7 @@ export async function setExceptionFlag(input: {
 }
 
 export async function listComments(id: string): Promise<CommentDto[]> {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { data, error } = await api.recon.exceptions({ id }).comments.get();
   if (error)
     throw new Error(apiErrorMessage(error, "Could not load comments."));
@@ -142,7 +142,7 @@ export async function listComments(id: string): Promise<CommentDto[]> {
 }
 
 export async function addComment(input: { id: string; body: string }) {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { data, error } = await api.recon
     .exceptions({ id: input.id })
     .comments.post({ body: input.body });
@@ -154,7 +154,7 @@ export async function setClientArchived(input: {
   id: string;
   archived: boolean;
 }) {
-  const api = await getApiClient();
+  const api = getApiClient();
   const { data, error } = await api.recon
     .clients({ id: input.id })
     .patch({ archived: input.archived });

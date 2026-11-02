@@ -8,3 +8,12 @@ export function httpOrigin(value: string | undefined, label: string): string {
 
   return url.origin;
 }
+
+/** Public origin of this app, which also serves the API under /api. */
+export function appOrigin(): string {
+  if (typeof window !== "undefined") return window.location.origin;
+  return httpOrigin(
+    process.env.APP_ORIGIN || import.meta.env.VITE_APP_ORIGIN,
+    "APP_ORIGIN",
+  );
+}

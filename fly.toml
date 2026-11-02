@@ -1,28 +1,28 @@
-# Deploy from repository root: fly deploy -c fly.api.toml
-# Secrets (fly secrets set -a seattrue-api ...): DATABASE_URL, BETTER_AUTH_SECRET,
-# and optional UPSTASH_*, QSTASH_*, RESEND_*, EMAIL_FROM, STRIPE_*.
-app = "seattrue-api"
+# Deploy from repository root: fly deploy (or bun run secrets:fly first).
+# One app serves the site, the product app and the API under /api.
+# Secrets (fly secrets set -a seattrue ...): DATABASE_URL, BETTER_AUTH_SECRET,
+# and optional UPSTASH_*, QSTASH_*, RESEND_*, EMAIL_FROM, STRIPE_*, GOOGLE_*.
+app = "seattrue"
 primary_region = "iad"
 
 [build]
-  dockerfile = "apps/api/Dockerfile"
+  dockerfile = "Dockerfile"
+
+  [build.args]
+    VITE_APP_ORIGIN = "https://seattrue.fly.dev"
+    VITE_WEB_ORIGIN = "https://seattrue.fly.dev"
 
 [deploy]
   # Runs once per deploy in a temporary machine with the app's secrets.
   release_command = "bun run --cwd packages/db db:migrate"
 
 [env]
-  API_HOST = "0.0.0.0"
-  API_PORT = "3001"
-  API_ORIGIN = "https://api.example.com"
-  APP_ORIGIN = "https://app.example.com"
-  CORS_ORIGINS = "https://app.example.com"
-  AUTH_COOKIE_DOMAIN = "example.com"
+  APP_ORIGIN = "https://seattrue.fly.dev"
   REDIS_KEY_NAMESPACE = "seattrue:prod"
   LOG_LEVEL = "info"
 
 [http_service]
-  internal_port = 3001
+  internal_port = 3000
   force_https = true
   auto_stop_machines = "stop"
   auto_start_machines = true
@@ -31,7 +31,7 @@ primary_region = "iad"
 
   [[http_service.checks]]
     method = "GET"
-    path = "/health"
+    path = "/api/health"
     interval = "15s"
     timeout = "5s"
     grace_period = "10s"

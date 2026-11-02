@@ -48,13 +48,13 @@ jobs:
         run: bun run typecheck
       - name: Run unit and PostgreSQL integration tests
         run: bun run test
-      - name: Build API and both frontends
+      - name: Build the app (API included)
         run: bun run build
 
   deploy:
     # Opt in per product: set repo variable FLY_DEPLOY=true and secrets FLY_API_TOKEN
     # (fly tokens create org) and DOTENV_PRIVATE_KEY_PRODUCTION (from .env.keys).
-    # API deploys first so its release_command migrates.
+    # One Fly app; its release_command migrates before machines update.
     needs: verify
     if: github.ref == 'refs/heads/main' && github.event_name == 'push' && vars.FLY_DEPLOY == 'true'
     runs-on: ubuntu-latest
@@ -75,9 +75,7 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Set up flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Stage API secrets from encrypted .env.production
+      - name: Stage secrets from encrypted .env.production
         run: bun run secrets:fly
-      - name: Deploy API and run migrations
-        run: flyctl deploy --remote-only -c fly.api.toml
-      - name: Deploy product app
-        run: flyctl deploy --remote-only -c fly.app.toml
+      - name: Deploy app (migrations run as release_command)
+        run: flyctl deploy --remote-only -c fly.toml

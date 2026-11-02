@@ -6,7 +6,6 @@ import { createAuthService } from "./auth";
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const authSecret = process.env.BETTER_AUTH_SECRET;
 const integrationTest = databaseUrl && authSecret ? test : test.skip;
-const apiOrigin = "http://localhost:3001";
 const appOrigin = "http://localhost:3000";
 
 integrationTest(
@@ -15,7 +14,7 @@ integrationTest(
     if (!databaseUrl || !authSecret) return;
     const connection = createDatabase(databaseUrl);
     const auth = createAuthService(connection.db, {
-      apiOrigin,
+      baseURL: appOrigin,
       secret: authSecret,
       trustedOrigins: [appOrigin],
       // Fresh address per test run keeps Better Auth rate limits out of the way.
@@ -24,7 +23,7 @@ integrationTest(
     });
     const signUp = (email: string) =>
       auth.handler(
-        new Request(`${apiOrigin}/api/auth/sign-up/email`, {
+        new Request(`${appOrigin}/api/auth/sign-up/email`, {
           method: "POST",
           headers: { Origin: appOrigin, "Content-Type": "application/json" },
           body: JSON.stringify({

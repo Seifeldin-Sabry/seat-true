@@ -27,7 +27,7 @@ function billingErrorMessage(error: unknown, fallback: string): string {
 }
 
 export async function getBillingOverview() {
-  const client = await getApiClient();
+  const client = getApiClient();
   const { data, error } = await client.billing.overview.get();
   if (error) {
     throw new Error(
@@ -39,7 +39,7 @@ export async function getBillingOverview() {
 }
 
 async function startCheckout(plan: PlanId): Promise<string> {
-  const client = await getApiClient();
+  const client = getApiClient();
   const { data, error } = await client.billing.checkout.post({ plan });
   if (error) {
     throw new Error(billingErrorMessage(error, "Could not start checkout."));
@@ -49,7 +49,7 @@ async function startCheckout(plan: PlanId): Promise<string> {
 }
 
 async function openBillingPortal(): Promise<string> {
-  const client = await getApiClient();
+  const client = getApiClient();
   const { data, error } = await client.billing.portal.post();
   if (error) {
     throw new Error(
@@ -81,7 +81,7 @@ export function useBillingPortal() {
 }
 
 export async function getPlanPreflight(plan: PlanId) {
-  const client = await getApiClient();
+  const client = getApiClient();
   const { data, error } = await client.billing["plan-change"].preflight.get({
     query: { plan },
   });
@@ -97,7 +97,7 @@ async function changePlan(input: {
   keepMemberIds?: string[];
   confirm?: string;
 }) {
-  const client = await getApiClient();
+  const client = getApiClient();
   const { data, error } = await client.billing["plan-change"].post(input);
   if (error)
     throw new Error(billingErrorMessage(error, "Could not change plan."));

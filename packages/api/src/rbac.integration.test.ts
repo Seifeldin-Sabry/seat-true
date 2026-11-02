@@ -20,7 +20,6 @@ import { createReconService } from "./reconciliation";
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const authSecret = process.env.BETTER_AUTH_SECRET;
 const integrationTest = databaseUrl && authSecret ? test : test.skip;
-const apiOrigin = "http://localhost:3001";
 const appOrigin = "http://localhost:3000";
 const silent = { info() {}, warn() {}, error() {} };
 
@@ -154,7 +153,7 @@ integrationTest(
     } as unknown as BillingService;
     const planLimits = createPlanLimits({ db, recon, billing });
     const auth = createAuthService(db, {
-      apiOrigin,
+      baseURL: appOrigin,
       secret: authSecret,
       trustedOrigins: [appOrigin],
       appOrigin,
@@ -190,7 +189,7 @@ integrationTest(
       body?: unknown,
     ) =>
       app.handle(
-        new Request(`${apiOrigin}${path}`, {
+        new Request(`${appOrigin}/api${path}`, {
           method,
           headers: {
             Origin: appOrigin,
@@ -202,7 +201,7 @@ integrationTest(
       );
     const signUp = async (role: WorkspaceRole) => {
       const response = await app.handle(
-        new Request(`${apiOrigin}/api/auth/sign-up/email`, {
+        new Request(`${appOrigin}/api/auth/sign-up/email`, {
           method: "POST",
           headers: { Origin: appOrigin, "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -259,7 +258,7 @@ integrationTest(
       // The plugin's own membership endpoints are not reachable directly.
       expect(
         (
-          await call("owner", "POST", "/api/auth/organization/invite-member", {
+          await call("owner", "POST", "/auth/organization/invite-member", {
             email: emails.admin,
             role: "admin",
           })
@@ -436,7 +435,7 @@ integrationTest(
           sender: async () => ({ data: { id: "x" }, error: null }),
         });
         const auth = createAuth(connection.db, {
-          apiOrigin,
+          baseURL: appOrigin,
           secret: authSecret,
           trustedOrigins: [appOrigin],
           email,
