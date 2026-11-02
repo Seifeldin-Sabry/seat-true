@@ -20,7 +20,10 @@ type AuthScreenProps = {
   oauthError?: boolean;
 };
 
-const workEmailMessage = "Please use your work email";
+// Mirrors WORK_EMAIL_REQUIRED_MESSAGE in @seattrue/auth-policy; importing that
+// package would ship the whole free-mail domain list to the browser.
+const workEmailMessage =
+  "Use your work email. Gmail and Outlook addresses aren't accepted.";
 
 export function AuthScreen({
   mode,
@@ -177,12 +180,13 @@ export function AuthScreen({
     return (
       <AuthLayout>
         <div className="auth-intro auth-intro-standalone">
-          <p className="auth-kicker">One more step</p>
+          <p className="auth-kicker">Verify your email</p>
           <h1 id="auth-title">Check your inbox.</h1>
           <p>
-            If an account can be created for {verificationEmail}, a verification
-            link is on its way. Open it before signing in.
+            We sent a verification link to {verificationEmail}. Open it, then
+            sign in to upload your first Pax8 bill.
           </p>
+          <p>Nothing there after a few minutes? Check spam, or resend it.</p>
         </div>
         {verificationNotice && (
           <p className="auth-form-success" role="status">
@@ -237,15 +241,15 @@ export function AuthScreen({
 
       <div className="auth-intro">
         <p className="auth-kicker">
-          {isSignup ? "Get started" : "Your workspace"}
+          {isSignup ? "Free margin audit" : "Sign in"}
         </p>
         <h1 id="auth-title">
-          {isSignup ? "Make room for what’s next." : "Welcome back."}
+          {isSignup ? "Check last month’s Pax8 bill." : "Welcome back."}
         </h1>
         <p>
           {isSignup
-            ? "Create an account and give your projects a place to begin."
-            : "Sign in to pick up where your work left off."}
+            ? "Create your workspace, upload one Pax8 export and see every unbilled seat and stale price in dollars."
+            : "Sign in to review this month’s exceptions before invoices go out."}
         </p>
       </div>
 
@@ -261,8 +265,7 @@ export function AuthScreen({
       )}
       {oauthError && (
         <p className="auth-form-error" role="alert">
-          Google sign-in did not complete. {workEmailMessage}: personal Google
-          accounts are not accepted.
+          Google sign-in didn’t complete. {workEmailMessage}
         </p>
       )}
       {verificationError && (
@@ -281,7 +284,7 @@ export function AuthScreen({
               name="name"
               type="text"
               autoComplete="name"
-              placeholder="Your name"
+              placeholder="Alex Morgan"
               required
               maxLength={100}
               disabled={isPending}
@@ -297,10 +300,15 @@ export function AuthScreen({
             type="email"
             autoComplete="email"
             inputMode="email"
-            placeholder="name@company.com"
+            placeholder="you@yourmsp.com"
+            aria-describedby="auth-email-hint"
             required
             disabled={isPending}
           />
+          <p id="auth-email-hint" className="auth-field-hint">
+            Use your company address. Gmail and Outlook addresses aren’t
+            accepted.
+          </p>
         </div>
 
         <div className="auth-field">
@@ -314,6 +322,7 @@ export function AuthScreen({
               placeholder={
                 isSignup ? "At least 8 characters" : "Enter password"
               }
+              aria-describedby={isSignup ? "auth-password-hint" : undefined}
               required
               minLength={isSignup ? 8 : undefined}
               maxLength={128}
@@ -335,7 +344,9 @@ export function AuthScreen({
             </button>
           </div>
           {isSignup && (
-            <p className="auth-field-hint">Use at least 8 characters.</p>
+            <p id="auth-password-hint" className="auth-field-hint">
+              At least 8 characters.
+            </p>
           )}
         </div>
 
@@ -412,22 +423,20 @@ export function AuthScreen({
       </form>
 
       {googleEnabled && (
-        <Button
-          type="button"
-          variant="outline"
-          size="lg"
-          className="auth-submit"
-          onClick={() => void continueWithGoogle()}
-          disabled={isPending}
-        >
-          Continue with Google Workspace
-        </Button>
+        <>
+          <p className="auth-divider">or</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="auth-submit"
+            onClick={() => void continueWithGoogle()}
+            disabled={isPending}
+          >
+            Continue with Google Workspace
+          </Button>
+        </>
       )}
-
-      <p className="auth-field-hint">
-        Work email only. Personal Gmail, Outlook, iCloud and similar addresses
-        are not accepted.
-      </p>
 
       <p className="auth-switch-copy">
         {isSignup ? "Already have an account?" : `New to ${brand.name}?`}{" "}

@@ -69,7 +69,9 @@ describe("optional Resend email", () => {
         url: "http://localhost:3000/reset-password?token=abc",
       }),
     ).toEqual({ id: "mail_2" });
-    expect(sent[1]?.[0].subject).toBe("Reset your password");
+    expect(sent[1]?.[0].subject).toBe("Reset your SeatTrue password");
+    expect(sent[1]?.[0].html).toContain("SeatTrue");
+    expect(sent[1]?.[0].text).toContain("expires in 1 hour");
     expect(sent[1]?.[0].text).toContain("ignore this email");
   });
 

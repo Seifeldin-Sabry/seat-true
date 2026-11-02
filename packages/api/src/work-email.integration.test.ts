@@ -40,7 +40,7 @@ integrationTest(
       const rejected = await signUp(personal);
       expect(rejected.status).toBe(400);
       expect((await rejected.json()).message).toBe(
-        "Please use your work email",
+        "Use your work email. Gmail and Outlook addresses aren't accepted.",
       );
       const [stored] = await connection.db
         .select()

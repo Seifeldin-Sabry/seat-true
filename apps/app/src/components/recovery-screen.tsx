@@ -78,12 +78,12 @@ export function RecoveryScreen(props: RecoveryScreenProps) {
       <div className="auth-intro auth-intro-standalone">
         <p className="auth-kicker">Account recovery</p>
         <h1 id="auth-title">
-          {isForgot ? "Find your way back." : "Set a new password."}
+          {isForgot ? "Reset your password." : "Choose a new password."}
         </h1>
         <p>
           {isForgot
-            ? "Enter the email tied to your account. We’ll send a reset link if it exists."
-            : "Choose a new password to get back to your workspace."}
+            ? "Enter your work email. If it has a SeatTrue account, we’ll send a reset link."
+            : "Pick a new password for your SeatTrue workspace."}
         </p>
       </div>
 
@@ -106,7 +106,8 @@ export function RecoveryScreen(props: RecoveryScreenProps) {
       )}
       {capabilities.isSuccess && !emailEnabled && (
         <p className="auth-recovery-status" role="status">
-          Email recovery is not configured for this workspace.
+          Password reset by email isn’t switched on here yet. Ask your workspace
+          owner, or contact support.
         </p>
       )}
       {emailEnabled && requestSent && (
@@ -129,14 +130,14 @@ export function RecoveryScreen(props: RecoveryScreenProps) {
         >
           {isForgot ? (
             <div className="auth-field">
-              <Label htmlFor="recovery-email">Email address</Label>
+              <Label htmlFor="recovery-email">Work email</Label>
               <Input
                 id="recovery-email"
                 name="email"
                 type="email"
                 autoComplete="email"
                 inputMode="email"
-                placeholder="name@example.com"
+                placeholder="you@yourmsp.com"
                 required
                 disabled={isPending}
               />
@@ -224,7 +225,7 @@ export function RecoveryScreen(props: RecoveryScreenProps) {
 
       <p className="auth-switch-copy">
         {isForgot || requestSent ? (
-          <Link to="/login" search={{ redirect: "/" }}>
+          <Link to="/login" search={{ redirect: "/app" }}>
             Back to sign in
           </Link>
         ) : (

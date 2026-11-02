@@ -1,5 +1,3 @@
-import "@fontsource/bricolage-grotesque/latin-600.css";
-import "@fontsource/bricolage-grotesque/latin-800.css";
 import { brand } from "@seattrue/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {

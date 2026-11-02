@@ -38,38 +38,54 @@ function AcceptInvitePage() {
     }
   }
 
+  const roleLabel =
+    invitation.data?.role === "admin" ? "an admin" : "a technician";
+
   return (
     <AuthLayout>
       <div className="auth-intro auth-intro-standalone">
-        <p className="auth-kicker">Invitation</p>
-        {invitation.isPending && <p>Checking your invitation…</p>}
+        <p className="auth-kicker">Workspace invitation</p>
+        {invitation.isPending && (
+          <>
+            <h1 id="auth-title">Checking your invitation…</h1>
+            <p role="status">This takes a second.</p>
+          </>
+        )}
         {invitation.error && (
           <>
-            <h1>This invitation can't be used</h1>
+            <h1 id="auth-title">This invitation can’t be used.</h1>
             <p>{invitation.error.message}</p>
             <p>
-              You're signed in as {user.email}. Invitations work only for the
-              address they were sent to, and expire after 48 hours. Ask for a
-              new one if needed.
+              You’re signed in as {user.email}. An invitation works only for the
+              address it was sent to and expires after 48 hours. Ask the person
+              who invited you for a new one.
             </p>
-            <Button asChild variant="outline">
-              <Link to="/app">Go to my workspace</Link>
-            </Button>
+            <div className="auth-actions">
+              <Button asChild variant="outline">
+                <Link to="/app">Go to my workspace</Link>
+              </Button>
+            </div>
           </>
         )}
         {invitation.data && (
           <>
-            <h1>Join {invitation.data.organizationName}</h1>
+            <h1 id="auth-title">Join {invitation.data.organizationName}.</h1>
             <p>
-              {invitation.data.inviterEmail} invited {invitation.data.email} as{" "}
-              <strong>{invitation.data.role}</strong>.
+              {invitation.data.inviterEmail} invited {invitation.data.email} to
+              review Microsoft billing exceptions as {roleLabel}.
             </p>
             {accept.error && (
               <p className="auth-form-error" role="alert">
                 {accept.error.message}
               </p>
             )}
-            <Button type="button" onClick={join} disabled={accept.isPending}>
+            <Button
+              type="button"
+              size="lg"
+              className="auth-submit"
+              onClick={join}
+              disabled={accept.isPending}
+            >
               {accept.isPending && (
                 <LoaderCircle size={16} className="spin" aria-hidden="true" />
               )}

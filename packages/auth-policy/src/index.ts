@@ -1,7 +1,8 @@
 import freeEmailDomains from "free-email-domains";
 
 /** Shown wherever a personal mailbox is rejected (API errors and auth screens). */
-export const WORK_EMAIL_REQUIRED_MESSAGE = "Please use your work email";
+export const WORK_EMAIL_REQUIRED_MESSAGE =
+  "Use your work email. Gmail and Outlook addresses aren't accepted.";
 
 /** Consumer providers missing from the upstream list. */
 const extraFreeDomains = ["hey.com"];

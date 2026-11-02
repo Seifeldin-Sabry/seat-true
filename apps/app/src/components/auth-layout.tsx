@@ -1,64 +1,90 @@
 import { brand } from "@seattrue/ui";
-import { ArrowUpRight, Layers3 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Check } from "lucide-react";
 import type { ReactNode } from "react";
+import { Wordmark } from "./wordmark";
 import "../auth-styles.css";
+
+/** Demo rows: the same exceptions the "Northbeam IT" demo run produces. */
+const exampleRows: { client: string; kind: string; amount: string }[] = [
+  { client: "Copperline Builders", kind: "Unbilled seats", amount: "$180.00" },
+  { client: "Bright Path Tutoring", kind: "Ghost licences", amount: "$114.00" },
+  { client: "Harbor Dental Group", kind: "Unbilled seats", amount: "$105.60" },
+  { client: "Keystone Logistics", kind: "Stale price", amount: "$36.00" },
+];
 
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <main className="auth-shell">
-      <aside className="auth-story" aria-label={`About ${brand.name}`}>
-        <a className="auth-brand auth-brand-on-dark" href={brand.webUrl}>
-          <span className="auth-brand-mark" aria-hidden="true">
-            <Layers3 size={21} strokeWidth={1.8} />
-          </span>
-          <span>{brand.name}</span>
-        </a>
-
-        <div className="auth-story-body">
-          <div className="auth-story-rule" aria-hidden="true" />
-          <p className="auth-story-label">A workspace with room to grow</p>
-          <h2>Build from solid ground.</h2>
-          <p className="auth-story-copy">
-            Keep projects close, ideas organized, and next steps clear. Start
-            with a foundation that leaves space for the work ahead.
-          </p>
-          <div className="auth-story-graphic" aria-hidden="true">
-            <span className="auth-graphic-track auth-graphic-track-one" />
-            <span className="auth-graphic-track auth-graphic-track-two" />
-            <span className="auth-graphic-track auth-graphic-track-three" />
-            <span className="auth-graphic-block auth-graphic-block-one" />
-            <span className="auth-graphic-block auth-graphic-block-two" />
-            <span className="auth-graphic-block auth-graphic-block-three" />
-          </div>
-        </div>
-
-        <div className="auth-story-footer">
-          <span>{brand.tagline}</span>
-          <ArrowUpRight size={18} strokeWidth={1.6} aria-hidden="true" />
-        </div>
-      </aside>
-
-      <section className="auth-form-side" aria-labelledby="auth-title">
-        <div className="auth-mobile-brand">
-          <a className="auth-brand" href={brand.webUrl}>
-            <span className="auth-brand-mark" aria-hidden="true">
-              <Layers3 size={19} strokeWidth={1.8} />
-            </span>
-            <span>{brand.name}</span>
-          </a>
-        </div>
-
+    <div className="auth-shell">
+      <main className="auth-main" aria-labelledby="auth-title">
+        <header className="auth-header">
+          <Wordmark />
+        </header>
         <div className="auth-form-wrap">{children}</div>
-
         <footer className="auth-footer">
           <span>
             © {new Date().getFullYear()} {brand.name}
           </span>
-          <a href={brand.webUrl}>
-            Visit website <ArrowUpRight size={14} aria-hidden="true" />
-          </a>
+          <Link to="/">Back to site</Link>
         </footer>
-      </section>
-    </main>
+      </main>
+
+      <aside className="auth-panel" aria-labelledby="auth-panel-title">
+        <p className="auth-panel-eyebrow">
+          Margin gate for Microsoft resellers
+        </p>
+        <h2 id="auth-panel-title">Find the seats you never billed</h2>
+        <p className="auth-panel-copy">
+          Every Microsoft line on your Pax8 bill, checked against what you
+          invoice each client at cost × the markup you agreed.
+        </p>
+
+        <figure className="auth-inbox">
+          <div className="auth-inbox-head">
+            <span>Exceptions inbox</span>
+            <span className="auth-inbox-tag">Example</span>
+          </div>
+          <table>
+            <caption className="sr-only">
+              Example exceptions from a demo workspace
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Client</th>
+                <th scope="col">Exception</th>
+                <th scope="col">Per month</th>
+              </tr>
+            </thead>
+            <tbody>
+              {exampleRows.map((row) => (
+                <tr key={row.client}>
+                  <th scope="row">{row.client}</th>
+                  <td>{row.kind}</td>
+                  <td>{row.amount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <figcaption>
+            Demo workspace “Northbeam IT”, one Pax8 bill. Not customer data.
+          </figcaption>
+        </figure>
+
+        <ul className="auth-panel-points">
+          <li>
+            <Check size={16} aria-hidden="true" /> Runs on a CSV export. Nothing
+            writes to Pax8 or your PSA.
+          </li>
+          <li>
+            <Check size={16} aria-hidden="true" /> Every exception carries a
+            monthly dollar figure.
+          </li>
+          <li>
+            <Check size={16} aria-hidden="true" /> Techs flag, admins approve,
+            before invoices go out.
+          </li>
+        </ul>
+      </aside>
+    </div>
   );
 }

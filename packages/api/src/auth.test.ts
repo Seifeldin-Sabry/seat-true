@@ -104,8 +104,8 @@ test("enables verification and reset callbacks only with configured email", asyn
     });
     await Bun.sleep(5);
     expect(sent).toEqual([
-      { to: user.email, subject: "Verify your email address" },
-      { to: user.email, subject: "Reset your password" },
+      { to: user.email, subject: "Verify your email for SeatTrue" },
+      { to: user.email, subject: "Reset your SeatTrue password" },
     ]);
   } finally {
     await connection.close();
@@ -152,7 +152,8 @@ test("user-create hook rejects personal mailboxes for email and Google sign-ups"
     ).rejects.toMatchObject({
       body: {
         code: "WORK_EMAIL_REQUIRED",
-        message: "Please use your work email",
+        message:
+          "Use your work email. Gmail and Outlook addresses aren't accepted.",
       },
     });
   }

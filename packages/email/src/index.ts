@@ -97,19 +97,56 @@ function accountUrl(url: string): string {
 
 type ActionEmail = {
   to: string;
-  eyebrow: string;
   subject: string;
+  heading: string;
   greeting: string;
-  explanation: string;
+  paragraphs: string[];
   action: string;
   url: string;
+  /** Why the recipient got this email and what to do if it wasn't them. */
+  footnote: string;
 };
+
+/** SeatTrue palette as hex: email clients don't support oklch or CSS variables. */
+const palette = {
+  paper: "#f8f4ec",
+  card: "#fffdf9",
+  ink: "#1b2230",
+  ink2: "#454c59",
+  muted: "#666d79",
+  rule: "#e3dccd",
+  leak: "#c93d00",
+  leakInk: "#fffdf9",
+} as const;
+
+const fontStack =
+  "'Bricolage Grotesque','Inter','Segoe UI',Helvetica,Arial,sans-serif";
 
 function actionMessage(message: ActionEmail): EmailMessage {
   const url = accountUrl(message.url);
-  const { subject, action, explanation, greeting } = message;
-  const text = `${greeting}\n\n${explanation}\n\n${action}: ${url}\n\nIf the button does not work, paste the link into your browser.`;
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0;padding:32px 16px;background:#f7f8fa;color:#17202f;font-family:Arial,Helvetica,sans-serif"><main style="max-width:520px;margin:auto;padding:32px;border:1px solid #e5e7eb;border-radius:16px;background:#fff"><p style="margin:0 0 24px;color:#4b5f88;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase">${htmlEscape(message.eyebrow)}</p><h1 style="margin:0 0 20px;font-size:28px;line-height:1.2">${htmlEscape(subject)}</h1><p style="line-height:1.6">${htmlEscape(greeting)}</p><p style="line-height:1.6">${htmlEscape(explanation)}</p><p style="margin:28px 0"><a href="${htmlEscape(url)}" style="display:inline-block;padding:13px 20px;border-radius:8px;background:#304fc5;color:#fff;text-decoration:none;font-weight:700">${htmlEscape(action)}</a></p><p style="color:#64748b;font-size:13px;line-height:1.6">If the button does not work, copy this link:<br><a href="${htmlEscape(url)}" style="color:#304fc5;overflow-wrap:anywhere">${htmlEscape(url)}</a></p></main></body></html>`;
+  const { subject, heading, greeting, paragraphs, action, footnote } = message;
+  const p = palette;
+  const text = [
+    "SeatTrue",
+    "",
+    heading,
+    "",
+    greeting,
+    "",
+    ...paragraphs.flatMap((paragraph) => [paragraph, ""]),
+    `${action}: ${url}`,
+    "",
+    footnote,
+    "",
+    "SeatTrue · Microsoft 365 license reconciliation for MSPs",
+  ].join("\n");
+  const body = paragraphs
+    .map(
+      (paragraph) =>
+        `<p style="margin:0 0 16px;color:${p.ink2};font-size:15px;line-height:1.6">${htmlEscape(paragraph)}</p>`,
+    )
+    .join("");
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><title>${htmlEscape(subject)}</title></head><body style="margin:0;padding:0;background:${p.paper};color:${p.ink};font-family:${fontStack}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${p.paper}"><tr><td align="center" style="padding:32px 16px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px"><tr><td style="padding:0 0 20px"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="width:30px;height:30px;border-radius:7px;background:${p.leak};color:${p.leakInk};font-size:17px;font-weight:800;text-align:center;vertical-align:middle">S</td><td style="padding-left:10px;color:${p.ink};font-size:19px;font-weight:800;letter-spacing:-0.02em">SeatTrue</td></tr></table></td></tr><tr><td style="padding:32px;border:1px solid ${p.rule};border-radius:14px;background:${p.card}"><h1 style="margin:0 0 20px;color:${p.ink};font-size:26px;line-height:1.2;font-weight:800;letter-spacing:-0.02em">${htmlEscape(heading)}</h1><p style="margin:0 0 16px;color:${p.ink2};font-size:15px;line-height:1.6">${htmlEscape(greeting)}</p>${body}<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0"><tr><td style="border-radius:10px;background:${p.leak}"><a href="${htmlEscape(url)}" style="display:inline-block;padding:14px 22px;color:${p.leakInk};font-size:15px;font-weight:700;text-decoration:none">${htmlEscape(action)}</a></td></tr></table><p style="margin:0;color:${p.muted};font-size:13px;line-height:1.6">If the button doesn't work, paste this link into your browser:<br><a href="${htmlEscape(url)}" style="color:${p.leak};overflow-wrap:anywhere;word-break:break-all">${htmlEscape(url)}</a></p></td></tr><tr><td style="padding:20px 8px 0;color:${p.muted};font-size:12px;line-height:1.6">${htmlEscape(footnote)}<br>SeatTrue · Microsoft 365 license reconciliation for MSPs</td></tr></table></td></tr></table></body></html>`;
   return { to: message.to, subject, html, text };
 }
 
@@ -118,29 +155,54 @@ function accountMessage(
   message: AccountEmail,
 ): EmailMessage {
   const name = message.name?.trim();
-  const verification = kind === "verification";
+  const greeting = name ? `Hi ${name},` : "Hello,";
+  if (kind === "verification") {
+    return actionMessage({
+      to: message.to,
+      subject: "Verify your email for SeatTrue",
+      heading: "Confirm your work email",
+      greeting,
+      paragraphs: [
+        "Confirm this address to finish setting up your SeatTrue workspace.",
+        "Then upload last month's Pax8 export to see unbilled seats, stale prices and ghost licences in dollars.",
+      ],
+      action: "Verify email",
+      url: message.url,
+      footnote:
+        "You got this because someone signed up for SeatTrue with this address. If it wasn't you, ignore this email and no account will be activated.",
+    });
+  }
   return actionMessage({
     to: message.to,
-    eyebrow: "Account",
-    subject: verification ? "Verify your email address" : "Reset your password",
-    greeting: name ? `Hi ${name},` : "Hello,",
-    explanation: verification
-      ? "Confirm your email address to finish setting up your account."
-      : "A password reset was requested for your account. If this was not you, you can ignore this email.",
-    action: verification ? "Verify email" : "Reset password",
+    subject: "Reset your SeatTrue password",
+    heading: "Reset your password",
+    greeting,
+    paragraphs: [
+      "Someone asked to reset the password for your SeatTrue account. The link works once and expires in 1 hour.",
+    ],
+    action: "Choose a new password",
     url: message.url,
+    footnote:
+      "If you didn't ask for this, ignore this email. Your password stays the same.",
   });
 }
 
 function invitationMessage(message: InvitationEmail): EmailMessage {
+  const role = message.role === "admin" ? "an admin" : "a technician";
   return actionMessage({
     to: message.to,
-    eyebrow: "Invitation",
     subject: `Join ${message.organizationName} on SeatTrue`,
+    heading: `Join ${message.organizationName} on SeatTrue`,
     greeting: "Hello,",
-    explanation: `${message.inviterName} invited you to the ${message.organizationName} workspace as ${message.role}. The link expires in 48 hours.`,
+    paragraphs: [
+      `${message.inviterName} invited you to the ${message.organizationName} workspace as ${role}.`,
+      "SeatTrue checks the monthly Pax8 bill against what each client is invoiced, so billing exceptions get fixed before invoices go out.",
+      "Sign in or create an account with this email address, then accept. The invitation expires in 48 hours.",
+    ],
     action: "Accept invitation",
     url: message.url,
+    footnote:
+      "If you weren't expecting this invitation, ignore this email. Nothing happens unless you accept.",
   });
 }
 

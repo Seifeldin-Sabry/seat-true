@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@elysia/eden": "1.4.10",
-    "@fontsource/bricolage-grotesque": "5.3.0",
     "@seattrue/api": "workspace:*",
     "@seattrue/ui": "workspace:*",
     "@tanstack/react-query": "5.104.0",

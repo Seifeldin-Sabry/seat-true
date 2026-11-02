@@ -244,7 +244,8 @@ integrationTest(
       expect(personal.status).toBe(422);
       expect((await personal.json()).error).toEqual({
         code: "WORK_EMAIL_REQUIRED",
-        message: "Please use your work email",
+        message:
+          "Use your work email. Gmail and Outlook addresses aren't accepted.",
       });
       // Ownership is never handed out by invite.
       expect(
