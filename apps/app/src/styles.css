@@ -1227,7 +1227,8 @@ body {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-.recon-table a {
+/* Text links only: a Button rendered asChild as <a> keeps its own colours. */
+.recon-table a:not([data-slot="button"]) {
   color: var(--primary);
   font-weight: 600;
   text-decoration: none;
