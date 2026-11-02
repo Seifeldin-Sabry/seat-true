@@ -438,6 +438,22 @@ export function AuthScreen({
         </>
       )}
 
+      {isSignup ? (
+        <p className="auth-switch-copy">
+          By creating an account you agree to the <Link to="/terms">Terms</Link>{" "}
+          and the <Link to="/dpa">DPA</Link>, and confirm you act for a
+          business. See our <Link to="/privacy">Privacy Policy</Link>.
+        </p>
+      ) : (
+        googleEnabled && (
+          <p className="auth-switch-copy">
+            A new account created with Google agrees to the{" "}
+            <Link to="/terms">Terms</Link> and the <Link to="/dpa">DPA</Link>,
+            and confirms it acts for a business.
+          </p>
+        )
+      )}
+
       <p className="auth-switch-copy">
         {isSignup ? "Already have an account?" : `New to ${brand.name}?`}{" "}
         <Link

@@ -2594,3 +2594,32 @@ body {
 .st-steps.st-steps-4 {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
 }
+
+/* Legal tables: stacked label/value cards on phones. */
+@media (max-width: 640px) {
+  .st-prose .st-legal-table,
+  .st-legal-table :where(tbody, tr, th, td) {
+    display: block;
+  }
+  .st-legal-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .st-legal-table tr {
+    padding: 12px 0;
+    border-bottom: 2px solid var(--st-rule);
+  }
+  .st-legal-table :where(th, td) {
+    padding: 4px 0;
+    border-bottom: 0;
+  }
+  .st-legal-table td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+  }
+}

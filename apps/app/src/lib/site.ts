@@ -162,6 +162,39 @@ export const sitePages = {
     primaryKeyword: "free msp margin audit",
     secondaryKeyword: "msp license margin",
   },
+  privacy: {
+    path: "/privacy",
+    title: "SeatTrue privacy policy",
+    description:
+      "What SeatTrue processes and why, legal bases, sub-processors, retention and your GDPR rights. Operated by SDX Studio, Belgium.",
+    eyebrow: "Legal",
+    headline: "Privacy policy",
+    updatedAt: "2026-11-02",
+    primaryKeyword: "seattrue privacy policy",
+    secondaryKeyword: "msp billing data privacy",
+  },
+  terms: {
+    path: "/terms",
+    title: "SeatTrue terms of service",
+    description:
+      "The B2B terms for SeatTrue: monthly billing, cancel anytime, no refunds, never any interest or late fees, Belgian law.",
+    eyebrow: "Legal",
+    headline: "Terms of Service",
+    updatedAt: "2026-11-02",
+    primaryKeyword: "seattrue terms of service",
+    secondaryKeyword: "seattrue refund policy",
+  },
+  dpa: {
+    path: "/dpa",
+    title: "SeatTrue data processing agreement (GDPR Art. 28)",
+    description:
+      "How SDX Studio processes MSPs' uploaded billing data for SeatTrue as a processor under Article 28 GDPR.",
+    eyebrow: "Legal",
+    headline: "Data Processing Agreement",
+    updatedAt: "2026-11-02",
+    primaryKeyword: "seattrue dpa",
+    secondaryKeyword: "gdpr data processing agreement",
+  },
 } satisfies Record<string, SitePage>;
 
 export type SitePageKey = keyof typeof sitePages;

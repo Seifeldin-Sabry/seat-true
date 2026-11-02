@@ -1,3 +1,4 @@
+import { legal } from "@seattrue/auth-policy/legal";
 import { brand } from "@seattrue/ui";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
@@ -81,7 +82,9 @@ export function SiteShell({ children }: { children: ReactNode }) {
           </div>
         </nav>
         <p className="st-footer-legal">
-          © {new Date().getFullYear()} {brand.name} · Built by SDX Studio
+          © {new Date().getFullYear()} {legal.operator} · {brand.name} is built
+          by {legal.operator} · <Link to="/privacy">Privacy</Link> ·{" "}
+          <Link to="/terms">Terms</Link> · <Link to="/dpa">DPA</Link>
         </p>
       </footer>
     </div>

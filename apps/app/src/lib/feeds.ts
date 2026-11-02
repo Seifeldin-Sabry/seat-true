@@ -134,6 +134,9 @@ ${plans.map((plan) => `- ${plan.name}: $${plan.priceUsd}/month flat. ${plan.summ
 - Integrations: ${absoluteUrl(sitePages.integrations.path)}
 ${integrations.map((integration) => `  - ${integration.name} (${integration.method}, ${integration.status === "live" ? "Live" : "Coming soon"}): ${absoluteUrl(integrationPath(integration.slug))}`).join("\n")}
 - Glossary: ${absoluteUrl("/glossary")}
+- Privacy policy: ${absoluteUrl("/privacy")}
+- Terms of Service: ${absoluteUrl("/terms")}
+- Data Processing Agreement: ${absoluteUrl("/dpa")}
 - Blog RSS: ${absoluteUrl("/rss.xml")}
 `;
 

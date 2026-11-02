@@ -22,6 +22,9 @@ describe("feeds respect the publish schedule (fake clock)", () => {
     expect(xml).toContain("<lastmod>2026-11-10</lastmod>");
     expect(xml).not.toContain(future);
     expect(xml).toContain("<loc>https://seattrue.com/pricing</loc>");
+    for (const path of ["/privacy", "/terms", "/dpa"]) {
+      expect(xml).toContain(`<loc>https://seattrue.com${path}</loc>`);
+    }
     expect(xml).toContain("<loc>https://seattrue.com/for/small-msps</loc>");
     expect(xml).toContain(
       "<loc>https://seattrue.com/integrations/pax8-csv</loc>",

@@ -7,6 +7,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./legal": {
+      "types": "./src/legal.ts",
+      "default": "./src/legal.ts"
     }
   },
   "scripts": {

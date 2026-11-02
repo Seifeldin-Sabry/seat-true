@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
-import { createDatabase, user } from "@seattrue/db";
+import { legal } from "@seattrue/auth-policy/legal";
+import { createDatabase, organization, user } from "@seattrue/db";
 import { eq } from "drizzle-orm";
 import { createAuthService } from "./auth";
 
@@ -9,7 +10,7 @@ const integrationTest = databaseUrl && authSecret ? test : test.skip;
 const appOrigin = "http://localhost:3000";
 
 integrationTest(
-  "email sign-up rejects personal mailboxes and accepts work email",
+  "email sign-up rejects personal mailboxes, accepts work email and records Terms acceptance",
   async () => {
     if (!databaseUrl || !authSecret) return;
     const connection = createDatabase(databaseUrl);
@@ -49,7 +50,29 @@ integrationTest(
       expect(stored).toBeUndefined();
 
       expect((await signUp(work)).status).toBe(200);
+      const [created] = await connection.db
+        .select({ id: user.id })
+        .from(user)
+        .where(eq(user.email, work));
+      const [workspace] = await connection.db
+        .select({
+          termsAcceptedAt: organization.termsAcceptedAt,
+          termsVersion: organization.termsVersion,
+        })
+        .from(organization)
+        .where(eq(organization.id, `org_${created?.id}`));
+      expect(workspace?.termsVersion).toBe(legal.termsVersion);
+      expect(workspace?.termsAcceptedAt).toBeInstanceOf(Date);
     } finally {
+      const [created] = await connection.db
+        .select({ id: user.id })
+        .from(user)
+        .where(eq(user.email, work));
+      if (created) {
+        await connection.db
+          .delete(organization)
+          .where(eq(organization.id, `org_${created.id}`));
+      }
       await connection.db.delete(user).where(eq(user.email, work));
       await connection.close();
     }

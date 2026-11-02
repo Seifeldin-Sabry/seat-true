@@ -1,3 +1,4 @@
+import { legal } from "@seattrue/auth-policy/legal";
 import {
   type Database,
   invitation,
@@ -34,6 +35,9 @@ export async function ensurePersonalOrganization(
         id: organizationId,
         name: `${label}'s workspace`,
         slug: `personal-${user.id}`,
+        // Sign-up is where the Owner accepts the Terms and DPA (email and Google alike).
+        termsAcceptedAt: new Date(),
+        termsVersion: legal.termsVersion,
       })
       .onConflictDoNothing();
     await tx
