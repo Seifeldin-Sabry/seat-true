@@ -1,26 +1,17 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { redirect } from "@tanstack/react-router";
-import { getSessionUser } from "./auth-session";
-import { normalizeReturnTo } from "./safe-return";
-import { workspaceQueryOptions } from "./workspace";
+
+// Route guards load their auth, query and workspace code on demand: route
+// options sit in the entry bundle that every page (marketing included) loads.
 
 export async function requireSession(locationHref: string) {
-  const user = await getSessionUser();
-  if (!user) {
-    throw redirect({
-      to: "/login",
-      search: { redirect: normalizeReturnTo(locationHref) },
-    });
-  }
-  return { user };
+  const guards = await import("./auth-guards");
+  return guards.requireSession(locationHref);
 }
 
-/** App pages: session required, and the member's role is loaded before render so role-gated controls don't flash. */
 export async function requireWorkspaceMember(
   locationHref: string,
   queryClient: QueryClient,
 ) {
-  const session = await requireSession(locationHref);
-  await queryClient.prefetchQuery(workspaceQueryOptions);
-  return session;
+  const guards = await import("./auth-guards");
+  return guards.requireWorkspaceMember(locationHref, queryClient);
 }

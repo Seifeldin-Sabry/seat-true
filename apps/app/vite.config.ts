@@ -17,8 +17,44 @@ export default defineConfig({
     external: ["@resvg/resvg-js"],
     optimizeDeps: { exclude: ["@resvg/resvg-js"] },
   },
+  environments: {
+    client: {
+      build: {
+        rolldownOptions: {
+          output: {
+            codeSplitting: {
+              // Every page needs React, the router and Start's client runtime:
+              // ship them as one chunk, not a dozen small preloaded files.
+              groups: [
+                {
+                  name: "framework",
+                  test: /node_modules[\\/](react|react-dom|scheduler|seroval|@tanstack)[\\/]/,
+                },
+              ],
+            },
+          },
+        },
+      },
+    },
+  },
   plugins: [
-    tanstackStart(),
+    tanstackStart({
+      router: {
+        codeSplittingOptions: {
+          // App loaders pull in TanStack Query options and the API client;
+          // split them out so marketing pages don't preload that code.
+          splitBehavior: ({ routeId }) =>
+            routeId.startsWith("/app")
+              ? [
+                  ["loader"],
+                  ["component"],
+                  ["errorComponent"],
+                  ["notFoundComponent"],
+                ]
+              : undefined,
+        },
+      },
+    }),
     // Pre-compressed assets: the Bun server sends .br/.gz without a CDN in front.
     nitro({ compressPublicAssets: { gzip: true, brotli: true } }),
     viteReact(),

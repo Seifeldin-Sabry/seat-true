@@ -10,7 +10,6 @@ import {
 import type { FormEvent } from "react";
 import { useId, useState } from "react";
 import { SiteShell } from "../components/site-chrome";
-import { joinWaitlist } from "../lib/recon-api";
 import { publicHead } from "../lib/seo";
 import { pageOgImage, sitePages } from "../lib/site";
 import {
@@ -568,6 +567,8 @@ function AuditForm() {
     setError(null);
     setState("pending");
     try {
+      // Loaded on submit: the API client isn't needed for first paint.
+      const { joinWaitlist } = await import("../lib/recon-api");
       await joinWaitlist({
         email,
         ...(company ? { company } : {}),
