@@ -8,6 +8,13 @@
       "when": 1790538162498,
       "tag": "0000_flippant_manta",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793604393101,
+      "tag": "0001_condemned_forgotten_one",
+      "breakpoints": true
     }
   ]
 }

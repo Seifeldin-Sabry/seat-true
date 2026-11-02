@@ -224,3 +224,26 @@ describe("demo data", () => {
     expect(leakageTotal(result)).toBe(54810);
   });
 });
+
+describe("distributor export variants", () => {
+  test("prefers Pax8 cost over SRP price", () => {
+    const [line] = parsePax8Csv(
+      "companyId,companyName,sku,quantity,price,cost\nPX,A,S,2,15.00,12.50",
+    );
+    expect(line?.unitCostCents).toBe(1250);
+  });
+
+  test("reads Partner Center reconciliation columns", () => {
+    const [line] = parsePax8Csv(
+      "CustomerId,CustomerName,SkuId,SkuName,Quantity,BillableQuantity,UnitPrice,EffectiveUnitPrice,TermAndBillingCycle\nT1,Acme,0002,Business Premium,'1,'7,'24.00,'22.00,1 Year Monthly",
+    );
+    expect(line).toMatchObject({
+      customerKey: "T1",
+      sku: "0002",
+      productName: "Business Premium",
+      quantity: 7,
+      unitCostCents: 2200,
+      billingTerm: "1 Year Monthly",
+    });
+  });
+});

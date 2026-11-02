@@ -11,6 +11,7 @@ import { createAuthService } from "./auth";
 import { readApiEnvironment } from "./env";
 import { createLogger } from "./logger";
 import { createProjectRepository } from "./projects";
+import { createReconService } from "./reconciliation";
 
 const environment = readApiEnvironment(process.env);
 const logger = createLogger(environment.logLevel);
@@ -42,6 +43,7 @@ const auth = createAuthService(connection.db, {
 });
 app = createApp({
   projects: createProjectRepository(connection.db),
+  recon: createReconService(connection.db),
   billing,
   jobs,
   auth,

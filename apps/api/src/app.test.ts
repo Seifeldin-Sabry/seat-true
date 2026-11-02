@@ -8,8 +8,15 @@ import type {
   ProjectRepository,
   UpdateProjectInput,
 } from "./projects";
+import type { ReconService } from "./reconciliation";
 
 const silentLogger: Logger = { info() {}, warn() {}, error() {} };
+// Project tests never reach reconciliation routes.
+const unusedRecon = new Proxy({} as ReconService, {
+  get: () => () => {
+    throw new Error("Reconciliation is not used in project tests");
+  },
+});
 const testUserId = "test-user-1";
 const allowedOrigin = "http://localhost:3000";
 
@@ -81,6 +88,7 @@ function testApp(
 ) {
   return createApp({
     projects: repository,
+    recon: unusedRecon,
     auth: testAuth(userId),
     allowedOrigins: [allowedOrigin],
     logger: silentLogger,
@@ -311,6 +319,7 @@ describe("API contract", () => {
     };
     const app = createApp({
       projects: repository,
+      recon: unusedRecon,
       auth: {
         ...testAuth(),
         handler: async () => new Response("Denied", { status: 418 }),
@@ -352,6 +361,7 @@ describe("API contract", () => {
     };
     const app = createApp({
       projects: memoryRepository(),
+      recon: unusedRecon,
       auth: testAuth(),
       allowedOrigins: [allowedOrigin],
       logger,
@@ -383,6 +393,7 @@ describe("API contract", () => {
     const processed: Record<string, unknown>[] = [];
     const app = createApp({
       projects: repository,
+      recon: unusedRecon,
       auth: testAuth(null),
       allowedOrigins: [allowedOrigin],
       logger: { info: (entry) => processed.push(entry), warn() {}, error() {} },
@@ -416,6 +427,7 @@ describe("API contract", () => {
   test("job callbacks report unavailable when queue is off", async () => {
     const app = createApp({
       projects: memoryRepository(),
+      recon: unusedRecon,
       auth: testAuth(),
       allowedOrigins: [allowedOrigin],
       logger: silentLogger,
@@ -432,6 +444,7 @@ describe("API contract", () => {
   test("advertises optional email capability without exposing credentials", async () => {
     const app = createApp({
       projects: memoryRepository(),
+      recon: unusedRecon,
       auth: { ...testAuth(), emailEnabled: true },
       allowedOrigins: [allowedOrigin],
       logger: silentLogger,

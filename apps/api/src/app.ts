@@ -6,12 +6,25 @@ import type { AuthService } from "./auth";
 import { createBillingRoutes } from "./billing";
 import { jsonLogger, type Logger } from "./logger";
 import type { ProjectRepository } from "./projects";
+import { createReconRoutes } from "./recon-routes";
+import type { ReconService } from "./reconciliation";
 
 export type { Logger } from "./logger";
 export type { ProjectDto } from "./projects";
+export type {
+  AgreementDto,
+  ClientDetailDto,
+  ClientSummaryDto,
+  ExceptionDto,
+  MappingsDto,
+  OverviewDto,
+  RunDto,
+  UnmappedCustomerDto,
+} from "./reconciliation";
 
 export type AppOptions = {
   projects: ProjectRepository;
+  recon: ReconService;
   auth: AuthService;
   billing?: BillingService | null;
   /** QStash queue whose signed callbacks land on POST /jobs/:name. */
@@ -36,6 +49,7 @@ const idSchema = t.Object({
 
 export function createApp({
   projects,
+  recon,
   auth,
   billing,
   jobs,
@@ -53,7 +67,7 @@ export function createApp({
     .use(
       cors({
         origin: allowedOrigins,
-        methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allowedHeaders: ["Content-Type", "Authorization"],
         exposeHeaders: ["X-Request-ID"],
         credentials: true,
@@ -156,6 +170,14 @@ export function createApp({
     .use(
       createBillingRoutes({
         billing: billing ?? null,
+        allowedOrigins,
+        getUser: async (headers) =>
+          (await auth.getSession(headers))?.user ?? null,
+      }),
+    )
+    .use(
+      createReconRoutes({
+        recon,
         allowedOrigins,
         getUser: async (headers) =>
           (await auth.getSession(headers))?.user ?? null,

@@ -1,4 +1,6 @@
 /**
+ * Headers follow Pax8 API InvoiceItem field names (portal CSV is undocumented).
+ *
  * Demo MSP "Northbeam IT": 8 PSA clients plus one distributor customer nobody
  * mapped. Each planted problem below is what the reconciler should surface.
  */
@@ -325,7 +327,7 @@ const csvRows: [string, string, string, string, number, number, string][] = [
 ];
 
 export const demoPax8Csv = [
-  "Invoice Date,Company ID,Company Name,SKU,Product Name,Quantity,Unit Price,Total,Billing Term",
+  "startPeriod,companyId,companyName,sku,productName,quantity,cost,costTotal,price,term",
   ...csvRows.map(([id, name, sku, product, qty, unitCents, term]) =>
     [
       "2026-11-01",
@@ -336,6 +338,8 @@ export const demoPax8Csv = [
       qty,
       money(unitCents),
       money(unitCents * qty),
+      // SRP column must be ignored in favour of cost.
+      money(Math.round(unitCents * 1.25)),
       term,
     ].join(","),
   ),

@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { createApp } from "./app";
 import { createAuthService } from "./auth";
 import { createProjectRepository } from "./projects";
+import { createReconService } from "./reconciliation";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const authSecret = process.env.BETTER_AUTH_SECRET;
@@ -53,6 +54,7 @@ integrationTest(
     });
     const app = createApp({
       projects: createProjectRepository(connection.db),
+      recon: createReconService(connection.db),
       auth,
       allowedOrigins: [appOrigin],
       logger: { info() {}, warn() {}, error() {} },

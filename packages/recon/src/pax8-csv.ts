@@ -1,27 +1,36 @@
 import type { VendorLine, VendorSource } from "./types";
 
 /**
- * Pax8 billing export → VendorLine[].
+ * Distributor billing export → VendorLine[].
  *
- * Header names are matched case-insensitively against aliases because the
- * real export columns are not verified yet; add the real header to the alias
- * list when a partner shares an export, no other code changes needed.
+ * Pax8's portal CSV headers are not publicly documented, so headers are
+ * matched against aliases (case, spaces and underscores ignored), in priority
+ * order. Covers Pax8's API InvoiceItem field names and Microsoft Partner
+ * Center's reconciliation file. Add the real header here when a partner
+ * shares an export; no other code changes needed.
  */
 const columnAliases = {
-  customerKey: ["company id", "companyid", "customer id", "client id"],
-  customerName: ["company name", "company", "customer name", "client name"],
-  sku: ["sku", "product sku", "product id", "offer id"],
-  productName: ["product name", "product", "description", "offer name"],
-  quantity: ["quantity", "qty", "seats", "licenses"],
+  customerKey: ["company id", "customer id", "client id"],
+  customerName: ["company name", "customer name", "client name", "company"],
+  sku: ["sku", "sku id", "product sku", "offer id", "product id"],
+  productName: ["product name", "sku name", "product", "description"],
+  // Partner Center: BillableQuantity is the billed count, Quantity is not.
+  quantity: ["billable quantity", "quantity", "qty", "seats", "licenses"],
+  // MSP buy price first: Pax8 "price" can be SRP when "cost" is present.
   unitCost: [
-    "unit price",
-    "partner unit price",
-    "partner cost",
+    "cost",
     "unit cost",
+    "partner cost",
+    "partner unit price",
+    "effective unit price",
+    "unit price",
     "price",
   ],
-  billingTerm: ["billing term", "term", "commitment term"],
+  billingTerm: ["term and billing cycle", "billing term", "term", "commitment"],
 } as const;
+
+const normalizeHeader = (value: string) =>
+  value.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 type Column = keyof typeof columnAliases;
 const requiredColumns: Column[] = [
@@ -86,12 +95,13 @@ export function parsePax8Csv(text: string): VendorLine[] {
   const [header, ...body] = parseCsv(text.replace(/^﻿/, ""));
   if (!header) throw new CsvFormatError("The file is empty.");
 
-  const normalized = header.map((cell) => cell.trim().toLowerCase());
+  const normalized = header.map(normalizeHeader);
   const index = {} as Record<Column, number>;
   for (const column of Object.keys(columnAliases) as Column[]) {
-    index[column] = normalized.findIndex((cell) =>
-      (columnAliases[column] as readonly string[]).includes(cell),
-    );
+    const alias = columnAliases[column]
+      .map(normalizeHeader)
+      .find((candidate) => normalized.includes(candidate));
+    index[column] = alias === undefined ? -1 : normalized.indexOf(alias);
   }
   const missing = requiredColumns.filter((column) => index[column] === -1);
   if (missing.length > 0) {
@@ -101,7 +111,9 @@ export function parsePax8Csv(text: string): VendorLine[] {
   }
 
   const cell = (cells: string[], column: Column) =>
-    index[column] === -1 ? "" : (cells[index[column]] ?? "").trim();
+    index[column] === -1
+      ? ""
+      : (cells[index[column]] ?? "").trim().replace(/^'/, "");
 
   return body.map((cells, offset) => {
     const rowNumber = offset + 2;
