@@ -1,13 +1,22 @@
-import { Button, brand, Input, Label } from "@seattrue/ui";
+import "@fontsource/bricolage-grotesque/latin-600.css";
+import "@fontsource/bricolage-grotesque/latin-800.css";
+import { brand } from "@seattrue/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Check, Layers3, LoaderCircle, Minus } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  LoaderCircle,
+  Minus,
+  ShieldCheck,
+} from "lucide-react";
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { joinWaitlist } from "../lib/recon-api";
 
-const title = `${brand.name}: the margin gate for Microsoft resellers`;
+const title = `${brand.name}: stop losing money on Microsoft seats you never billed`;
 const description =
-  "SeatTrue checks every Microsoft 365 line on your Pax8 bill against what you invoice each client, at cost × your agreed markup, and flags unbilled seats and ghost licences before the invoice goes out.";
+  "SeatTrue checks every Microsoft 365 line on your Pax8 bill against what you invoice each client, at cost × your agreed markup. Free margin audit: upload one month's export, see the leak in dollars.";
+const cta = "Get my free margin audit";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -22,244 +31,367 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: `${brand.appUrl}/og.png` },
     ],
-    links: [
-      { rel: "canonical", href: `${brand.appUrl}/` },
-      { rel: "sitemap", type: "application/xml", href: "/sitemap.xml" },
-    ],
+    links: [{ rel: "canonical", href: `${brand.appUrl}/` }],
   }),
   component: LandingPage,
 });
 
-const problems = [
-  {
-    label: "Renewals at last year's price",
-    body: "Microsoft's 2026 increase applies when each subscription renews, so PSA prices go stale one client at a time. Nobody notices until margin is gone.",
-  },
-  {
-    label: "Seats nobody invoiced",
-    body: "A client adds four Business Premium seats mid-month. Pax8 bills you. The agreement still says 38.",
-  },
-  {
-    label: "Licences for clients who left",
-    body: "Offboarding closes the ticket, not the subscription. You keep paying for seats no one will ever pay you for.",
-  },
-];
+const usd = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
 
-const steps = [
+/** Value stack: each anchor states its own basis so nothing reads as an invented stat. */
+const stack: { item: string; basis: string; value: number }[] = [
   {
-    title: "Upload last month's Pax8 export",
-    body: "No integration to approve. Map each Pax8 customer to a PSA client once; SeatTrue remembers it.",
+    item: "Done-for-you first audit of your Pax8 bill",
+    basis: "what a billing consultant charges for one reconciliation",
+    value: 500,
   },
   {
-    title: "Every line is checked twice",
-    body: "Quantity against the agreement, and price against Pax8 cost × the markup you agreed with that client.",
+    item: "Monthly reconciliation of every Microsoft line",
+    basis: "4 hours of billing-admin time a month at $75/hr",
+    value: 300,
   },
   {
-    title: "Work the exceptions before you invoice",
-    body: "Each one has a monthly dollar figure. Approve it, mark it billed, or dismiss it. Statuses survive re-runs.",
+    item: "Price × agreed-markup check, per client",
+    basis: "the check no PSA sync does; worth whatever it finds",
+    value: 0,
+  },
+  {
+    item: "Exceptions inbox with sign-off before invoicing",
+    basis: "an audit trail of who approved what, every month",
+    value: 150,
+  },
+  {
+    item: "Customer-to-client mapping set up with you",
+    basis: "one onboarding call with the founder",
+    value: 200,
+  },
+  {
+    item: "Founding price locked for as long as you stay",
+    basis: "no price rises for the first 20 MSPs",
+    value: 0,
   },
 ];
+const stackTotal = stack.reduce((sum, row) => sum + row.value, 0);
 
 type Cell = string | boolean;
 const comparison: {
   check: string;
-  native: Cell;
+  sheet: Cell;
+  psa: Cell;
   gradient: Cell;
   ours: Cell;
 }[] = [
   {
-    check: "Price",
-    native: "Included",
-    gradient: "$299–$999/mo + $199 Microsoft add-on",
-    ours: "$149 or $249/mo flat",
-  },
-  {
-    check: "Checks quantities against the PSA",
-    native: true,
+    check: "Catches seats on the bill but not on the invoice",
+    sheet: "If someone checks",
+    psa: true,
     gradient: true,
     ours: true,
   },
   {
-    check: "Checks price against cost × each client's agreed markup",
-    native: false,
-    gradient: "Flags cost changes; markup check not documented",
+    check: "Checks price against cost × each client's markup",
+    sheet: "If someone checks",
+    psa: false,
+    gradient: "Not documented",
     ours: true,
   },
   {
-    check: "Exceptions with sign-off before invoicing",
-    native: false,
+    check: "Flags renewals still on last year's price",
+    sheet: false,
+    psa: false,
+    gradient: "Flags cost changes",
+    ours: true,
+  },
+  {
+    check: "Licences for clients you've offboarded",
+    sheet: "If someone checks",
+    psa: "Sometimes",
+    gradient: true,
+    ours: true,
+  },
+  {
+    check: "Sign-off queue before invoices go out",
+    sheet: false,
+    psa: false,
     gradient: "Approve and sync",
     ours: true,
   },
   {
-    check: "Distributors",
-    native: "Pax8 only",
-    gradient: "Pax8, Ingram, TD SYNNEX + 30 vendors",
-    ours: "Pax8 today",
-  },
-  {
-    check: "Writes back to the PSA",
-    native: "Quantities",
-    gradient: true,
-    ours: "Not yet (read-only)",
-  },
-  {
-    check: "Time to first result",
-    native: "Hours of manual binding",
-    gradient: "Days of mapping",
-    ours: "Under 30 minutes from a CSV",
-  },
-];
-
-const plans = [
-  {
-    name: "Starter",
-    price: "$149",
-    detail: "Up to 150 clients",
-    features: [
-      "Monthly Pax8 reconciliation",
-      "Price × markup checks on every line",
-      "Exceptions inbox with sign-off",
-      "Unlimited users at your MSP",
-    ],
-  },
-  {
-    name: "Growth",
-    price: "$249",
-    detail: "Unlimited clients",
-    features: [
-      "Everything in Starter",
-      "Per-client margin history",
-      "Priority help mapping your first month",
-      "Early access to HaloPSA sync",
-    ],
+    check: "Price",
+    sheet: "Your time",
+    psa: "Included",
+    gradient: "$299–$999/mo + $199",
+    ours: "$149 or $249 flat",
   },
 ];
 
 const faqs = [
   {
-    q: "Do I need to connect Pax8 or my PSA?",
-    a: "No. Start with last month's Pax8 billing export and your agreement prices. A Pax8 API connection and HaloPSA sync come next; Pax8 approves third-party API access case by case, so CSV is always supported.",
+    q: "We already sync Pax8 into our PSA. Isn't that enough?",
+    a: "The sync copies quantities. It doesn't check that the price on the agreement is still cost × the markup you agreed, and Microsoft's 2026 increase lands one renewal at a time. That gap is what SeatTrue checks.",
   },
   {
-    q: "How is this different from Gradient MSP?",
-    a: "Gradient is broader: more distributors and vendors, and it writes back to five PSAs. If you need that today, it's a good choice. SeatTrue is narrower and cheaper: it checks every Microsoft line's price against the markup you agreed with that client, and puts the result in a sign-off queue before you invoice.",
+    q: "How long does the free audit take?",
+    a: "About five minutes of your time: export last month's Pax8 billing CSV and your current client prices. We map customers to clients with you and send back every exception with a monthly dollar figure.",
   },
   {
-    q: "What does SeatTrue change in my systems?",
-    a: "Nothing. It reads exports and shows exceptions. You decide what goes on the invoice.",
+    q: "What if it finds nothing?",
+    a: "Then your billing is in better shape than most, you've lost five minutes, and you don't pay anything. The audit is free either way.",
   },
   {
-    q: "Does it handle NCE monthly vs annual terms?",
-    a: "Each Pax8 line keeps its own term and cost, so annual and monthly versions of the same SKU are priced separately.",
+    q: "Do you need access to Pax8 or our PSA?",
+    a: "No. It runs on exports and changes nothing in your systems. A Pax8 API connection and HaloPSA sync are next; CSV keeps working regardless.",
   },
   {
-    q: "What's in the free reconciliation run?",
-    a: "Send one month's Pax8 export and your current client prices. You get back the exception list with a monthly dollar figure. If it finds nothing, you've lost 15 minutes.",
+    q: "Why not Gradient MSP?",
+    a: "Gradient is broader: more distributors, 30+ vendors, write-back to five PSAs. If you need that today, it's a good tool. SeatTrue is narrower, cheaper and focused on one thing: is every Microsoft line billed at the right quantity and the right price.",
   },
   {
-    q: "Who's behind it?",
-    a: "SeatTrue is built by the team at SDX Studio, which runs outbound for MSPs and MSSPs. We kept hearing about billing leakage on calls, so we built the check.",
+    q: "What if we cancel?",
+    a: "No refunds; cancel anytime and keep access until the end of the paid period. That's why the audit comes first and is free: you see the leak in dollars before deciding.",
+  },
+  {
+    q: "Is our billing data safe?",
+    a: "Exports are stored in your SeatTrue workspace only, sign-in is limited to company email addresses, and we never write to your Pax8 or PSA.",
+  },
+  {
+    q: "Who's behind SeatTrue?",
+    a: "The team at SDX Studio, which runs outbound for MSPs and MSSPs. Billing leakage kept coming up on calls with MSP owners, so we built the check.",
   },
 ];
 
 function LandingPage() {
   return (
-    <div className="lp">
-      <header className="lp-header">
-        <a className="lp-brand" href="/" aria-label={`${brand.name} home`}>
-          <span className="lp-brand-mark" aria-hidden="true">
-            <Layers3 size={18} strokeWidth={1.8} />
+    <div className="st">
+      <a className="st-skip" href="#main">
+        Skip to content
+      </a>
+      <header className="st-header">
+        <a className="st-brand" href="/" aria-label={`${brand.name} home`}>
+          <span className="st-brand-mark" aria-hidden="true">
+            S
           </span>
           {brand.name}
         </a>
-        <nav className="lp-nav" aria-label="Site">
-          <a href="#how">How it works</a>
+        <nav className="st-nav" aria-label="Site">
+          <a href="#offer">What you get</a>
           <a href="#compare">Compare</a>
-          <a href="#pricing">Pricing</a>
+          <a href="#faq">FAQ</a>
           <Link to="/login" search={{ redirect: "/app" }}>
             Sign in
           </Link>
         </nav>
+        <a className="st-btn st-btn-small" href="#audit">
+          Free audit
+        </a>
       </header>
 
       <main id="main">
-        <section className="lp-hero lp-hero-split" aria-labelledby="lp-title">
-          <div>
-            <p className="lp-kicker">The margin gate for Microsoft resellers</p>
-            <h1 id="lp-title">
-              Find the license leak before the invoice goes out.
-            </h1>
-            <p className="lp-lede">
-              Your Pax8 sync copies quantities. It never checks the price.{" "}
-              {brand.name} matches every Microsoft line to the right client and
-              its agreed markup, then shows you only what's wrong, in dollars.
+        <section className="st-hero" aria-labelledby="st-title">
+          <div className="st-hero-copy">
+            <p className="st-eyebrow">
+              For MSPs reselling Microsoft 365 through Pax8
             </p>
-            <div className="lp-actions">
-              <a className="lp-primary" href="#audit">
-                Get a free margin audit
+            <h1 id="st-title">
+              You're losing money on Microsoft seats you{" "}
+              <span className="st-mark">never billed</span>.
+            </h1>
+            <p className="st-lede">
+              Your Pax8 sync copies quantities. It never checks the price.{" "}
+              {brand.name} checks every line against cost × the markup you
+              agreed with that client, and shows the leak in dollars before the
+              invoice goes out.
+            </p>
+            <div className="st-hero-actions">
+              <a className="st-btn" href="#audit">
+                {cta}
                 <ArrowRight size={18} aria-hidden="true" />
               </a>
-              <Link
-                className="lp-secondary"
-                to="/signup"
-                search={{ redirect: "/app" }}
-              >
-                Try it with demo data
-              </Link>
+              <span className="st-hero-note">
+                Upload one Pax8 export. See the leak in about 5 minutes. Free.
+              </span>
             </div>
+          </div>
+          <LeakCalculator />
+        </section>
+
+        <section className="st-example" aria-labelledby="st-example-title">
+          <div>
+            <p className="st-eyebrow">Example run</p>
+            <h2 id="st-example-title">
+              What one month's Pax8 bill turned up for a demo MSP
+            </h2>
+            <p>
+              "Northbeam IT" is our demo workspace: 8 clients, 14 Pax8 lines.
+              These are the exceptions SeatTrue raised. Your audit uses your own
+              bill.
+            </p>
           </div>
           <ProductMock />
         </section>
 
-        <section className="lp-section" aria-labelledby="lp-problem">
-          <p className="lp-kicker">The problem</p>
-          <h2 id="lp-problem">Three leaks a quantity sync can't see</h2>
-          <ul className="lp-cards">
-            {problems.map((problem) => (
-              <li key={problem.label}>
-                <h3>{problem.label}</h3>
-                <p>{problem.body}</p>
-              </li>
-            ))}
-          </ul>
+        <section className="st-section" aria-labelledby="st-leaks">
+          <h2 id="st-leaks">Three leaks a quantity sync can't see</h2>
+          <div className="st-leaks">
+            <article>
+              <span className="st-leak-amount">$36/mo</span>
+              <h3>Renewals at last year's price</h3>
+              <p>
+                Microsoft's 2026 increase applies as each subscription renews.
+                The agreement keeps billing the old price, one client at a time.
+              </p>
+            </article>
+            <article>
+              <span className="st-leak-amount">$285.60/mo</span>
+              <h3>Seats nobody invoiced</h3>
+              <p>
+                Four Business Premium seats added mid-month, five Copilot seats
+                added in Pax8. The agreement never changed.
+              </p>
+            </article>
+            <article>
+              <span className="st-leak-amount">$114/mo</span>
+              <h3>Licences for clients who left</h3>
+              <p>
+                Offboarding closed the ticket, not the subscription. You keep
+                paying for seats nobody will pay you for.
+              </p>
+            </article>
+          </div>
+          <p className="st-footnote">
+            Amounts are from the Northbeam IT demo run above.
+          </p>
         </section>
 
-        <section id="how" className="lp-section" aria-labelledby="lp-how">
-          <p className="lp-kicker">How it works</p>
-          <h2 id="lp-how">
-            From Pax8 export to a clean invoice in three steps
-          </h2>
-          <ol className="lp-step-grid">
-            {steps.map((step, index) => (
-              <li key={step.title}>
-                <span className="lp-step-number" aria-hidden="true">
-                  {index + 1}
-                </span>
-                <h3>{step.title}</h3>
-                <p>{step.body}</p>
-              </li>
-            ))}
+        <section className="st-section" aria-labelledby="st-how">
+          <h2 id="st-how">From Pax8 export to a clean invoice</h2>
+          <ol className="st-steps">
+            <li>
+              <h3>Export</h3>
+              <p>
+                Download last month's Pax8 billing CSV. No API access, nothing
+                to approve.
+              </p>
+            </li>
+            <li>
+              <h3>Check</h3>
+              <p>
+                Every line is matched to a client, then checked on quantity and
+                on price × that client's markup.
+              </p>
+            </li>
+            <li>
+              <h3>Fix before invoicing</h3>
+              <p>
+                Approve, mark billed or dismiss each exception. Each one carries
+                a monthly dollar figure.
+              </p>
+            </li>
           </ol>
+        </section>
+
+        <section id="offer" className="st-section" aria-labelledby="st-offer">
+          <h2 id="st-offer">Everything you get</h2>
+          <div className="st-offer">
+            <table className="st-stack">
+              <caption className="sr-only">
+                What's included and what each part is worth
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Included</th>
+                  <th scope="col">How we valued it</th>
+                  <th scope="col">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stack.map((row) => (
+                  <tr key={row.item}>
+                    <th scope="row">
+                      <Check size={16} aria-hidden="true" /> {row.item}
+                    </th>
+                    <td>{row.basis}</td>
+                    <td>{row.value > 0 ? usd.format(row.value) : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th scope="row" colSpan={2}>
+                    Value in the first month, before any leakage you recover
+                  </th>
+                  <td>{usd.format(stackTotal)}</td>
+                </tr>
+              </tfoot>
+            </table>
+            <aside className="st-price" aria-labelledby="st-price-title">
+              <h3 id="st-price-title">Solo plan</h3>
+              <p className="st-price-figure">
+                <strong>$149</strong>/month
+              </p>
+              <p>
+                Solo: flat, up to 150 clients. Team: $249/month flat, unlimited
+                clients.
+              </p>
+              <ul>
+                <li>No per-seat pricing</li>
+                <li>
+                  Cancel any time, effective at the end of the paid period
+                </li>
+                <li>Founding price locked while you stay subscribed</li>
+              </ul>
+              <a className="st-btn" href="#audit">
+                {cta}
+              </a>
+            </aside>
+          </div>
+        </section>
+
+        <section className="st-guarantee" aria-labelledby="st-guarantee-title">
+          <ShieldCheck size={40} aria-hidden="true" />
+          <div>
+            <h2 id="st-guarantee-title">See the leak before you pay a cent</h2>
+            <ul className="st-risk">
+              <li>
+                <strong>Free margin audit first.</strong> We run your Pax8 bill
+                and show every exception in dollars before you subscribe.
+              </li>
+              <li>
+                <strong>Cancel any time.</strong> Cancellation takes effect at
+                the end of the period you've paid for, and you keep access until
+                then.
+              </li>
+              <li>
+                <strong>Founding price lock.</strong> The first 20 MSPs keep
+                their price for as long as they stay subscribed.
+              </li>
+            </ul>
+          </div>
         </section>
 
         <section
           id="compare"
-          className="lp-section"
-          aria-labelledby="lp-compare"
+          className="st-section"
+          aria-labelledby="st-compare"
         >
-          <p className="lp-kicker">Why not Gradient or the Pax8 sync?</p>
-          <h2 id="lp-compare">A margin gate, not another sync</h2>
-          <div className="lp-table-wrap">
-            <table className="lp-table">
+          <h2 id="st-compare">
+            Why not a spreadsheet, your PSA sync, or Gradient?
+          </h2>
+          <div className="st-table-wrap">
+            <table className="st-compare">
               <thead>
                 <tr>
                   <th scope="col">
                     <span className="sr-only">Check</span>
                   </th>
-                  <th scope="col">Native Pax8 → PSA sync</th>
-                  <th scope="col">Gradient MSP Synthesize</th>
-                  <th scope="col" className="lp-ours">
+                  <th scope="col">Spreadsheet</th>
+                  <th scope="col">Pax8 → PSA sync</th>
+                  <th scope="col">Gradient MSP</th>
+                  <th scope="col" className="st-ours">
                     {brand.name}
                   </th>
                 </tr>
@@ -269,12 +401,15 @@ function LandingPage() {
                   <tr key={row.check}>
                     <th scope="row">{row.check}</th>
                     <td>
-                      <CellValue value={row.native} />
+                      <CellValue value={row.sheet} />
+                    </td>
+                    <td>
+                      <CellValue value={row.psa} />
                     </td>
                     <td>
                       <CellValue value={row.gradient} />
                     </td>
-                    <td className="lp-ours">
+                    <td className="st-ours">
                       <CellValue value={row.ours} />
                     </td>
                   </tr>
@@ -282,50 +417,16 @@ function LandingPage() {
               </tbody>
             </table>
           </div>
-          <p className="lp-footnote">
-            Gradient pricing from meetgradient.com/pricing, November 2026. If
-            you need 30+ vendor integrations and PSA write-back today, Gradient
-            is the broader tool.
+          <p className="st-footnote">
+            Gradient pricing from meetgradient.com/pricing, November 2026.
+            Gradient covers more distributors and writes back to the PSA; if you
+            need that today, it's the broader tool.
           </p>
         </section>
 
-        <section
-          id="pricing"
-          className="lp-section"
-          aria-labelledby="lp-pricing"
-        >
-          <p className="lp-kicker">Pricing</p>
-          <h2 id="lp-pricing">Flat monthly price. No per-seat maths.</h2>
-          <div className="lp-plans">
-            {plans.map((plan) => (
-              <article className="lp-plan" key={plan.name}>
-                <h3>{plan.name}</h3>
-                <p className="lp-plan-price">
-                  <strong>{plan.price}</strong>/month
-                </p>
-                <p className="lp-plan-detail">{plan.detail}</p>
-                <ul>
-                  {plan.features.map((feature) => (
-                    <li key={feature}>
-                      <Check size={16} aria-hidden="true" /> {feature}
-                    </li>
-                  ))}
-                </ul>
-                <a className="lp-secondary" href="#audit">
-                  Start with a free audit
-                </a>
-              </article>
-            ))}
-          </div>
-          <p className="lp-footnote">
-            Billed monthly. Cancel any time from the billing page.
-          </p>
-        </section>
-
-        <section className="lp-section" aria-labelledby="lp-faq">
-          <p className="lp-kicker">FAQ</p>
-          <h2 id="lp-faq">Questions MSP owners ask first</h2>
-          <div className="lp-faq">
+        <section id="faq" className="st-section" aria-labelledby="st-faq">
+          <h2 id="st-faq">The questions MSP owners ask first</h2>
+          <div className="st-faq">
             {faqs.map((faq) => (
               <details key={faq.q}>
                 <summary>{faq.q}</summary>
@@ -335,21 +436,24 @@ function LandingPage() {
           </div>
         </section>
 
-        <section id="audit" className="lp-audit" aria-labelledby="lp-audit">
+        <section
+          id="audit"
+          className="st-final"
+          aria-labelledby="st-final-title"
+        >
           <div>
-            <p className="lp-kicker">Free margin audit</p>
-            <h2 id="lp-audit">See last month's leak in dollars</h2>
+            <h2 id="st-final-title">See last month's leak in dollars</h2>
             <p>
-              Leave your work email. We'll reply with where to send one month's
-              Pax8 export and return the exceptions, each with a monthly dollar
-              figure. Built by the team at SDX Studio.
+              We onboard four MSPs a week so every audit gets a real person. The
+              first 20 MSPs keep the founding price for as long as they stay.
+              Built by the team at SDX Studio.
             </p>
           </div>
-          <WaitlistForm />
+          <AuditForm />
         </section>
       </main>
 
-      <footer className="lp-footer">
+      <footer className="st-footer">
         <span>© {brand.name} · Built by SDX Studio</span>
         <Link to="/login" search={{ redirect: "/app" }}>
           Sign in
@@ -361,33 +465,99 @@ function LandingPage() {
 
 function CellValue({ value }: { value: Cell }) {
   if (value === true)
-    return <Check size={18} className="lp-yes" aria-label="Yes" />;
+    return <Check size={18} className="st-yes" aria-label="Yes" />;
   if (value === false)
-    return <Minus size={18} className="lp-no" aria-label="No" />;
+    return <Minus size={18} className="st-no" aria-label="No" />;
   return <>{value}</>;
 }
 
-/** Static, accessible rendering of the overview screen using demo figures. */
+/** Cost of inaction: the visitor sets every input, including their own leak estimate. */
+function LeakCalculator() {
+  const id = useId();
+  const [seats, setSeats] = useState(1200);
+  const [price, setPrice] = useState(22);
+  const [leakPct, setLeakPct] = useState(2);
+  const monthly = Math.max(0, seats) * Math.max(0, price) * (leakPct / 100);
+
+  return (
+    <form
+      className="st-calc"
+      aria-labelledby={`${id}-title`}
+      onSubmit={(event) => event.preventDefault()}
+    >
+      <h2 id={`${id}-title`}>What is it costing you?</h2>
+      <label htmlFor={`${id}-seats`}>
+        Microsoft seats you resell
+        <input
+          id={`${id}-seats`}
+          type="number"
+          min={0}
+          inputMode="numeric"
+          value={seats}
+          onChange={(event) => setSeats(Number(event.target.value))}
+        />
+      </label>
+      <label htmlFor={`${id}-price`}>
+        Average price per seat ($/month)
+        <input
+          id={`${id}-price`}
+          type="number"
+          min={0}
+          step="0.5"
+          inputMode="decimal"
+          value={price}
+          onChange={(event) => setPrice(Number(event.target.value))}
+        />
+      </label>
+      <label htmlFor={`${id}-leak`}>
+        Share of seats unbilled or mispriced: {leakPct}%
+        <input
+          id={`${id}-leak`}
+          type="range"
+          min={0.5}
+          max={10}
+          step={0.5}
+          value={leakPct}
+          onChange={(event) => setLeakPct(Number(event.target.value))}
+        />
+      </label>
+      <output
+        className="st-calc-result"
+        htmlFor={`${id}-seats ${id}-price ${id}-leak`}
+        aria-live="polite"
+      >
+        <span>{usd.format(monthly)}</span>/month
+        <small>{usd.format(monthly * 12)} a year</small>
+      </output>
+      <p className="st-calc-note">
+        Your estimate, not ours. The free audit replaces it with the real number
+        from your bill.
+      </p>
+    </form>
+  );
+}
+
+/** Static rendering of the exceptions the demo run produces (real app output). */
 function ProductMock() {
   const rows: [string, string, string][] = [
-    ["Copperline Builders", "Unbilled seats", "$180.00"],
+    ["Copperline Builders", "Unbilled seats · 5 × Copilot", "$180.00"],
     ["Maple & Co. Bakery", "Unmapped customer", "$112.50"],
-    ["Harbor Dental Group", "Unbilled seats", "$105.60"],
-    ["Bright Path Tutoring", "Ghost licence", "$90.00"],
-    ["Keystone Logistics", "Stale price / markup", "$36.00"],
+    ["Harbor Dental Group", "Unbilled seats · 4 × Premium", "$105.60"],
+    ["Bright Path Tutoring", "Ghost licences · offboarded", "$114.00"],
+    ["Keystone Logistics", "Stale price · old NCE rate", "$36.00"],
   ];
   return (
-    <figure className="lp-mock" aria-label="SeatTrue overview with demo data">
-      <div className="lp-mock-stat">
+    <figure className="st-mock">
+      <div className="st-mock-head">
         <span>Leakage found this month</span>
         <strong>$548.10</strong>
         <small>$6,577.20 a year if nothing changes</small>
       </div>
       <table>
-        <caption className="sr-only">Top exceptions in the demo MSP</caption>
+        <caption className="sr-only">Exceptions from the demo run</caption>
         <tbody>
           {rows.map(([client, kind, amount]) => (
-            <tr key={client + kind}>
+            <tr key={client}>
               <th scope="row">{client}</th>
               <td>{kind}</td>
               <td>{amount}</td>
@@ -395,12 +565,12 @@ function ProductMock() {
           ))}
         </tbody>
       </table>
-      <figcaption>Demo MSP "Northbeam IT", 8 clients, one Pax8 bill</figcaption>
+      <figcaption>Example · demo MSP "Northbeam IT", one Pax8 bill</figcaption>
     </figure>
   );
 }
 
-function WaitlistForm() {
+function AuditForm() {
   const [state, setState] = useState<"idle" | "pending" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -429,49 +599,49 @@ function WaitlistForm() {
 
   if (state === "done") {
     return (
-      <p className="lp-done" role="status">
-        Thanks. We'll email you within one working day with where to send the
+      <p className="st-done" role="status">
+        You're in. We'll email you within one working day with where to send the
         export.
       </p>
     );
   }
 
   return (
-    <form className="lp-form" onSubmit={submit} aria-busy={state === "pending"}>
-      <div className="lp-field">
-        <Label htmlFor="wl-email">Work email</Label>
-        <Input
-          id="wl-email"
+    <form className="st-form" onSubmit={submit} aria-busy={state === "pending"}>
+      <label htmlFor="audit-email">
+        Work email
+        <input
+          id="audit-email"
           name="email"
           type="email"
           required
-          placeholder="you@yourmsp.com"
           autoComplete="email"
-          aria-describedby="wl-email-hint"
+          placeholder="you@yourmsp.com"
+          aria-describedby="audit-email-hint"
         />
-        <span id="wl-email-hint" className="lp-hint">
-          Company address only, no Gmail or Outlook.com.
-        </span>
-      </div>
-      <div className="lp-field">
-        <Label htmlFor="wl-company">MSP name</Label>
-        <Input id="wl-company" name="company" maxLength={160} />
-      </div>
-      <div className="lp-field">
-        <Label htmlFor="wl-seats">Microsoft seats under management</Label>
-        <Input id="wl-seats" name="seats" type="number" min={1} />
-      </div>
+      </label>
+      <span id="audit-email-hint" className="st-hint">
+        Company address only. Gmail, Outlook.com and similar are not accepted.
+      </span>
+      <label htmlFor="audit-company">
+        MSP name
+        <input id="audit-company" name="company" maxLength={160} />
+      </label>
+      <label htmlFor="audit-seats">
+        Microsoft seats you resell
+        <input id="audit-seats" name="seats" type="number" min={1} />
+      </label>
       {error && (
-        <p className="lp-error" role="alert">
+        <p className="st-error" role="alert">
           {error}
         </p>
       )}
-      <Button type="submit" size="lg" disabled={state === "pending"}>
+      <button className="st-btn" type="submit" disabled={state === "pending"}>
         {state === "pending" && (
           <LoaderCircle className="spin" size={16} aria-hidden="true" />
         )}
-        Request my free audit
-      </Button>
+        {cta}
+      </button>
     </form>
   );
 }
