@@ -10,6 +10,7 @@ import {
   useCreateClient,
   useMapBillingClient,
   useSaveMapping,
+  useSaveSkuAlias,
 } from "../lib/recon-query";
 import { privateHead } from "../lib/seo";
 import { useCan } from "../lib/workspace";
@@ -171,6 +172,15 @@ function MappingsPage() {
           <UnmatchedBilling
             names={data.unmappedBilling}
             clients={data.clients}
+            canEdit={canEdit}
+            onNotice={setNotice}
+          />
+        )}
+
+        {data && data.billedSkus.length > 0 && (
+          <BilledSkus
+            skus={data.billedSkus}
+            vendorSkus={data.vendorSkus}
             canEdit={canEdit}
             onNotice={setNotice}
           />
@@ -374,6 +384,146 @@ function UnmatchedBilling({
                       onClick={() => map(entry.clientName)}
                     >
                       Match
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+const notDistributor = "__none__";
+
+/** Billed SKUs that aren't on the distributor bill, and saved SKU aliases. */
+function BilledSkus({
+  skus,
+  vendorSkus,
+  canEdit,
+  onNotice,
+}: {
+  skus: {
+    sku: string;
+    productName: string;
+    clientCount: number;
+    quantity: number;
+    aliasSku: string | null;
+  }[];
+  vendorSkus: { sku: string; productName: string }[];
+  canEdit: boolean;
+  onNotice: (notice: string | null) => void;
+}) {
+  const save = useSaveSkuAlias();
+  const [choices, setChoices] = useState<Record<string, string>>({});
+  const current = (entry: (typeof skus)[number]) =>
+    choices[entry.sku] ??
+    (entry.aliasSku === null
+      ? ""
+      : entry.aliasSku === ""
+        ? notDistributor
+        : entry.aliasSku);
+
+  async function map(entry: (typeof skus)[number]) {
+    const choice = current(entry);
+    if (!choice) return;
+    onNotice(null);
+    try {
+      await save.mutateAsync({
+        alias: entry.sku,
+        sku: choice === notDistributor ? "" : choice,
+      });
+      onNotice(`${entry.sku} saved. Reconciliation re-ran.`);
+    } catch {
+      // Shown via save.error.
+    }
+  }
+
+  return (
+    <section
+      className="recon-panel"
+      aria-labelledby="billed-skus-title"
+      style={{ marginTop: 16 }}
+    >
+      <h2 id="billed-skus-title">Billed SKUs → distributor SKU</h2>
+      <p>
+        Billed product IDs that aren't on the distributor bill. Point each at
+        its Pax8 SKU once, or mark it as not a distributor product (managed
+        services, hardware) so it's left out.
+      </p>
+      {save.error && (
+        <span className="dialog-error" role="alert">
+          {save.error.message}
+        </span>
+      )}
+      <div className="recon-table-wrap">
+        <table className="recon-table">
+          <thead>
+            <tr>
+              <th scope="col">Billed SKU</th>
+              <th scope="col">Distributor SKU</th>
+              <th scope="col">
+                <span className="sr-only">Save</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {skus.map((entry) => {
+              const selectId = `sku-${entry.sku}`;
+              return (
+                <tr key={entry.sku}>
+                  <td>
+                    <div>{entry.sku}</div>
+                    <div className="recon-summary">
+                      {entry.productName !== entry.sku &&
+                        `${entry.productName} · `}
+                      {entry.aliasSku === null
+                        ? `${entry.quantity} billed to ${entry.clientCount} client${entry.clientCount === 1 ? "" : "s"}`
+                        : "Saved"}
+                    </div>
+                  </td>
+                  <td>
+                    <label className="sr-only" htmlFor={selectId}>
+                      Distributor SKU for {entry.sku}
+                    </label>
+                    <select
+                      id={selectId}
+                      className="recon-select"
+                      disabled={!canEdit}
+                      value={current(entry)}
+                      onChange={(event) =>
+                        setChoices((existing) => ({
+                          ...existing,
+                          [entry.sku]: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Choose a SKU…</option>
+                      <option value={notDistributor}>
+                        Not a distributor product
+                      </option>
+                      {vendorSkus.map((vendor) => (
+                        <option key={vendor.sku} value={vendor.sku}>
+                          {vendor.productName} ({vendor.sku})
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <Button
+                      size="sm"
+                      type="button"
+                      disabled={
+                        !canEdit ||
+                        !current(entry) ||
+                        choices[entry.sku] === undefined ||
+                        save.isPending
+                      }
+                      onClick={() => map(entry)}
+                    >
+                      Save
                     </Button>
                   </td>
                 </tr>

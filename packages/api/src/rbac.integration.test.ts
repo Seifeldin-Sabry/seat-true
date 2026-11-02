@@ -87,6 +87,12 @@ function permissionMatrix(): {
     },
     {
       method: "PUT",
+      path: "/recon/sku-aliases",
+      body: { alias: "M365-BP", sku: "CFQ7TTC0LCHC" },
+      allowed: opsAndUp,
+    },
+    {
+      method: "PUT",
       path: "/recon/billing/mappings",
       body: { clientName: "Acme", clientId: id() },
       allowed: opsAndUp,

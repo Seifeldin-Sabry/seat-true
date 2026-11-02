@@ -234,3 +234,28 @@ export const integrationWaitlist = pgTable(
     ),
   ],
 );
+
+/**
+ * PSA product ID or name → distributor SKU, per workspace. Applied to billed
+ * lines before reconciling. An empty `sku` means "not a distributor product"
+ * (e.g. a managed-services line): those billed lines are left out.
+ */
+export const skuAliases = pgTable(
+  "sku_aliases",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: organizationId(),
+    /** Normalised (lower-case, letters and digits only) PSA SKU or name. */
+    aliasKey: varchar("alias_key", { length: 200 }).notNull(),
+    /** As the PSA wrote it, for display. */
+    label: varchar("label", { length: 200 }).notNull(),
+    sku: varchar("sku", { length: 64 }).notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex("sku_aliases_organization_key_idx").on(
+      table.organizationId,
+      table.aliasKey,
+    ),
+  ],
+);

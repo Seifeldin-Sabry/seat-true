@@ -60,5 +60,6 @@ export {
   reconciliationRuns,
   type StoredBilledLine,
   type StoredVendorLine,
+  skuAliases,
   waitlistEntries,
 } from "./recon-schema";

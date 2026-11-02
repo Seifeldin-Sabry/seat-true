@@ -404,3 +404,68 @@ integrationTest(
     }
   },
 );
+
+integrationTest(
+  "SKU aliases resolve PSA product IDs before comparing",
+  async () => {
+    if (!databaseUrl) return;
+    const connection = createDatabase(databaseUrl);
+    const db = connection.db;
+    const recon = createReconService(db);
+    const orgId = `sku-${crypto.randomUUID()}`;
+    await db
+      .insert(organization)
+      .values({ id: orgId, name: orgId, slug: orgId });
+    try {
+      const acme = await recon.createClient(orgId, {
+        name: "Acme Corp",
+        markupPct: 20,
+      });
+      await recon.uploadRun(
+        orgId,
+        "pax8.csv",
+        "Company ID,Company Name,SKU,Product Name,Quantity,Cost\nPX-1,Acme,CFQ7TTC0LCHC,Business Premium,10,$22.00",
+      );
+      await recon.setMapping(orgId, "PX-1", acme.id, null);
+      await recon.importBilling(
+        orgId,
+        "psa.csv",
+        "Client,Product ID,Description,Qty,Unit Price\nAcme Corp,M365-BP,Business Premium,10,$26.40\nAcme Corp,MSP-GOLD,Managed Services Gold,1,$1500.00",
+        null,
+      );
+      const kinds = async () =>
+        (await recon.exceptions(orgId))
+          .map((entry) => `${entry.kind}:${entry.sku}`)
+          .sort();
+      expect(await kinds()).toEqual([
+        "overbilled:M365-BP",
+        "overbilled:MSP-GOLD",
+        "unbilled_seats:CFQ7TTC0LCHC",
+      ]);
+      const before = await recon.mappings(orgId);
+      expect(before.billedSkus).toMatchObject([
+        { sku: "M365-BP", clientCount: 1, quantity: 10, aliasSku: null },
+        { sku: "MSP-GOLD", aliasSku: null },
+      ]);
+      expect(before.vendorSkus).toEqual([
+        { sku: "CFQ7TTC0LCHC", productName: "Business Premium" },
+      ]);
+
+      await recon.setSkuAlias(orgId, "M365-BP", "CFQ7TTC0LCHC", null);
+      await recon.setSkuAlias(orgId, "MSP-GOLD", "", null);
+      expect(await kinds()).toEqual([]);
+      expect(
+        (await recon.mappings(orgId)).billedSkus.map((entry) => [
+          entry.sku,
+          entry.aliasSku,
+        ]),
+      ).toEqual([
+        ["M365-BP", "CFQ7TTC0LCHC"],
+        ["MSP-GOLD", ""],
+      ]);
+    } finally {
+      await db.delete(organization).where(eq(organization.id, orgId));
+      await connection.close();
+    }
+  },
+);

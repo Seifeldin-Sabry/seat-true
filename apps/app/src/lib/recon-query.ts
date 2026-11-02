@@ -17,6 +17,7 @@ import {
   mapBillingClient,
   saveAgreementLines,
   saveMapping,
+  saveSkuAlias,
   setClientArchived,
   setClientMarkup,
   setExceptionFlag,
@@ -88,6 +89,14 @@ export function useSaveAgreementLines() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: saveAgreementLines,
+    onSuccess: () => invalidateRecon(queryClient),
+  });
+}
+
+export function useSaveSkuAlias() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: saveSkuAlias,
     onSuccess: () => invalidateRecon(queryClient),
   });
 }

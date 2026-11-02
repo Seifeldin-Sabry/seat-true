@@ -380,6 +380,38 @@ export function createReconRoutes({
         },
       )
       .put(
+        "/recon/sku-aliases",
+        async ({ request, body, status }) => {
+          if (!isTrusted(request)) return status(403, invalidOrigin);
+          const access = await guard(request.headers, { mapping: ["edit"] });
+          if (!access.ok) return status(access.status, access.body);
+          const { workspace } = access;
+          if (!(await canWrite(workspace.organizationId)))
+            return status(402, readOnly);
+          await recon.setSkuAlias(
+            workspace.organizationId,
+            body.alias.trim(),
+            body.sku.trim(),
+            actorOf(workspace),
+          );
+          return { success: true as const };
+        },
+        {
+          body: t.Object(
+            {
+              alias: t.String({
+                minLength: 1,
+                maxLength: 200,
+                pattern: "[A-Za-z0-9]",
+              }),
+              // "" = not a distributor product: leave those billed lines out.
+              sku: t.String({ maxLength: 64 }),
+            },
+            { additionalProperties: false },
+          ),
+        },
+      )
+      .put(
         "/recon/clients/:id/agreements",
         async ({ request, params, body, status }) => {
           if (!isTrusted(request)) return status(403, invalidOrigin);

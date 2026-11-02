@@ -10,9 +10,11 @@ import {
   reconciliationRuns,
   type StoredBilledLine,
   type StoredVendorLine,
+  skuAliases,
   waitlistEntries,
 } from "@seattrue/db";
 import {
+  applySkuAliases,
   type BillingRowError,
   billedLinesToAgreements,
   CsvFormatError,
@@ -25,6 +27,7 @@ import {
   parseBillingCsv,
   parsePax8Csv,
   reconcile,
+  skuAliasKey,
   type VendorLine,
 } from "@seattrue/recon";
 import {
@@ -139,7 +142,21 @@ export type UnmappedBillingClientDto = {
   monthlyBilledCents: number;
 };
 
+export type BilledSkuDto = {
+  /** As billed (PSA SKU / product ID). */
+  sku: string;
+  productName: string;
+  clientCount: number;
+  quantity: number;
+  /** Distributor SKU it maps to; "" = not a distributor product; null = no alias. */
+  aliasSku: string | null;
+};
+
 export type MappingsDto = {
+  /** Billed SKUs not on the distributor bill, plus every saved alias. */
+  billedSkus: BilledSkuDto[];
+  /** SKUs on the latest distributor bill, to alias onto. */
+  vendorSkus: { sku: string; productName: string }[];
   mappings: { customerKey: string; clientId: string; clientName: string }[];
   unmapped: UnmappedCustomerDto[];
   /** Client names from the billing CSV that match no SeatTrue client. */
@@ -271,6 +288,13 @@ export type ReconService = {
     lines: AgreementLineInput[],
     actor: Actor,
   ): Promise<AgreementDto[] | null>;
+  /** PSA SKU or name → distributor SKU ("" = not a distributor product); re-runs. */
+  setSkuAlias(
+    organizationId: string,
+    alias: string,
+    sku: string,
+    actor: Actor,
+  ): Promise<void>;
   /** Billing CSV client name → client; moves its waiting rows. False when the client isn't in the workspace. */
   mapBillingClient(
     organizationId: string,
@@ -421,6 +445,14 @@ export function createReconService(db: Database): ReconService {
     }));
   }
 
+  async function aliasMap(organizationId: string) {
+    const rows = await db
+      .select({ aliasKey: skuAliases.aliasKey, sku: skuAliases.sku })
+      .from(skuAliases)
+      .where(eq(skuAliases.organizationId, organizationId));
+    return new Map(rows.map((row) => [row.aliasKey, row.sku]));
+  }
+
   async function organizationClients(organizationId: string) {
     return db
       .select()
@@ -447,7 +479,7 @@ export function createReconService(db: Database): ReconService {
    * agreements. Statuses the user already set survive the recompute.
    */
   async function recompute(organizationId: string, run: RunRow) {
-    const [clientRows, mappingRows, agreementRows, previous] =
+    const [clientRows, mappingRows, agreementRows, previous, aliases] =
       await Promise.all([
         organizationClients(organizationId),
         db
@@ -459,6 +491,7 @@ export function createReconService(db: Database): ReconService {
           .from(agreementLines)
           .where(eq(agreementLines.organizationId, organizationId)),
         runExceptions(organizationId, run.id),
+        aliasMap(organizationId),
       ]);
 
     // Locked and archived clients sit out reconciliation entirely: their bill
@@ -488,7 +521,11 @@ export function createReconService(db: Database): ReconService {
       mappings: mappingRows.filter(
         (mapping) => !excluded.has(mapping.clientId),
       ),
-      agreements: agreementRows.filter((line) => !excluded.has(line.clientId)),
+      // PSA product IDs and names resolve to distributor SKUs first.
+      agreements: applySkuAliases(
+        agreementRows.filter((line) => !excluded.has(line.clientId)),
+        aliases,
+      ),
     });
     // Rows that are still found keep their id, so status, flag and comments
     // survive the recompute; rows no longer found are removed.
@@ -860,12 +897,59 @@ export function createReconService(db: Database): ReconService {
     },
 
     async mappings(organizationId) {
-      const [run, clientRows, mappingRows, billing] = await Promise.all([
-        latestRun(organizationId),
-        organizationClients(organizationId),
-        mappingRowsFor(organizationId),
-        latestBillingImport(organizationId),
-      ]);
+      const [run, clientRows, mappingRows, billing, aliasRows, billedRows] =
+        await Promise.all([
+          latestRun(organizationId),
+          organizationClients(organizationId),
+          mappingRowsFor(organizationId),
+          latestBillingImport(organizationId),
+          db
+            .select()
+            .from(skuAliases)
+            .where(eq(skuAliases.organizationId, organizationId))
+            .orderBy(asc(skuAliases.label)),
+          db
+            .select()
+            .from(agreementLines)
+            .where(eq(agreementLines.organizationId, organizationId)),
+        ]);
+      const vendorSkus = new Map<string, string>();
+      for (const line of run?.vendorLines ?? [])
+        vendorSkus.set(line.sku, line.productName);
+      const aliasByKey = new Map(aliasRows.map((row) => [row.aliasKey, row]));
+      const billedSkus = new Map<
+        string,
+        BilledSkuDto & { clients: Set<string> }
+      >();
+      for (const row of aliasRows)
+        billedSkus.set(row.aliasKey, {
+          sku: row.label,
+          productName: row.label,
+          clientCount: 0,
+          quantity: 0,
+          aliasSku: row.sku,
+          clients: new Set(),
+        });
+      // Billed SKUs that aren't on the bill and have no alias need one.
+      for (const line of run ? billedRows : []) {
+        const key = skuAliasKey(line.sku);
+        const alias =
+          aliasByKey.get(key) ?? aliasByKey.get(skuAliasKey(line.productName));
+        if (!alias && vendorSkus.has(line.sku)) continue;
+        const entryKey = alias?.aliasKey ?? key;
+        const entry = billedSkus.get(entryKey) ?? {
+          sku: line.sku,
+          productName: line.productName,
+          clientCount: 0,
+          quantity: 0,
+          aliasSku: null,
+          clients: new Set<string>(),
+        };
+        entry.clients.add(line.clientId);
+        entry.clientCount = entry.clients.size;
+        entry.quantity += line.quantity;
+        billedSkus.set(entryKey, entry);
+      }
       const unmappedBilling = new Map<string, UnmappedBillingClientDto>();
       for (const line of billing?.unmappedLines ?? []) {
         const key = normalizeClientName(line.clientName);
@@ -906,6 +990,16 @@ export function createReconService(db: Database): ReconService {
           .sort((a, b) => a.clientName.localeCompare(b.clientName)),
         unmapped: [...unmapped.values()],
         unmappedBilling: [...unmappedBilling.values()],
+        billedSkus: [...billedSkus.values()]
+          .map(({ clients: _, ...entry }) => entry)
+          // Unaliased first: they're the ones to act on.
+          .sort(
+            (a, b) => Number(a.aliasSku !== null) - Number(b.aliasSku !== null),
+          ),
+        vendorSkus: [...vendorSkus].map(([sku, productName]) => ({
+          sku,
+          productName,
+        })),
         clients: clientRows.map(({ id, name }) => ({ id, name })),
       };
     },
@@ -1161,6 +1255,39 @@ export function createReconService(db: Database): ReconService {
       await touch(clientId);
       await refresh(organizationId);
       return agreementsFor(organizationId, clientId);
+    },
+
+    async setSkuAlias(organizationId, alias, sku, actor) {
+      const aliasKey = skuAliasKey(alias);
+      await db.transaction(async (tx) => {
+        const [before] = await tx
+          .select({ sku: skuAliases.sku })
+          .from(skuAliases)
+          .where(
+            and(
+              eq(skuAliases.organizationId, organizationId),
+              eq(skuAliases.aliasKey, aliasKey),
+            ),
+          )
+          .limit(1);
+        await tx
+          .insert(skuAliases)
+          .values({ organizationId, aliasKey, label: alias, sku })
+          .onConflictDoUpdate({
+            target: [skuAliases.organizationId, skuAliases.aliasKey],
+            set: { sku, label: alias },
+          });
+        await recordAudit(tx, {
+          organizationId,
+          actor,
+          action: "mapping.change",
+          targetType: "sku",
+          targetId: alias,
+          before: before ? { sku: before.sku } : null,
+          after: { sku },
+        });
+      });
+      await refresh(organizationId);
     },
 
     async mapBillingClient(organizationId, clientName, clientId, actor) {

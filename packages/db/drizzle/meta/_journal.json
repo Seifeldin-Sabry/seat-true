@@ -64,6 +64,13 @@
       "when": 1793620544588,
       "tag": "0008_integration_waitlist",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793620914180,
+      "tag": "0009_sku_aliases",
+      "breakpoints": true
     }
   ]
 }

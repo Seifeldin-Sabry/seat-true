@@ -24,6 +24,7 @@ export type { ProjectDto } from "./projects";
 export type {
   AgreementDto,
   AgreementLineInput,
+  BilledSkuDto,
   BillingImportDto,
   BillingImportSummaryDto,
   ClientDetailDto,

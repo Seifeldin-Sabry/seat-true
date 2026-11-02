@@ -30,6 +30,7 @@ export {
   reconciliationExceptions,
   reconciliationRuns,
   session,
+  skuAliases,
   user,
   verification,
   waitlistEntries,

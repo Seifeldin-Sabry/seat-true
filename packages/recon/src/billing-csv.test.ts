@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import {
+  applySkuAliases,
   billedLinesToAgreements,
   normalizeClientName,
   parseBillingCsv,
+  skuAliasKey,
 } from "./billing-csv";
 import { CsvFormatError, parsePax8Csv } from "./pax8-csv";
 import { reconcile } from "./reconcile";
@@ -168,5 +170,82 @@ describe("Pax8 bill + client billing export, end to end", () => {
         ["overbilled", "TEAMS", 2 * 1000],
       ].sort(),
     );
+  });
+});
+
+describe("applySkuAliases", () => {
+  const vendorLines = parsePax8Csv(
+    "Company ID,Company Name,SKU,Product Name,Quantity,Cost\nPX-1,Acme,CFQ7TTC0LCHC,Business Premium,10,$22.00",
+  );
+  const clients: Client[] = [
+    { id: "c1", name: "Acme", status: "active", markupPct: 20 },
+  ];
+  const premium = {
+    clientId: "c1",
+    sku: "M365-BP",
+    productName: "Business Premium",
+    quantity: 10,
+    unitPriceCents: 2640,
+  };
+  const billed = [
+    // PSA product ID differs from the Pax8 SKU.
+    premium,
+    // Managed services: not on the distributor bill at all.
+    {
+      clientId: "c1",
+      sku: "MSP-GOLD",
+      productName: "Managed Services Gold",
+      quantity: 1,
+      unitPriceCents: 150000,
+    },
+  ];
+  const run = (aliases: Map<string, string>) =>
+    reconcile({
+      vendorLines,
+      clients,
+      mappings: [{ customerKey: "PX-1", clientId: "c1" }],
+      agreements: applySkuAliases(billed, aliases),
+    }).map((exception) => `${exception.kind}:${exception.sku}`);
+
+  test("without aliases the PSA SKU looks unbilled and overbilled", () => {
+    expect(run(new Map()).sort()).toEqual([
+      "overbilled:M365-BP",
+      "overbilled:MSP-GOLD",
+      "unbilled_seats:CFQ7TTC0LCHC",
+    ]);
+  });
+
+  test("an aliased SKU (or name) gives no false unbilled or overbilled", () => {
+    expect(
+      run(
+        new Map([
+          [skuAliasKey("m365 bp"), "CFQ7TTC0LCHC"],
+          [skuAliasKey("Managed Services Gold"), ""],
+        ]),
+      ),
+    ).toEqual([]);
+  });
+
+  test("lines aliased onto one SKU are summed", () => {
+    expect(
+      applySkuAliases(
+        [
+          { ...premium, quantity: 4, unitPriceCents: 2000 },
+          { ...premium, sku: "BP-2", quantity: 4, unitPriceCents: 3000 },
+        ],
+        new Map([
+          ["m365bp", "X"],
+          ["bp2", "X"],
+        ]),
+      ),
+    ).toEqual([
+      {
+        clientId: "c1",
+        sku: "X",
+        productName: "Business Premium",
+        quantity: 8,
+        unitPriceCents: 2500,
+      },
+    ]);
   });
 });

@@ -236,3 +236,12 @@ export async function getIntegrationWaitlistCounts(): Promise<
     throw new Error(apiErrorMessage(error, "Could not load waitlist counts."));
   return data?.counts ?? [];
 }
+
+export async function saveSkuAlias(input: {
+  alias: string;
+  sku: string;
+}): Promise<void> {
+  const api = getApiClient();
+  const { error } = await api.recon["sku-aliases"].put(input);
+  if (error) throw new Error(apiErrorMessage(error, "Could not save SKU."));
+}

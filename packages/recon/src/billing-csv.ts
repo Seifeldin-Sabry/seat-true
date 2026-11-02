@@ -180,22 +180,33 @@ export function billedLinesToAgreements(
   lines: BilledLine[],
   resolveClientId: (clientName: string) => string | undefined,
 ): { agreements: BilledAgreementLine[]; unmatched: BilledLine[] } {
+  const matched: BilledAgreementLine[] = [];
+  const unmatched: BilledLine[] = [];
+  for (const line of lines) {
+    const clientId = resolveClientId(line.clientName);
+    if (!clientId) unmatched.push(line);
+    else
+      matched.push({
+        clientId,
+        sku: line.sku,
+        productName: line.productName,
+        quantity: line.quantity,
+        unitPriceCents: line.unitPriceCents,
+      });
+  }
+  return { agreements: groupByClientSku(matched), unmatched };
+}
+
+/** Sums lines per client + SKU; the unit price becomes the quantity-weighted average. */
+function groupByClientSku(lines: BilledAgreementLine[]): BilledAgreementLine[] {
   const groups = new Map<
     string,
     BilledAgreementLine & { totalCents: number }
   >();
-  const unmatched: BilledLine[] = [];
   for (const line of lines) {
-    const clientId = resolveClientId(line.clientName);
-    if (!clientId) {
-      unmatched.push(line);
-      continue;
-    }
-    const key = `${clientId}\u0000${line.sku}`;
+    const key = `${line.clientId}\u0000${line.sku}`;
     const group = groups.get(key) ?? {
-      clientId,
-      sku: line.sku,
-      productName: line.productName,
+      ...line,
       quantity: 0,
       unitPriceCents: 0,
       totalCents: 0,
@@ -209,8 +220,30 @@ export function billedLinesToAgreements(
         : line.unitPriceCents;
     groups.set(key, group);
   }
-  return {
-    agreements: [...groups.values()].map(({ totalCents: _, ...line }) => line),
-    unmatched,
-  };
+  return [...groups.values()].map(({ totalCents: _, ...line }) => line);
+}
+
+/** PSA SKU / product name → alias key: case, spacing and punctuation ignored. */
+export const skuAliasKey = (value: string) =>
+  normalizeHeader(value).slice(0, 200);
+
+/**
+ * Billed lines → distributor SKUs. Each line's SKU, then its product name, is
+ * looked up in `aliases` (alias key → distributor SKU). An alias to "" marks a
+ * non-distributor product and drops the line. Lines that land on the same
+ * client + SKU are summed.
+ */
+export function applySkuAliases(
+  lines: BilledAgreementLine[],
+  aliases: ReadonlyMap<string, string>,
+): BilledAgreementLine[] {
+  const mapped: BilledAgreementLine[] = [];
+  for (const line of lines) {
+    const sku =
+      aliases.get(skuAliasKey(line.sku)) ??
+      aliases.get(skuAliasKey(line.productName)) ??
+      line.sku;
+    if (sku !== "") mapped.push({ ...line, sku });
+  }
+  return groupByClientSku(mapped);
 }
