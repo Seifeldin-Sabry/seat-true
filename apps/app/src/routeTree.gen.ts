@@ -15,6 +15,7 @@ import { Route as GlossaryRouteImport } from './routes/glossary'
 import { Route as LlmsFullDottxtRouteImport } from './routes/llms-full[.]txt'
 import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as RssDotxmlRouteImport } from './routes/rss[.]xml'
@@ -30,6 +31,8 @@ import { Route as AppMappingsRouteImport } from './routes/app.mappings'
 import { Route as AppMembersRouteImport } from './routes/app.members'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as CompareCompetitorRouteImport } from './routes/compare.$competitor'
+import { Route as ForAudienceRouteImport } from './routes/for.$audience'
 import { Route as OgSplatRouteImport } from './routes/og.$'
 import { Route as AppClientsClientIdRouteImport } from './routes/app.clients.$clientId'
 
@@ -61,6 +64,11 @@ const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -139,6 +147,16 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompareCompetitorRoute = CompareCompetitorRouteImport.update({
+  id: '/compare/$competitor',
+  path: '/compare/$competitor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForAudienceRoute = ForAudienceRouteImport.update({
+  id: '/for/$audience',
+  path: '/for/$audience',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OgSplatRoute = OgSplatRouteImport.update({
   id: '/og/$',
   path: '/og/$',
@@ -157,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/llms-full.txt': typeof LlmsFullDottxtRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
@@ -170,6 +189,8 @@ export interface FileRoutesByFullPath {
   '/app/mappings': typeof AppMappingsRoute
   '/app/members': typeof AppMembersRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/compare/$competitor': typeof CompareCompetitorRoute
+  '/for/$audience': typeof ForAudienceRoute
   '/og/$': typeof OgSplatRoute
   '/app/': typeof AppIndexRoute
   '/blog/': typeof BlogIndexRoute
@@ -182,6 +203,7 @@ export interface FileRoutesByTo {
   '/llms-full.txt': typeof LlmsFullDottxtRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
@@ -195,6 +217,8 @@ export interface FileRoutesByTo {
   '/app/mappings': typeof AppMappingsRoute
   '/app/members': typeof AppMembersRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/compare/$competitor': typeof CompareCompetitorRoute
+  '/for/$audience': typeof ForAudienceRoute
   '/og/$': typeof OgSplatRoute
   '/app': typeof AppIndexRoute
   '/blog': typeof BlogIndexRoute
@@ -208,6 +232,7 @@ export interface FileRoutesById {
   '/llms-full.txt': typeof LlmsFullDottxtRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
@@ -221,6 +246,8 @@ export interface FileRoutesById {
   '/app/mappings': typeof AppMappingsRoute
   '/app/members': typeof AppMembersRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/compare/$competitor': typeof CompareCompetitorRoute
+  '/for/$audience': typeof ForAudienceRoute
   '/og/$': typeof OgSplatRoute
   '/app/': typeof AppIndexRoute
   '/blog/': typeof BlogIndexRoute
@@ -235,6 +262,7 @@ export interface FileRouteTypes {
     | '/llms-full.txt'
     | '/llms.txt'
     | '/login'
+    | '/pricing'
     | '/reset-password'
     | '/robots.txt'
     | '/rss.xml'
@@ -248,6 +276,8 @@ export interface FileRouteTypes {
     | '/app/mappings'
     | '/app/members'
     | '/blog/$slug'
+    | '/compare/$competitor'
+    | '/for/$audience'
     | '/og/$'
     | '/app/'
     | '/blog/'
@@ -260,6 +290,7 @@ export interface FileRouteTypes {
     | '/llms-full.txt'
     | '/llms.txt'
     | '/login'
+    | '/pricing'
     | '/reset-password'
     | '/robots.txt'
     | '/rss.xml'
@@ -273,6 +304,8 @@ export interface FileRouteTypes {
     | '/app/mappings'
     | '/app/members'
     | '/blog/$slug'
+    | '/compare/$competitor'
+    | '/for/$audience'
     | '/og/$'
     | '/app'
     | '/blog'
@@ -285,6 +318,7 @@ export interface FileRouteTypes {
     | '/llms-full.txt'
     | '/llms.txt'
     | '/login'
+    | '/pricing'
     | '/reset-password'
     | '/robots.txt'
     | '/rss.xml'
@@ -298,6 +332,8 @@ export interface FileRouteTypes {
     | '/app/mappings'
     | '/app/members'
     | '/blog/$slug'
+    | '/compare/$competitor'
+    | '/for/$audience'
     | '/og/$'
     | '/app/'
     | '/blog/'
@@ -311,6 +347,7 @@ export interface RootRouteChildren {
   LlmsFullDottxtRoute: typeof LlmsFullDottxtRoute
   LlmsDottxtRoute: typeof LlmsDottxtRoute
   LoginRoute: typeof LoginRoute
+  PricingRoute: typeof PricingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   RssDotxmlRoute: typeof RssDotxmlRoute
@@ -324,6 +361,8 @@ export interface RootRouteChildren {
   AppMappingsRoute: typeof AppMappingsRoute
   AppMembersRoute: typeof AppMembersRoute
   BlogSlugRoute: typeof BlogSlugRoute
+  CompareCompetitorRoute: typeof CompareCompetitorRoute
+  ForAudienceRoute: typeof ForAudienceRoute
   OgSplatRoute: typeof OgSplatRoute
   AppIndexRoute: typeof AppIndexRoute
   BlogIndexRoute: typeof BlogIndexRoute
@@ -372,6 +411,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -479,6 +525,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/compare/$competitor': {
+      id: '/compare/$competitor'
+      path: '/compare/$competitor'
+      fullPath: '/compare/$competitor'
+      preLoaderRoute: typeof CompareCompetitorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for/$audience': {
+      id: '/for/$audience'
+      path: '/for/$audience'
+      fullPath: '/for/$audience'
+      preLoaderRoute: typeof ForAudienceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/og/$': {
       id: '/og/$'
       path: '/og/$'
@@ -503,6 +563,7 @@ const rootRouteChildren: RootRouteChildren = {
   LlmsFullDottxtRoute: LlmsFullDottxtRoute,
   LlmsDottxtRoute: LlmsDottxtRoute,
   LoginRoute: LoginRoute,
+  PricingRoute: PricingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   RssDotxmlRoute: RssDotxmlRoute,
@@ -516,6 +577,8 @@ const rootRouteChildren: RootRouteChildren = {
   AppMappingsRoute: AppMappingsRoute,
   AppMembersRoute: AppMembersRoute,
   BlogSlugRoute: BlogSlugRoute,
+  CompareCompetitorRoute: CompareCompetitorRoute,
+  ForAudienceRoute: ForAudienceRoute,
   OgSplatRoute: OgSplatRoute,
   AppIndexRoute: AppIndexRoute,
   BlogIndexRoute: BlogIndexRoute,

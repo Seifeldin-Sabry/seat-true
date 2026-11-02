@@ -97,7 +97,7 @@ MSPs that resell Microsoft 365 through Pax8 and bill clients from a PSA such as 
 
 ## How it works today
 
-- Input: CSV exports of the distributor bill and PSA agreement lines. No API access needed; it never writes to Pax8 or the PSA.
+- Input: CSV exports (Pax8 billing export; Partner Center reconciliation files also work). No API access needed; it never writes to Pax8 or the PSA.
 - A Pax8 API connection and HaloPSA sync are planned, not live.
 - Sign-in requires a company email address.
 

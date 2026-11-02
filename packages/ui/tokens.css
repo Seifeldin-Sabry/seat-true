@@ -1,4 +1,14 @@
 /* Shared brand tokens. Change values here when adapting starter to a product. */
+/* Arial tuned to Inter's metrics so the swap doesn't shift layout. */
+@font-face {
+  font-family: "Inter Fallback";
+  src: local("Arial");
+  size-adjust: 107.12%;
+  ascent-override: 90.44%;
+  descent-override: 22.52%;
+  line-gap-override: 0%;
+}
+
 :root {
   color-scheme: light;
   /* SeatTrue: warm ledger paper, ink, leak orange. */
@@ -40,7 +50,7 @@
   --ring: var(--st-ink);
   --radius: 0.5rem;
   --type-display: "Bricolage Grotesque", "Arial", sans-serif;
-  --type-body: "Inter", "Arial", sans-serif;
+  --type-body: "Inter", "Inter Fallback", "Arial", sans-serif;
   --type-mono: "JetBrains Mono", "SFMono-Regular", monospace;
   --color-graphite: var(--st-deep);
   --color-graphite-2: var(--st-deep-2);

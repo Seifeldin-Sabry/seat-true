@@ -1,0 +1,233 @@
+import type { Source } from "../components/marketing";
+import type { SitePageKey } from "./site";
+
+/**
+ * Comparison pages. Claims about other products come only from their own
+ * public pages (listed as sources, checked November 2026). Where a page is
+ * silent we say "not documented", never "doesn't".
+ */
+export type Comparison = {
+  key: SitePageKey;
+  name: string;
+  title: string;
+  intro: string;
+  chooseThem: string[];
+  chooseUs: string[];
+  rows: { check: string; them: string; us: string }[];
+  theirStrengths: string;
+  sources: Source[];
+  posts: string[];
+  terms: string[];
+  pages: SitePageKey[];
+};
+
+const microsoftPricingFaq: Source = {
+  label: "Microsoft: 2026 Microsoft 365 packaging and pricing updates FAQ",
+  href: "https://www.microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ",
+  note: "price updates from July 1, 2026 apply at each renewal",
+};
+const reconciliationFiles: Source = {
+  label: "Microsoft Learn: Use the reconciliation files",
+  href: "https://learn.microsoft.com/en-us/partner-center/billing/use-the-reconciliation-files",
+  note: "use EffectiveUnitPrice for licence-based cost",
+};
+
+export const comparisons: Record<string, Comparison> = {
+  gradient: {
+    key: "compareGradient",
+    name: "Gradient MSP",
+    title: "SeatTrue vs Gradient MSP",
+    intro:
+      "Gradient MSP is a broad, established billing reconciliation platform. SeatTrue does one narrower job: check every Microsoft line on the Pax8 bill against what you invoice, at cost × the markup agreed with that client.",
+    chooseThem: [
+      "You resell many vendors (security, backup, telephony) and want them all reconciled in one place.",
+      "You buy through several distributors such as Pax8, Ingram Micro and TD SYNNEX.",
+      "You want live PSA integrations today rather than CSV uploads.",
+    ],
+    chooseUs: [
+      "Your leak is Microsoft 365 through Pax8, and you want price checked against each client's markup, not just quantity.",
+      "You want a sign-off inbox with owner, admin and technician roles before invoices go out.",
+      "You'd rather pay a flat $149 or $249 a month than a tier plus a Microsoft add-on.",
+    ],
+    rows: [
+      {
+        check: "Distributors and vendors",
+        them: "Pax8, Ingram Micro, TD SYNNEX StreamOne and many vendors",
+        us: "Microsoft 365 via Pax8; Partner Center files also work",
+      },
+      {
+        check: "PSA connection",
+        them: "Autotask, ConnectWise, HaloPSA, Syncro, Kaseya BMS",
+        us: "None live; CSV upload. HaloPSA sync planned",
+      },
+      {
+        check: "Seat quantity vs what's billed",
+        them: "Yes",
+        us: "Yes",
+      },
+      {
+        check: "Price vs cost × each client's agreed markup",
+        them: "Not documented on public pages",
+        us: "Yes, every line",
+      },
+      {
+        check: "Renewals at a new Microsoft price",
+        them: "Price-increase detection (Microsoft add-on)",
+        us: "Flags lines billed below new cost × markup",
+      },
+      {
+        check: "Sign-off before invoicing",
+        them: "Reconcile in platform",
+        us: "Approve, mark billed or dismiss, with an audit log",
+      },
+      {
+        check: "Price",
+        them: "$299 / $699 / $999 per month by customer count, plus $199/month Microsoft add-on",
+        us: "$149/month (up to 150 clients, 2 users) or $249/month unlimited",
+      },
+    ],
+    theirStrengths:
+      "Gradient covers far more vendors and distributors and connects to five PSAs today. If you need breadth, it's the stronger tool. SeatTrue is cheaper and narrower, and its markup check is the part we haven't seen Gradient document.",
+    sources: [
+      {
+        label: "Gradient MSP pricing",
+        href: "https://www.meetgradient.com/pricing",
+        note: "tiers and Microsoft add-on, checked November 2026",
+      },
+      {
+        label: "Gradient MSP product page",
+        href: "https://www.meetgradient.com/synthesize",
+        note: "integrations and distributors listed",
+      },
+      microsoftPricingFaq,
+    ],
+    posts: ["seattrue-vs-gradient-synthesize", "m365-markup-policy-for-msps"],
+    terms: ["markup-policy", "stale-price", "license-leakage"],
+    pages: ["comparePsaSync", "pricing"],
+  },
+  "pax8-psa-sync": {
+    key: "comparePsaSync",
+    name: "a Pax8-to-PSA sync",
+    title: "SeatTrue vs a Pax8-to-PSA sync",
+    intro:
+      "A native Pax8-to-PSA sync keeps seat quantities on recurring invoices current. It isn't described as checking whether each line is priced at cost × the markup you agreed. SeatTrue does that check, monthly, with sign-off.",
+    chooseThem: [
+      "Quantities drifting between Pax8 and the PSA is your only problem.",
+      "You want changes to flow to the recurring invoice automatically.",
+      "You're happy to build and maintain automation (for example in Rewst) for anything beyond quantity.",
+    ],
+    chooseUs: [
+      "Renewals land at new Microsoft prices one subscription at a time and you need to catch the ones still billed at the old price.",
+      "You want ghost licences for offboarded clients and unmapped Pax8 customers flagged, in dollars.",
+      "You want someone to approve each exception before invoices go out, with a record of who did.",
+    ],
+    rows: [
+      {
+        check: "Keeps seat quantities in step",
+        them: "Yes (HaloPSA: quantities update automatically)",
+        us: "Flags differences; you update the invoice",
+      },
+      {
+        check: "Checks price against cost × agreed markup",
+        them: "Not described on the integration page",
+        us: "Yes, per client",
+      },
+      {
+        check: "Ghost licences for offboarded clients",
+        them: "Not described",
+        us: "Yes",
+      },
+      {
+        check: "Approval before invoicing",
+        them: "Not described",
+        us: "Exceptions inbox with roles and audit log",
+      },
+      {
+        check: "Setup",
+        them: "Configure per PSA; included with the PSA",
+        us: "Upload a CSV; mappings set up with you",
+      },
+      {
+        check: "Price",
+        them: "Included",
+        us: "$149 or $249 a month flat",
+      },
+    ],
+    theirStrengths:
+      "A sync is included, automatic and real time for quantities. Keep it. SeatTrue sits on top as the monthly price and markup check before invoices go out; Rewst and MSPbots can also compare Pax8 with your PSA if you'd rather build or buy a broader automation.",
+    sources: [
+      {
+        label: "HaloPSA: Pax8 integration",
+        href: "https://usehalo.com/integration/pax8-integration",
+        note: "describes quantity updates; silent on price or markup",
+      },
+      {
+        label: "Rewst: Pax8 integration",
+        href: "https://rewst.io/integrations/pax8/",
+      },
+      {
+        label: "MSPbots: Pax8 billing reconciliation app",
+        href: "https://mspbots.ai/blog/feature-announcement-pax8-billing-reconciliation-app",
+      },
+      microsoftPricingFaq,
+    ],
+    posts: [
+      "seattrue-vs-pax8-psa-sync",
+      "reconcile-pax8-bill-against-psa-invoices",
+    ],
+    terms: ["stale-price", "ghost-licence", "customer-mapping"],
+    pages: ["forHalo", "compareGradient"],
+  },
+  spreadsheet: {
+    key: "compareSpreadsheet",
+    name: "a spreadsheet",
+    title: "SeatTrue vs a reconciliation spreadsheet",
+    intro:
+      "A spreadsheet can reconcile Microsoft 365 billing. It works as long as someone rebuilds it every month, keeps the customer mapping and markups current, and checks price as well as quantity.",
+    chooseThem: [
+      "You have a handful of clients and one person who enjoys the monthly close.",
+      "Your markup is the same for every client and rarely changes.",
+    ],
+    chooseUs: [
+      "You have dozens of clients with different markups and renewals in different months.",
+      "You want only the exceptions, each with a dollar figure, instead of every line.",
+      "More than one person touches billing and you need a record of who approved what.",
+    ],
+    rows: [
+      {
+        check: "Cost",
+        them: "Your time, every month",
+        us: "$149 or $249 a month flat",
+      },
+      {
+        check: "Customer and SKU mapping",
+        them: "Rebuilt or re-checked each month",
+        us: "Kept and reused",
+      },
+      {
+        check: "Price vs cost × agreed markup",
+        them: "If someone builds the formula and keeps it current",
+        us: "Every line, per client",
+      },
+      {
+        check: "Renewals at new prices",
+        them: "Easy to miss: they land in different months",
+        us: "Flagged when billed below new cost × markup",
+      },
+      {
+        check: "Approval trail",
+        them: "None by default",
+        us: "Roles and audit log",
+      },
+    ],
+    theirStrengths:
+      "A spreadsheet is free, flexible and already open on your screen. For a small, simple book of clients it's fine. Microsoft's reconciliation-file guidance is a good base for the formulas.",
+    sources: [reconciliationFiles, microsoftPricingFaq],
+    posts: [
+      "seattrue-vs-spreadsheet-m365-reconciliation",
+      "m365-billing-close-checklist",
+    ],
+    terms: ["billing-close", "customer-mapping", "effective-unit-price"],
+    pages: ["pricing", "forPax8"],
+  },
+};

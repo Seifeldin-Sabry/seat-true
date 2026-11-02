@@ -60,7 +60,7 @@ export const sitePages = {
     eyebrow: "Glossary",
     headline: "Microsoft 365 billing terms, defined",
     updatedAt: "2026-11-02",
-    primaryKeyword: "license leakage",
+    primaryKeyword: "microsoft 365 billing glossary",
     secondaryKeyword: "nce seat management",
   },
   compareGradient: {
@@ -82,7 +82,7 @@ export const sitePages = {
     eyebrow: "Compare",
     headline: "SeatTrue vs a Pax8-to-PSA sync",
     updatedAt: "2026-11-02",
-    primaryKeyword: "pax8 psa sync",
+    primaryKeyword: "pax8 psa sync price check",
     secondaryKeyword: "pax8 billing reconciliation",
   },
   compareSpreadsheet: {
@@ -93,7 +93,7 @@ export const sitePages = {
     eyebrow: "Compare",
     headline: "SeatTrue vs a reconciliation spreadsheet",
     updatedAt: "2026-11-02",
-    primaryKeyword: "m365 billing reconciliation spreadsheet",
+    primaryKeyword: "m365 reconciliation spreadsheet alternative",
     secondaryKeyword: "msp license margin",
   },
   forPax8: {
@@ -104,7 +104,7 @@ export const sitePages = {
     eyebrow: "For Pax8 partners",
     headline: "Reconcile the Pax8 bill before you invoice",
     updatedAt: "2026-11-02",
-    primaryKeyword: "pax8 billing reconciliation",
+    primaryKeyword: "pax8 billing reconciliation tool",
     secondaryKeyword: "nce seat management",
   },
   forHalo: {
@@ -152,3 +152,11 @@ export const plans = [
 
 export const refundPolicy =
   "No refunds; cancel anytime and keep access until the end of the paid period.";
+
+/** Blog → product link mesh: each post points at the closest compare or for-page. */
+export function pagesForPost(slug: string): SitePageKey[] {
+  if (slug.includes("gradient")) return ["compareGradient", "pricing"];
+  if (slug.includes("psa-sync")) return ["comparePsaSync", "forHalo"];
+  if (slug.includes("spreadsheet")) return ["compareSpreadsheet", "pricing"];
+  return ["forPax8", "pricing"];
+}

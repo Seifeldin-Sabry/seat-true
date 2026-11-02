@@ -10,6 +10,11 @@ export const getBlogIndex = createServerFn({ method: "GET" }).handler(() => ({
   nextPublishAt: nextPublishAt(),
 }));
 
+/** Slug + title of every live post, for "further reading" links on static pages. */
+export const getLivePostLinks = createServerFn({ method: "GET" }).handler(() =>
+  livePosts().map((post) => ({ slug: post.slug, title: post.title })),
+);
+
 export const getBlogPost = createServerFn({ method: "GET" })
   .inputValidator((slug: unknown) => {
     if (typeof slug !== "string") throw new Error("slug must be a string");

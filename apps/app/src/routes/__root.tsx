@@ -1,3 +1,4 @@
+import bricolage800 from "@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-800-normal.woff2?url";
 import { brand } from "@seattrue/ui";
 import type { QueryClient } from "@tanstack/react-query";
 import {
@@ -21,7 +22,17 @@ export const Route = createRootRouteWithContext<{
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "theme-color", content: brand.themeColor },
     ],
-    links: [{ rel: "icon", href: "/favicon.svg", type: "image/svg+xml" }],
+    links: [
+      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+      // Headline face: preloaded so big display headings swap in early.
+      {
+        rel: "preload",
+        href: bricolage800,
+        as: "font",
+        type: "font/woff2",
+        crossOrigin: "anonymous",
+      },
+    ],
   }),
   notFoundComponent: NotFoundPage,
   component: Root,

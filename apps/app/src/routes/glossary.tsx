@@ -1,21 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
 import { SiteShell } from "../components/site-chrome";
+import { getLivePostLinks } from "../lib/content/blog-fns";
 import { glossary } from "../lib/content/glossary";
-import { livePosts } from "../lib/content/posts.server";
 import { publicHead } from "../lib/seo";
 import { pageOgImage, sitePages } from "../lib/site";
 import { breadcrumbs, definedTermSet } from "../lib/structured-data";
 
 const page = sitePages.glossary;
 
-/** Which explainer posts are live right now (scheduled ones aren't linked yet). */
-const getLiveSlugs = createServerFn({ method: "GET" }).handler(() =>
-  livePosts().map((post) => ({ slug: post.slug, title: post.title })),
-);
-
 export const Route = createFileRoute("/glossary")({
-  loader: () => getLiveSlugs(),
+  // Explainer posts are linked only once they are live.
+  loader: () => getLivePostLinks(),
   head: () =>
     publicHead({
       ...page,

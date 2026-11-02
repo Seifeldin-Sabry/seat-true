@@ -9,28 +9,26 @@ import {
 } from "lucide-react";
 import type { FormEvent } from "react";
 import { useId, useState } from "react";
+import { SiteShell } from "../components/site-chrome";
 import { joinWaitlist } from "../lib/recon-api";
+import { publicHead } from "../lib/seo";
+import { pageOgImage, sitePages } from "../lib/site";
+import {
+  faqPage,
+  organization,
+  softwareApplication,
+  website,
+} from "../lib/structured-data";
 
-const title = `${brand.name}: stop losing money on Microsoft seats you never billed`;
-const description =
-  "SeatTrue checks every Microsoft 365 line on your Pax8 bill against what you invoice each client, at cost × your agreed markup. Free margin audit: upload one month's export, see the leak in dollars.";
 const cta = "Get my free margin audit";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title },
-      { name: "description", content: description },
-      { property: "og:type", content: "website" },
-      { property: "og:title", content: title },
-      { property: "og:description", content: description },
-      { property: "og:image", content: `${brand.appUrl}/og.png` },
-      { property: "og:url", content: `${brand.appUrl}/` },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: `${brand.appUrl}/og.png` },
-    ],
-    links: [{ rel: "canonical", href: `${brand.appUrl}/` }],
-  }),
+  head: () =>
+    publicHead({
+      ...sitePages.home,
+      image: pageOgImage("home"),
+      jsonLd: [organization(), website(), softwareApplication(), faqPage(faqs)],
+    }),
   component: LandingPage,
 });
 
@@ -120,7 +118,7 @@ const comparison: {
     check: "Sign-off queue before invoices go out",
     sheet: false,
     psa: false,
-    gradient: "Approve and sync",
+    gradient: "Reconcile in platform",
     ours: true,
   },
   {
@@ -169,300 +167,284 @@ const faqs = [
 
 function LandingPage() {
   return (
-    <div className="st">
-      <a className="st-skip" href="#main">
-        Skip to content
-      </a>
-      <header className="st-header">
-        <a className="st-brand" href="/" aria-label={`${brand.name} home`}>
-          <span className="st-brand-mark" aria-hidden="true">
-            S
-          </span>
-          {brand.name}
-        </a>
-        <nav className="st-nav" aria-label="Site">
-          <a href="#offer">What you get</a>
-          <a href="#compare">Compare</a>
-          <a href="#faq">FAQ</a>
-          <Link to="/login" search={{ redirect: "/app" }}>
-            Sign in
-          </Link>
-        </nav>
-        <a className="st-btn st-btn-small" href="#audit">
-          Free audit
-        </a>
-      </header>
-
-      <main id="main">
-        <section className="st-hero" aria-labelledby="st-title">
-          <div className="st-hero-copy">
-            <p className="st-eyebrow">
-              For MSPs reselling Microsoft 365 through Pax8
-            </p>
-            <h1 id="st-title">
-              You're losing money on Microsoft seats you{" "}
-              <span className="st-mark">never billed</span>.
-            </h1>
-            <p className="st-lede">
-              Your Pax8 sync copies quantities. It never checks the price.{" "}
-              {brand.name} checks every line against cost × the markup you
-              agreed with that client, and shows the leak in dollars before the
-              invoice goes out.
-            </p>
-            <div className="st-hero-actions">
-              <a className="st-btn" href="#audit">
-                {cta}
-                <ArrowRight size={18} aria-hidden="true" />
-              </a>
-              <span className="st-hero-note">
-                Upload one Pax8 export. See the leak in about 5 minutes. Free.
-              </span>
-            </div>
-          </div>
-          <LeakCalculator />
-        </section>
-
-        <section className="st-example" aria-labelledby="st-example-title">
-          <div>
-            <p className="st-eyebrow">Example run</p>
-            <h2 id="st-example-title">
-              What one month's Pax8 bill turned up for a demo MSP
-            </h2>
-            <p>
-              "Northbeam IT" is our demo workspace: 8 clients, 14 Pax8 lines.
-              These are the exceptions SeatTrue raised. Your audit uses your own
-              bill.
-            </p>
-          </div>
-          <ProductMock />
-        </section>
-
-        <section className="st-section" aria-labelledby="st-leaks">
-          <h2 id="st-leaks">Three leaks a quantity sync can't see</h2>
-          <div className="st-leaks">
-            <article>
-              <span className="st-leak-amount">$36/mo</span>
-              <h3>Renewals at last year's price</h3>
-              <p>
-                Microsoft's 2026 increase applies as each subscription renews.
-                The agreement keeps billing the old price, one client at a time.
-              </p>
-            </article>
-            <article>
-              <span className="st-leak-amount">$285.60/mo</span>
-              <h3>Seats nobody invoiced</h3>
-              <p>
-                Four Business Premium seats added mid-month, five Copilot seats
-                added in Pax8. The agreement never changed.
-              </p>
-            </article>
-            <article>
-              <span className="st-leak-amount">$114/mo</span>
-              <h3>Licences for clients who left</h3>
-              <p>
-                Offboarding closed the ticket, not the subscription. You keep
-                paying for seats nobody will pay you for.
-              </p>
-            </article>
-          </div>
-          <p className="st-footnote">
-            Amounts are from the Northbeam IT demo run above.
+    <SiteShell>
+      <section className="st-hero" aria-labelledby="st-title">
+        <div className="st-hero-copy">
+          <p className="st-eyebrow">
+            For MSPs reselling Microsoft 365 through Pax8
           </p>
-        </section>
-
-        <section className="st-section" aria-labelledby="st-how">
-          <h2 id="st-how">From Pax8 export to a clean invoice</h2>
-          <ol className="st-steps">
-            <li>
-              <h3>Export</h3>
-              <p>
-                Download last month's Pax8 billing CSV. No API access, nothing
-                to approve.
-              </p>
-            </li>
-            <li>
-              <h3>Check</h3>
-              <p>
-                Every line is matched to a client, then checked on quantity and
-                on price × that client's markup.
-              </p>
-            </li>
-            <li>
-              <h3>Fix before invoicing</h3>
-              <p>
-                Approve, mark billed or dismiss each exception. Each one carries
-                a monthly dollar figure.
-              </p>
-            </li>
-          </ol>
-        </section>
-
-        <section id="offer" className="st-section" aria-labelledby="st-offer">
-          <h2 id="st-offer">Everything you get</h2>
-          <div className="st-offer">
-            <table className="st-stack">
-              <caption className="sr-only">
-                What's included and what each part is worth
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Included</th>
-                  <th scope="col">How we valued it</th>
-                  <th scope="col">Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stack.map((row) => (
-                  <tr key={row.item}>
-                    <th scope="row">
-                      <Check size={16} aria-hidden="true" /> {row.item}
-                    </th>
-                    <td>{row.basis}</td>
-                    <td>{row.value > 0 ? usd.format(row.value) : "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <th scope="row" colSpan={2}>
-                    Value in the first month, before any leakage you recover
-                  </th>
-                  <td>{usd.format(stackTotal)}</td>
-                </tr>
-              </tfoot>
-            </table>
-            <aside className="st-price" aria-labelledby="st-price-title">
-              <h3 id="st-price-title">Solo plan</h3>
-              <p className="st-price-figure">
-                <strong>$149</strong>/month
-              </p>
-              <p>
-                Solo: flat, up to 150 clients and 2 users. Team: $249/month
-                flat, unlimited clients and unlimited users.
-              </p>
-              <ul>
-                <li>No per-licence fees</li>
-                <li>
-                  No refunds; cancel anytime and keep access until the end of
-                  the paid period
-                </li>
-                <li>Founding price locked while you stay subscribed</li>
-              </ul>
-              <a className="st-btn" href="#audit">
-                {cta}
-              </a>
-            </aside>
+          <h1 id="st-title">
+            You're losing money on Microsoft seats you{" "}
+            <span className="st-mark">never billed</span>.
+          </h1>
+          <p className="st-lede">
+            Your Pax8 sync copies quantities. It never checks the price.{" "}
+            {brand.name} checks every line against cost × the markup you agreed
+            with that client, and shows the leak in dollars before the invoice
+            goes out.
+          </p>
+          <div className="st-hero-actions">
+            <a className="st-btn" href="#audit">
+              {cta}
+              <ArrowRight size={18} aria-hidden="true" />
+            </a>
+            <span className="st-hero-note">
+              Upload one Pax8 export. See the leak in about 5 minutes. Free.
+            </span>
           </div>
-        </section>
+        </div>
+        <LeakCalculator />
+      </section>
 
-        <section className="st-guarantee" aria-labelledby="st-guarantee-title">
-          <ShieldCheck size={40} aria-hidden="true" />
-          <div>
-            <h2 id="st-guarantee-title">See the leak before you pay a cent</h2>
-            <ul className="st-risk">
-              <li>
-                <strong>Free margin audit first.</strong> We run your Pax8 bill
-                and show every exception in dollars before you subscribe.
-              </li>
-              <li>
-                <strong>Month to month.</strong> No refunds; cancel anytime and
-                keep access until the end of the paid period.
-              </li>
-              <li>
-                <strong>Founding price lock.</strong> The first 20 MSPs keep
-                their price for as long as they stay subscribed.
-              </li>
-            </ul>
-          </div>
-        </section>
-
-        <section
-          id="compare"
-          className="st-section"
-          aria-labelledby="st-compare"
-        >
-          <h2 id="st-compare">
-            Why not a spreadsheet, your PSA sync, or Gradient?
+      <section className="st-example" aria-labelledby="st-example-title">
+        <div>
+          <p className="st-eyebrow">Example run</p>
+          <h2 id="st-example-title">
+            What one month's Pax8 bill turned up for a demo MSP
           </h2>
-          <div className="st-table-wrap">
-            <table className="st-compare">
-              <thead>
-                <tr>
-                  <th scope="col">
-                    <span className="sr-only">Check</span>
-                  </th>
-                  <th scope="col">Spreadsheet</th>
-                  <th scope="col">Pax8 → PSA sync</th>
-                  <th scope="col">Gradient MSP</th>
-                  <th scope="col" className="st-ours">
-                    {brand.name}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {comparison.map((row) => (
-                  <tr key={row.check}>
-                    <th scope="row">{row.check}</th>
-                    <td>
-                      <CellValue value={row.sheet} />
-                    </td>
-                    <td>
-                      <CellValue value={row.psa} />
-                    </td>
-                    <td>
-                      <CellValue value={row.gradient} />
-                    </td>
-                    <td className="st-ours">
-                      <CellValue value={row.ours} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="st-footnote">
-            Gradient pricing from meetgradient.com/pricing, November 2026.
-            Gradient covers more distributors and writes back to the PSA; if you
-            need that today, it's the broader tool.
+          <p>
+            "Northbeam IT" is our demo workspace: 8 clients, 14 Pax8 lines.
+            These are the exceptions SeatTrue raised. Your audit uses your own
+            bill.
           </p>
-        </section>
+        </div>
+        <ProductMock />
+      </section>
 
-        <section id="faq" className="st-section" aria-labelledby="st-faq">
-          <h2 id="st-faq">The questions MSP owners ask first</h2>
-          <div className="st-faq">
-            {faqs.map((faq) => (
-              <details key={faq.q}>
-                <summary>{faq.q}</summary>
-                <p>{faq.a}</p>
-              </details>
-            ))}
-          </div>
-        </section>
-
-        <section
-          id="audit"
-          className="st-final"
-          aria-labelledby="st-final-title"
-        >
-          <div>
-            <h2 id="st-final-title">See last month's leak in dollars</h2>
+      <section className="st-section" aria-labelledby="st-leaks">
+        <h2 id="st-leaks">Three leaks a quantity sync can't see</h2>
+        <div className="st-leaks">
+          <article>
+            <span className="st-leak-amount">$36/mo</span>
+            <h3>Renewals at last year's price</h3>
             <p>
-              We onboard four MSPs a week so every audit gets a real person. The
-              first 20 MSPs keep the founding price for as long as they stay.
-              Built by the team at SDX Studio.
+              Microsoft's 2026 increase applies as each subscription renews. The
+              agreement keeps billing the old price, one client at a time.
             </p>
-          </div>
-          <AuditForm />
-        </section>
-      </main>
+          </article>
+          <article>
+            <span className="st-leak-amount">$285.60/mo</span>
+            <h3>Seats nobody invoiced</h3>
+            <p>
+              Four Business Premium seats added mid-month, five Copilot seats
+              added in Pax8. The agreement never changed.
+            </p>
+          </article>
+          <article>
+            <span className="st-leak-amount">$114/mo</span>
+            <h3>Licences for clients who left</h3>
+            <p>
+              Offboarding closed the ticket, not the subscription. You keep
+              paying for seats nobody will pay you for.
+            </p>
+          </article>
+        </div>
+        <p className="st-footnote">
+          Amounts are from the Northbeam IT demo run above.
+        </p>
+      </section>
 
-      <footer className="st-footer">
-        <span>© {brand.name} · Built by SDX Studio</span>
-        <Link to="/login" search={{ redirect: "/app" }}>
-          Sign in
-        </Link>
-      </footer>
-    </div>
+      <section className="st-section" aria-labelledby="st-how">
+        <h2 id="st-how">From Pax8 export to a clean invoice</h2>
+        <ol className="st-steps">
+          <li>
+            <h3>Export</h3>
+            <p>
+              Download last month's Pax8 billing CSV. No API access, nothing to
+              approve.
+            </p>
+          </li>
+          <li>
+            <h3>Check</h3>
+            <p>
+              Every line is matched to a client, then checked on quantity and on
+              price × that client's markup.
+            </p>
+          </li>
+          <li>
+            <h3>Fix before invoicing</h3>
+            <p>
+              Approve, mark billed or dismiss each exception. Each one carries a
+              monthly dollar figure.
+            </p>
+          </li>
+        </ol>
+      </section>
+
+      <section id="offer" className="st-section" aria-labelledby="st-offer">
+        <h2 id="st-offer">Everything you get</h2>
+        <div className="st-offer">
+          <table className="st-stack">
+            <caption className="sr-only">
+              What's included and what each part is worth
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Included</th>
+                <th scope="col">How we valued it</th>
+                <th scope="col">Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stack.map((row) => (
+                <tr key={row.item}>
+                  <th scope="row">
+                    <Check size={16} aria-hidden="true" /> {row.item}
+                  </th>
+                  <td>{row.basis}</td>
+                  <td>{row.value > 0 ? usd.format(row.value) : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row" colSpan={2}>
+                  Value in the first month, before any leakage you recover
+                </th>
+                <td>{usd.format(stackTotal)}</td>
+              </tr>
+            </tfoot>
+          </table>
+          <aside className="st-price" aria-labelledby="st-price-title">
+            <h3 id="st-price-title">Solo plan</h3>
+            <p className="st-price-figure">
+              <strong>$149</strong>/month
+            </p>
+            <p>
+              Solo: flat, up to 150 clients and 2 users. Team: $249/month flat,
+              unlimited clients and unlimited users.
+            </p>
+            <ul>
+              <li>No per-licence fees</li>
+              <li>
+                No refunds; cancel anytime and keep access until the end of the
+                paid period
+              </li>
+              <li>Founding price locked while you stay subscribed</li>
+            </ul>
+            <a className="st-btn" href="#audit">
+              {cta}
+            </a>
+          </aside>
+        </div>
+      </section>
+
+      <section className="st-guarantee" aria-labelledby="st-guarantee-title">
+        <ShieldCheck size={40} aria-hidden="true" />
+        <div>
+          <h2 id="st-guarantee-title">See the leak before you pay a cent</h2>
+          <ul className="st-risk">
+            <li>
+              <strong>Free margin audit first.</strong> We run your Pax8 bill
+              and show every exception in dollars before you subscribe.
+            </li>
+            <li>
+              <strong>Month to month.</strong> No refunds; cancel anytime and
+              keep access until the end of the paid period.
+            </li>
+            <li>
+              <strong>Founding price lock.</strong> The first 20 MSPs keep their
+              price for as long as they stay subscribed.
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="compare" className="st-section" aria-labelledby="st-compare">
+        <h2 id="st-compare">
+          Why not a spreadsheet, your PSA sync, or Gradient?
+        </h2>
+        <div className="st-table-wrap">
+          <table className="st-compare">
+            <thead>
+              <tr>
+                <th scope="col">
+                  <span className="sr-only">Check</span>
+                </th>
+                <th scope="col">Spreadsheet</th>
+                <th scope="col">Pax8 → PSA sync</th>
+                <th scope="col">Gradient MSP</th>
+                <th scope="col" className="st-ours">
+                  {brand.name}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {comparison.map((row) => (
+                <tr key={row.check}>
+                  <th scope="row">{row.check}</th>
+                  <td>
+                    <CellValue value={row.sheet} />
+                  </td>
+                  <td>
+                    <CellValue value={row.psa} />
+                  </td>
+                  <td>
+                    <CellValue value={row.gradient} />
+                  </td>
+                  <td className="st-ours">
+                    <CellValue value={row.ours} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="st-footnote">
+          Gradient pricing from meetgradient.com/pricing, November 2026.
+          Gradient covers more distributors and connects to more PSAs; if you
+          need that today, it's the broader tool. Full comparisons:{" "}
+          <Link
+            className="st-inline"
+            to="/compare/$competitor"
+            params={{ competitor: "gradient" }}
+          >
+            Gradient
+          </Link>
+          ,{" "}
+          <Link
+            className="st-inline"
+            to="/compare/$competitor"
+            params={{ competitor: "pax8-psa-sync" }}
+          >
+            Pax8-to-PSA sync
+          </Link>
+          ,{" "}
+          <Link
+            className="st-inline"
+            to="/compare/$competitor"
+            params={{ competitor: "spreadsheet" }}
+          >
+            spreadsheet
+          </Link>
+          .
+        </p>
+      </section>
+
+      <section id="faq" className="st-section" aria-labelledby="st-faq">
+        <h2 id="st-faq">The questions MSP owners ask first</h2>
+        <div className="st-faq">
+          {faqs.map((faq) => (
+            <details key={faq.q}>
+              <summary>{faq.q}</summary>
+              <p>{faq.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <section id="audit" className="st-final" aria-labelledby="st-final-title">
+        <div>
+          <h2 id="st-final-title">See last month's leak in dollars</h2>
+          <p>
+            We onboard four MSPs a week so every audit gets a real person. The
+            first 20 MSPs keep the founding price for as long as they stay.
+            Built by the team at SDX Studio.
+          </p>
+        </div>
+        <AuditForm />
+      </section>
+    </SiteShell>
   );
 }
 

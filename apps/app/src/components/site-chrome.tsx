@@ -13,6 +13,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
       <header className="st-header">
         <Wordmark />
         <nav className="st-nav" aria-label="Site">
+          <Link to="/pricing">Pricing</Link>
           <Link to="/blog">Blog</Link>
           <Link to="/glossary">Glossary</Link>
           <Link to="/login" search={{ redirect: "/app" }}>
@@ -29,9 +30,36 @@ export function SiteShell({ children }: { children: ReactNode }) {
           <div>
             <h2>Product</h2>
             <a href="/#audit">Free margin audit</a>
-            <a href="/#offer">What you get</a>
+            <Link to="/pricing">Pricing</Link>
             <Link to="/login" search={{ redirect: "/app" }}>
               Sign in
+            </Link>
+          </div>
+          <div>
+            <h2>Compare</h2>
+            <Link to="/compare/$competitor" params={{ competitor: "gradient" }}>
+              vs Gradient MSP
+            </Link>
+            <Link
+              to="/compare/$competitor"
+              params={{ competitor: "pax8-psa-sync" }}
+            >
+              vs Pax8-to-PSA sync
+            </Link>
+            <Link
+              to="/compare/$competitor"
+              params={{ competitor: "spreadsheet" }}
+            >
+              vs a spreadsheet
+            </Link>
+          </div>
+          <div>
+            <h2>For</h2>
+            <Link to="/for/$audience" params={{ audience: "pax8-msps" }}>
+              Pax8 partners
+            </Link>
+            <Link to="/for/$audience" params={{ audience: "halopsa-msps" }}>
+              HaloPSA MSPs
             </Link>
           </div>
           <div>

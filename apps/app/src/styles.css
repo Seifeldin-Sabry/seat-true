@@ -1449,7 +1449,7 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
   gap: clamp(28px, 5vw, 72px);
-  align-items: center;
+  align-items: start;
 }
 .st-hero h1 {
   margin: 16px 0 20px;
@@ -1982,6 +1982,10 @@ body {
   line-height: 1;
 }
 
+.wordmark-tile::before {
+  content: "S";
+}
+
 .wordmark:focus-visible {
   outline: 3px solid currentColor;
   outline-offset: 3px;
@@ -2180,6 +2184,7 @@ body {
   margin-bottom: 6px;
 }
 .st-prose code {
+  color: var(--st-ink);
   padding: 1px 5px;
   border-radius: 5px;
   background: var(--st-paper-2);
@@ -2349,4 +2354,113 @@ body {
   .st-prose {
     font-size: 17px;
   }
+}
+.st-h2-small {
+  margin: 0 0 18px;
+  font-size: clamp(24px, 3vw, 32px);
+}
+.st-lede p {
+  margin: 0 0 16px;
+}
+.st-plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 20px;
+  max-width: 820px;
+}
+.st-plan {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 28px;
+  border: 1px solid var(--st-rule);
+  border-radius: 16px;
+  background: var(--st-card);
+}
+.st-plan h2 {
+  margin: 0;
+  font-size: 26px;
+}
+.st-plan p {
+  margin: 0;
+  color: var(--st-ink-2);
+}
+.st-plan .st-price-figure {
+  color: var(--st-ink);
+}
+.st-plan .st-price-figure strong {
+  font-family: var(--type-display);
+  font-size: 48px;
+}
+.st-plan .st-btn {
+  justify-self: start;
+  margin-top: 10px;
+}
+.st-checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 12px 32px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--st-ink-2);
+  line-height: 1.5;
+}
+.st-checklist li {
+  display: flex;
+  gap: 10px;
+}
+.st-checklist svg {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: var(--st-leak);
+}
+.st-choose {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 20px;
+}
+.st-choose > div {
+  padding: 24px;
+  border: 1px solid var(--st-rule);
+  border-radius: 16px;
+  background: var(--st-card);
+}
+.st-choose > div:last-child {
+  border-color: var(--st-leak);
+}
+.st-choose h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+}
+.st-choose ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 1.1em;
+  color: var(--st-ink-2);
+  line-height: 1.55;
+}
+.st-fair {
+  max-width: 72ch;
+  margin: 20px 0 0;
+  color: var(--st-ink-2);
+  line-height: 1.6;
+}
+.st-fair strong {
+  color: var(--st-ink);
+}
+.st-sources {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 1.2em;
+  color: var(--st-ink-2);
+  line-height: 1.5;
+}
+.st-chips-spaced {
+  margin-top: 18px;
+}
+.st-cta-band {
+  margin: 0;
 }

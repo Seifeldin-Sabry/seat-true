@@ -79,11 +79,7 @@ export function AppShell({
       <aside className="app-sidebar" aria-label="Workspace navigation">
         <div className="sidebar-main">
           <div className="sidebar-wordmark">
-            <Wordmark
-              to="/app"
-              tone="on-deep"
-              label={`${brand.name} workspace home`}
-            />
+            <Wordmark to="/app" tone="on-deep" context="workspace home" />
           </div>
 
           <div className="sidebar-section-label">
@@ -172,7 +168,7 @@ export function AppShell({
       <div className="app-main-column">
         <header className="app-topbar">
           <div className="mobile-brand">
-            <Wordmark to="/app" label={`${brand.name} workspace home`} />
+            <Wordmark to="/app" context="workspace home" />
           </div>
           <div className="breadcrumb">
             <span>Workspace</span>

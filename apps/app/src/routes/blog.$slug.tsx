@@ -4,7 +4,7 @@ import { SiteShell } from "../components/site-chrome";
 import { getBlogPost } from "../lib/content/blog-fns";
 import { formatPostDate } from "../lib/format-date";
 import { publicHead } from "../lib/seo";
-import { postOgImage } from "../lib/site";
+import { pagesForPost, postOgImage, sitePages } from "../lib/site";
 import { article, breadcrumbs, faqPage } from "../lib/structured-data";
 
 export const Route = createFileRoute("/blog/$slug")({
@@ -108,6 +108,17 @@ function PostPage() {
             </ul>
           </section>
         )}
+
+        <section className="st-article-aside" aria-labelledby="post-product">
+          <h2 id="post-product">SeatTrue for your setup</h2>
+          <ul className="st-related">
+            {pagesForPost(post.slug).map((key) => (
+              <li key={key}>
+                <a href={sitePages[key].path}>{sitePages[key].headline}</a>
+              </li>
+            ))}
+          </ul>
+        </section>
 
         {related.length > 0 && (
           <section className="st-article-aside" aria-labelledby="post-related">

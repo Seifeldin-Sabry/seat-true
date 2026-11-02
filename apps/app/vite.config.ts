@@ -11,5 +11,17 @@ export default defineConfig({
     port: 3000,
     strictPort: true,
   },
-  plugins: [tanstackStart(), nitro(), viteReact(), tailwindcss()],
+  // Native addon for OG images: load it from node_modules, never pre-bundle it.
+  optimizeDeps: { exclude: ["@resvg/resvg-js"] },
+  ssr: {
+    external: ["@resvg/resvg-js"],
+    optimizeDeps: { exclude: ["@resvg/resvg-js"] },
+  },
+  plugins: [
+    tanstackStart(),
+    // Pre-compressed assets: the Bun server sends .br/.gz without a CDN in front.
+    nitro({ compressPublicAssets: { gzip: true, brotli: true } }),
+    viteReact(),
+    tailwindcss(),
+  ],
 });
