@@ -9,6 +9,17 @@ import {
 } from "@seattrue/db";
 import { and, desc, eq, gt, max } from "drizzle-orm";
 
+/** Sign-in counts as activity; never-subscribed workspaces are deleted after 90 idle days. */
+export async function markWorkspaceActive(
+  db: Database,
+  organizationId: string,
+) {
+  await db
+    .update(organization)
+    .set({ lastActiveAt: new Date() })
+    .where(eq(organization.id, organizationId));
+}
+
 export type Membership = {
   memberId: string;
   organizationId: string;

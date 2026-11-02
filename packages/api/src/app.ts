@@ -14,7 +14,9 @@ import { createPlanRoutes } from "./plan-routes";
 import type { ProjectRepository } from "./projects";
 import { createReconRoutes } from "./recon-routes";
 import type { ReconService } from "./reconciliation";
+import { createRetentionRoutes, type Retention } from "./retention";
 import { createWorkspaceGuard } from "./workspace";
+import { createWorkspaceExportRoutes } from "./workspace-export";
 
 export type { AuditDto } from "./audit";
 export type { AuditRequestDto } from "./audit-requests";
@@ -51,6 +53,8 @@ export type AppOptions = {
   billing?: BillingService | null;
   /** QStash queue whose signed callbacks land on POST /api/jobs/:name. */
   jobs?: Pick<JobQueue, "enabled" | "verify"> | null;
+  /** Daily retention job behind POST /api/jobs/retention. */
+  retention?: Retention | null;
   allowedOrigins: string[];
   getClientIp?: (request: Request) => string | null;
   /** SeatTrue staff emails (PLATFORM_ADMIN_EMAILS). Default: nobody. */
@@ -80,6 +84,7 @@ export function createApp({
   auth,
   billing,
   jobs,
+  retention,
   allowedOrigins,
   getClientIp,
   platformAdminEmails = [],
@@ -251,6 +256,8 @@ export function createApp({
       }),
     )
     .get("/health", () => ({ status: "ok" as const }))
+    .use(createRetentionRoutes({ jobs, retention }))
+    .use(createWorkspaceExportRoutes({ db, guard }))
     .post(
       "/jobs/project-created",
       async ({ request, status }) => {

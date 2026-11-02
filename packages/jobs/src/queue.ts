@@ -5,7 +5,7 @@ import {
 } from "./project-event";
 
 /** Each job is delivered by QStash to `POST {API_ORIGIN}/jobs/{name}`. */
-export type JobName = "project-created";
+export type JobName = "project-created" | "retention";
 
 export type JobPublishResult =
   | { status: "disabled" }

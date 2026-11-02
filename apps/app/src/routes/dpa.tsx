@@ -90,7 +90,10 @@ function DpaPage() {
       </p>
       <ul>
         <li>encryption of all traffic in transit with TLS;</li>
-        <li>encryption at rest of the database by its provider;</li>
+        <li>
+          encryption at rest of Google sign-in tokens (XChaCha20-Poly1305) and
+          of the database by its provider;
+        </li>
         <li>
           role-based access control that keeps each workspace separate and
           limits who can change mappings and resolve exceptions;
@@ -182,10 +185,13 @@ function DpaPage() {
       <p>
         When the Customer's subscription ends, the workspace stays available
         read-only for 30 days so the Customer can export its data, or ask us for
-        a full copy. After those 30 days SDX Studio deletes the personal data,
-        and copies in backups age out within a further 30 days, unless EU or
-        Member State law requires it to be kept. The Customer can ask for
-        earlier deletion at any time.
+        a full copy. SDX Studio emails the Customer's workspace Owner 7 days
+        before deletion. After those 30 days SDX Studio deletes the personal
+        data, and copies in backups age out within a further 30 days, unless EU
+        or Member State law requires it to be kept. A workspace used without a
+        subscription is deleted, with the same notice, after 90 days in which
+        nobody signs in to it. The Customer can ask for earlier deletion at any
+        time.
       </p>
 
       <h2 id="audits">11. Information and audits</h2>

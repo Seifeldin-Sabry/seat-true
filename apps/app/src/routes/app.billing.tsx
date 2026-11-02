@@ -1,7 +1,7 @@
 import { Badge, Button } from "@seattrue/ui";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ExternalLink, LoaderCircle } from "lucide-react";
+import { Download, ExternalLink, LoaderCircle } from "lucide-react";
 import { AppShell } from "../components/app-shell";
 import { PlanChange } from "../components/plan-change";
 import { requireWorkspaceMember } from "../lib/auth-navigation";
@@ -215,6 +215,28 @@ function BillingPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* billing:manage is Owner-only; the API checks the role too. */}
+        {canManage && (
+          <section className="recon-panel" aria-labelledby="export-title">
+            <h2 id="export-title">Export your data</h2>
+            <p>
+              Download everything in this workspace as one JSON file: clients,
+              mappings, agreements, uploaded bills, billing imports, exceptions,
+              comments and the audit log. Works while the workspace is
+              read-only. When a subscription ends, the workspace is deleted
+              after 30 days.
+            </p>
+            <div className="recon-actions">
+              <Button asChild variant="outline">
+                <a href="/api/workspace/export" download>
+                  <Download size={16} aria-hidden="true" />
+                  Export workspace
+                </a>
+              </Button>
             </div>
           </section>
         )}

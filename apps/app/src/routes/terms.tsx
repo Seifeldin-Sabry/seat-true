@@ -245,9 +245,13 @@ function TermsPage() {
         <li>
           When your subscription ends, for whatever reason, your workspace stays
           available read-only for 30 days. During that time you can see and copy
-          your data, and ask us for a full export. After 30 days we delete the
-          workspace data. Copies in backups age out within a further 30 days. We
-          keep invoices and accounting records for as long as the law requires.
+          your data, the workspace Owner can download all of it from the billing
+          page, and you can ask us for a full export. We email the Owner 7 days
+          before deletion, and after 30 days we delete the workspace data. A
+          workspace used without a subscription is deleted, with the same
+          notice, after 90 days in which nobody signs in to it. Copies in
+          backups age out within a further 30 days. We keep invoices and
+          accounting records for as long as the law requires.
         </li>
         <li>
           Sections that by their nature should survive termination, such as

@@ -14,6 +14,7 @@ import { createLogger } from "./logger";
 import { createPlanLimits, type PlanLimits } from "./plan-limits";
 import { createProjectRepository } from "./projects";
 import { createReconService } from "./reconciliation";
+import { createRetention, retentionDryRun } from "./retention";
 
 export type ServerAppOptions = {
   env: Record<string, string | undefined>;
@@ -85,6 +86,13 @@ export function createServerApp({ env, getSocketIp }: ServerAppOptions) {
     planLimits,
     billing,
     jobs,
+    retention: createRetention({
+      db: connection.db,
+      email,
+      appOrigin: environment.appOrigin,
+      logger,
+      dryRun: retentionDryRun(env),
+    }),
     auth,
     allowedOrigins: environment.allowedOrigins,
     getClientIp: clientIp,

@@ -25,6 +25,8 @@ export const organization = pgTable("organization", {
   /** When the signing-up Owner accepted the Terms and DPA, and which version. Null for workspaces created before 2 Nov 2026. */
   termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
   termsVersion: text("terms_version"),
+  /** Last sign-in into this workspace. Drives deletion of never-subscribed workspaces (retention job). */
+  lastActiveAt: timestamp("last_active_at", { withTimezone: true }),
 });
 
 export type WorkspaceRole = "owner" | "admin" | "tech";

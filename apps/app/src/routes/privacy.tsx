@@ -75,7 +75,7 @@ function PrivacyPage() {
             "Session records with IP address and browser user agent, rate-limit counters keyed by IP address, one-time verification tokens.",
             "Keep you signed in and protect accounts from abuse and brute-force attempts.",
             "Legitimate interests in securing the service (Art. 6(1)(f)).",
-            "Sessions until they expire or you sign out; rate-limit counters for their short time window; one-time tokens until used or expired.",
+            "Sessions until they expire or you sign out; rate-limit counters no longer than 30 days; one-time tokens until used or expired.",
           ],
           [
             "Workspace audit log",
@@ -103,7 +103,7 @@ function PrivacyPage() {
             "Work email, optional company and seat count, and the integration you asked about.",
             "Tell you when SeatTrue or that integration is available and gauge demand.",
             "Legitimate interests in answering your request (Art. 6(1)(f)).",
-            "Until we have told you it is available, or until you ask us to remove you.",
+            "Until we have told you it is available, or until you ask us to remove you, and no longer than 24 months.",
           ],
           [
             "Messages to us",
@@ -250,8 +250,12 @@ function PrivacyPage() {
         <li>
           Account and workspace data is kept while the account is open. When a
           subscription ends, the workspace stays available read-only for 30 days
-          so you can export it, and is then deleted. You can also ask us to
-          delete an account or workspace at any time.
+          so you can export it, and is then deleted. A workspace that never
+          takes out a subscription is deleted after 90 days in which nobody
+          signs in to it. Either way we email the workspace Owner 7 days before
+          deletion, and accounts that belong to no other workspace are deleted
+          with it. You can also ask us to delete an account or workspace at any
+          time.
         </li>
         <li>
           Deleted data leaves our database backups as they age out, within 30
@@ -268,6 +272,10 @@ function PrivacyPage() {
       <ul>
         <li>All traffic to SeatTrue is encrypted in transit with TLS.</li>
         <li>Our database provider encrypts stored data at rest.</li>
+        <li>
+          Access and refresh tokens from Sign in with Google are encrypted at
+          rest with XChaCha20-Poly1305.
+        </li>
         <li>Passwords are stored only as salted hashes.</li>
         <li>
           Role-based access: Owners, Admins and Techs see only their own

@@ -5,7 +5,9 @@
  * - full: active or trialing
  * - grace: past_due for less than 7 days, full use plus a banner
  * - read_only: unpaid, canceled, expired, paused or past_due beyond grace.
- *   Data is never deleted; writes are refused until billing is fixed.
+ *   Writes are refused until billing is fixed. Data is never deleted while
+ *   the subscription is in place; once it has ended (canceled, expired) the
+ *   retention job deletes the workspace after 30 days (packages/api/src/retention.ts).
  */
 export type Access = "none" | "full" | "grace" | "read_only";
 

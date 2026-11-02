@@ -125,6 +125,7 @@ Copy `.env.example` to ignored `.env` for local development. In staging and prod
 | `RESEND_API_KEY`, `EMAIL_FROM` | Optional Resend credential and verified sender address; both or neither |
 | `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY` | Optional QStash token and signing keys; all three or none |
 | `QSTASH_DEV` | `true` runs local QStash dev server with deterministic keys instead |
+| `RETENTION_DRY_RUN` | Retention job only logs what it would delete unless exactly `false`; see [docs/retention.md](docs/retention.md) |
 | `LOG_LEVEL` | Minimum API JSON log level |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Optional Stripe test/live secret and signing secret |
 | `STRIPE_SUBSCRIPTION_PRICE_ID`, `STRIPE_ONE_TIME_PRICE_ID` | Server-owned recurring and one-time Price IDs |
@@ -164,6 +165,8 @@ Billing records demonstrate integration; they do not grant application entitleme
 ### QStash jobs
 
 Jobs are optional. With no `QSTASH_*` values, API runs without a queue and never publishes. With all three set, creating a project publishes a `project-created` message after the database write succeeds. QStash then calls `POST {APP_ORIGIN}/api/jobs/project-created`; API verifies the `Upstash-Signature` JWT against the raw body and that public URL, re-reads the committed project by owner and ID, and logs the outcome. Messages carry identifiers only, use a stable deduplication ID, and retry three times before landing in the QStash dead letter queue. Non-2xx responses trigger retries, so handlers must be idempotent. Partial configuration fails at startup. Enqueue failure produces a warning while the saved project remains available; use a transactional outbox if future jobs must be delivered reliably.
+
+Scheduled job: add a daily QStash schedule (cron `30 3 * * *`, `POST`, any body) to `{APP_ORIGIN}/api/jobs/retention`. It deletes ended and idle workspaces and expired data as the privacy policy promises, and stays a dry run until `RETENTION_DRY_RUN=false`. See [docs/retention.md](docs/retention.md).
 
 Locally, set `QSTASH_DEV=true`: the SDK downloads and starts the QStash dev server on port 8080 and uses its deterministic keys, so callbacks reach `localhost:3000/api/jobs/*` without a tunnel. Dev mode is ignored when `NODE_ENV=production`. In production, copy the token and both signing keys from the Upstash console into API secrets. API itself is the worker; there is nothing separate to deploy. Add a job by extending `JobName`, adding a publish method in `packages/jobs/src/queue.ts`, and adding a matching signed route.
 

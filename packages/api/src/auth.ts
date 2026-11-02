@@ -28,6 +28,7 @@ import type { Logger } from "./logger";
 import {
   ensurePersonalOrganization,
   type Membership,
+  markWorkspaceActive,
   membershipsFor,
   pickActiveMembership,
 } from "./organizations";
@@ -284,6 +285,8 @@ export function createAuth(db: Database, environment: AuthEnvironment) {
             const activeOrganizationId =
               active?.organizationId ??
               (await ensurePersonalOrganizationFor(db, session.userId));
+            if (activeOrganizationId)
+              await markWorkspaceActive(db, activeOrganizationId);
             return { data: { ...session, activeOrganizationId } };
           },
         },
@@ -366,6 +369,11 @@ export function createAuth(db: Database, environment: AuthEnvironment) {
         }
       : {}),
     session: { storeSessionInDatabase: true },
+    // Google sign-in access and refresh tokens are encrypted with the auth
+    // secret before they reach the account table. Rows written before this
+    // was enabled are still read as plaintext (Better Auth skips decryption
+    // for values that do not look encrypted) and are encrypted on next sign-in.
+    account: { encryptOAuthTokens: true },
     rateLimit: {
       enabled: true,
       storage: environment.secondaryStorage ? "secondary-storage" : "database",
