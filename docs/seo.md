@@ -56,11 +56,20 @@ One primary and one secondary keyword per page, chosen by search intent. Pages a
 
 | Page | Mobile | Desktop |
 |---|---|---|
-| `/` | 89 / 100 / 100 / 100 | 100 / 100 / 100 / 100 |
-| `/pricing` | 92 / 100 / 100 / 100 | 100 / 100 / 100 / 100 |
-| `/blog` | 92 / 100 / 100 / 100 | 100 / 100 / 100 / 100 |
-| one post | 91 / 100 / 100 / 100 | 100 / 100 / 100 / 100 |
+| `/` | 92 / 100 / 100 / 100 | 100 / 100 / 100 / 100 |
+| `/pricing` | 95 / 100 / 100 / 100 | 100 / 100 / 100 / 100 |
+| `/blog` | 95 / 100 / 100 / 100 | 100 / 100 / 100 / 100 |
+| one post | 92 / 100 / 100 / 100 | 100 / 100 / 100 / 100 |
+| `/glossary` | 95 / 100 / 100 / 100 | 100 / 100 / 100 / 100 |
+| `/compare/gradient` | 95 / 100 / 100 / 100 | 100 / 100 / 100 / 100 |
+| `/for/pax8-msps` | 94 / 100 / 100 / 100 | 100 / 100 / 100 / 100 |
 
 The post was measured with a temporary copy of `reconcile-pax8-bill-against-psa-invoices` dated in the past (no post is live before 10 Nov); the copy was not committed.
 
-**Landing on mobile is 89, one point under target.** FCP is 3.0 s; the cost is the ~18 framework chunks TanStack Start modulepreloads at high priority, which Lighthouse's simulation counts against first paint. Next steps if it matters: trim the landing's client JS (the waitlist form and calculator pull in the API client), or strip modulepreload hints for marketing routes.
+**How the landing got from 89 to 92 on mobile** (FCP 3.0 s → 2.7 s): the landing now modulepreloads 6 scripts instead of 17, and none of them is auth, TanStack Query options or the Eden API client.
+
+- `/app/*` loaders are split into their own chunks (`codeSplittingOptions.splitBehavior` in `apps/app/vite.config.ts`), so their query options and API client stay out of the entry bundle.
+- Route guards (`lib/auth-navigation.ts`) dynamic-import `lib/auth-guards.ts`; `beforeLoad` can't be code-split, so the import is what keeps session and workspace code off marketing pages.
+- The waitlist form loads the API client on submit, not on first paint.
+- React, the router and Start's client runtime ship as one `framework` chunk (Rolldown `codeSplitting.groups`, client build only) instead of a dozen small preloaded files.
+- Tried and dropped: Start's experimental `inlineCss` (no gain: the bigger HTML cancelled the saved stylesheet request).
