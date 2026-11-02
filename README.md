@@ -18,9 +18,40 @@
 
 Try the API locally: sign up in the app at http://localhost:3000, then from the browser console on that origin run `await fetch("http://localhost:3001/recon/demo", { method: "POST", credentials: "include" })` followed by `await (await fetch("http://localhost:3001/recon/overview", { credentials: "include" })).json()`.
 
-Note: this machine's Postgres for SeatTrue runs on port **5433** (5432 was taken); set `POSTGRES_PORT`, `DATABASE_URL` and `TEST_DATABASE_URL` in `.env` accordingly.
+Local Docker Postgres for tests runs on port **5433** (5432 is taken on this machine).
 
 ---
+
+## Environment files (dotenvx)
+
+| File | Committed | Used by |
+| --- | --- | --- |
+| `.env.development` | Yes, secrets encrypted | `bun run dev`, `build`, `db:*` |
+| `.env.production` | Yes, secrets encrypted | Fly runtime and release migrations |
+| `.env.test` | Yes, plain, no secrets | `bun run test`, `db:migrate:test`, CI |
+| `.env.keys` | **Never** (gitignored) | Holds `DOTENV_PRIVATE_KEY_DEVELOPMENT` / `_PRODUCTION`; keep a copy in your password manager |
+| `.env.example` | Yes | Lists every key |
+
+Only secrets are encrypted (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `RESEND_API_KEY`, `QSTASH_*`, `UPSTASH_REDIS_REST_TOKEN`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `GOOGLE_CLIENT_SECRET`); ports and origins stay readable.
+
+Set or change a value without it touching your shell history or a chat (paste between the quotes):
+
+```sh
+npx dotenvx set DATABASE_URL "<neon dev pooled url>" -f .env.development
+```
+
+Production on Fly decrypts `.env.production` at boot. Set the key once per Fly app (the value never prints):
+
+```sh
+fly secrets set DOTENV_PRIVATE_KEY_PRODUCTION="$(npx dotenvx keypair DOTENV_PRIVATE_KEY_PRODUCTION -f .env.production)" -c fly.api.toml
+```
+
+Databases: the app runtime uses Neon (`DATABASE_URL` in `.env.development` / `.env.production`). Tests always use local PostgreSQL from Docker Compose: `colima start`, then `bun run db:up`, then `bun run db:migrate:test`. Never point tests at Neon.
+
+Google sign-in (optional): create an OAuth client (Web application) in Google Cloud Console → APIs & Services → Credentials. Authorized redirect URIs: `http://localhost:3001/api/auth/callback/google` and `https://api.<your-domain>/api/auth/callback/google`. Then `npx dotenvx set GOOGLE_CLIENT_ID "..." -f .env.development --plain` and `npx dotenvx set GOOGLE_CLIENT_SECRET "..." -f .env.development`. Without both, the Google button stays hidden. Only Google Workspace accounts on company domains can sign in; personal mailboxes are rejected everywhere ("Please use your work email").
+
+---
+
 
 Reusable full-stack starter with a Bun/Elysia API, two TanStack Start sites, and PostgreSQL (Neon in production), deployed to Fly.io. Projects CRUD shows the complete path from Drizzle through Elysia and typed Eden Treaty calls to a TanStack Query interface. Better Auth supplies email/password sessions. Optional integrations add Upstash Redis, Resend email, Upstash QStash jobs, and Stripe billing with both subscriptions and one-time purchases.
 

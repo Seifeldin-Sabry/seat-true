@@ -9,7 +9,7 @@ primary_region = "iad"
 
 [deploy]
   # Runs once per deploy in a temporary machine with the app's secrets.
-  release_command = "bun run --cwd packages/db db:migrate"
+  release_command = "./node_modules/.bin/dotenvx run -f .env.production -- bun run --cwd packages/db db:migrate"
 
 [env]
   API_HOST = "0.0.0.0"

@@ -6,6 +6,9 @@ dist/
 .env
 .env.*
 !.env.example
+!.env.development
+!.env.production
+!.env.test
 !.env.*.example
 .env.keys
 *.log

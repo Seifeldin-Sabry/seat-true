@@ -8,4 +8,5 @@ RUN bun install --frozen-lockfile
 RUN bun run --cwd apps/api build
 ENV NODE_ENV=production
 EXPOSE 3001
-CMD ["bun", "apps/api/dist/server.js"]
+# Decrypts .env.production at boot with the DOTENV_PRIVATE_KEY_PRODUCTION Fly secret.
+CMD ["./node_modules/.bin/dotenvx", "run", "-f", ".env.production", "--", "bun", "apps/api/dist/server.js"]
