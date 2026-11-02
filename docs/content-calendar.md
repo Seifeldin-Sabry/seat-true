@@ -22,9 +22,10 @@ Two posts a week, Tuesday and Thursday 09:00 UTC, 10 Nov – 17 Dec 2026. Series
 ## How publishing works
 
 - Posts live in `apps/app/content/blog/<slug>.md`. Frontmatter is validated at build and in tests (`apps/app/src/lib/content/blog.ts`): title ≤ 60 chars, description ≤ 155, kebab-case slug, ISO `publishAt`/`updatedAt`, tags, targetQuestion, keyword, and at least one `faq` item.
-- A post is visible only when `publishAt <= now`, checked on the server per request. Before that `/blog/<slug>` is a 404 and the post is left out of `/blog`, `/sitemap.xml`, `/rss.xml`, `/llms.txt`, `/llms-full.txt` and its OG image. No rebuild or deploy is needed on the day.
+- A post is visible only when `publishAt <= now` **and** its source has no `<!-- verify` comment left, checked on the server per request. A flagged post is held automatically, exactly like a future one, until the flag is removed; then it publishes on its date, or on the next request if the date has passed. Before that `/blog/<slug>` is a 404 and the post is left out of `/blog`, `/sitemap.xml`, `/rss.xml`, `/llms.txt`, `/llms-full.txt` and its OG image. No rebuild or deploy is needed on the day.
 - To change a date, edit `publishAt` (and `updatedAt` when the content changes) and deploy.
-- `<!-- verify: ... -->` comments stay in the source and are stripped before rendering. Remove each one once checked.
+- `<!-- verify: ... -->` comments are stripped before rendering and hold the post until removed. Remove each one once checked, then deploy.
+- Series links point only to earlier posts. If an earlier post is held, links to it from live posts render as plain text (no link to a 404) until it goes live.
 
 ## Verify flags
 

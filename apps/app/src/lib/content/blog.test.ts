@@ -8,6 +8,7 @@ import {
   parsePost,
   publishedPosts,
   relatedPosts,
+  unlinkUnpublished,
 } from "./blog";
 
 const dir = join(import.meta.dir, "../../../content/blog");
@@ -132,5 +133,54 @@ describe("scheduling (fake clock)", () => {
         now.getTime(),
       );
     }
+  });
+});
+
+describe("verify flags hold a post back (fake clock)", () => {
+  const now = new Date("2026-11-20T00:00:00Z"); // after the 10 Nov publishAt
+  const flagged = parsePost(
+    sample(validFrontmatter, "<!-- verify: confirm the figure -->\n\nHello"),
+    "flagged.md",
+  );
+  const cleared = parsePost(sample(validFrontmatter, "Hello"), "cleared.md");
+
+  test("a past-dated post that still has a verify flag stays hidden", () => {
+    expect(flagged.unverified).toBe(true);
+    expect(publishedPosts([flagged], now)).toEqual([]);
+    expect(findPublishedPost([flagged], "a-post", now)).toBeNull();
+    expect(relatedPosts(cleared, [flagged], now)).toEqual([]);
+  });
+
+  test("the same post with the flag removed is shown", () => {
+    expect(cleared.unverified).toBe(false);
+    expect(publishedPosts([cleared], now).map((post) => post.slug)).toEqual([
+      "a-post",
+    ]);
+    expect(findPublishedPost([cleared], "a-post", now)?.slug).toBe("a-post");
+  });
+
+  test("a cleared post still waits for its date", () => {
+    expect(publishedPosts([cleared], new Date("2026-11-10T08:59:59Z"))).toEqual(
+      [],
+    );
+  });
+
+  test("links to posts that aren't live render as plain text", () => {
+    const post = parsePost(
+      sample(
+        validFrontmatter,
+        "See [the held one](/blog/held-post) and [the live one](/blog/live-post).",
+      ),
+      "links.md",
+    );
+    const unlinked = unlinkUnpublished(post, new Set(["live-post"]));
+    expect(unlinked.html).not.toContain('href="/blog/held-post"');
+    expect(unlinked.html).toContain("the held one");
+    expect(unlinked.html).toContain(
+      '<a href="/blog/live-post">the live one</a>',
+    );
+    expect(unlinked.markdown).toBe(
+      "See the held one and [the live one](/blog/live-post).",
+    );
   });
 });

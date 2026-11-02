@@ -29,6 +29,8 @@ export type Post = PostMeta & {
   /** Plain text of the body, for reading time and glossary matching. */
   text: string;
   readingMinutes: number;
+  /** Source still has a `<!-- verify` fact flag: held back whatever the date. */
+  unverified: boolean;
 };
 
 /** Card data for lists: no body. */
@@ -36,6 +38,7 @@ export type PostSummary = Omit<Post, "html" | "markdown" | "text">;
 
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const verifyComment = /<!--\s*verify:[\s\S]*?-->\s*/g;
+const verifyFlag = /<!--\s*verify/;
 
 export class PostValidationError extends Error {}
 
@@ -154,21 +157,28 @@ export function parsePost(raw: string, file: string): Post {
     markdown: body.trim(),
     text,
     readingMinutes: readingMinutes(text),
+    unverified: verifyFlag.test(raw),
   };
 }
 
-export function isPublished(post: Pick<PostMeta, "publishAt">, now: Date) {
-  return new Date(post.publishAt).getTime() <= now.getTime();
+/** Live once its date has passed and no fact flag is left in the source. */
+export function isPublished(
+  post: Pick<Post, "publishAt" | "unverified">,
+  now: Date,
+) {
+  return (
+    !post.unverified && new Date(post.publishAt).getTime() <= now.getTime()
+  );
 }
 
-/** Published posts, newest first. Future posts don't exist yet. */
-export function publishedPosts<T extends PostMeta>(posts: T[], now: Date): T[] {
+/** Published posts, newest first. Future and unverified posts don't exist yet. */
+export function publishedPosts<T extends Post>(posts: T[], now: Date): T[] {
   return posts
     .filter((post) => isPublished(post, now))
     .sort((a, b) => b.publishAt.localeCompare(a.publishAt));
 }
 
-export function findPublishedPost<T extends PostMeta>(
+export function findPublishedPost<T extends Post>(
   posts: T[],
   slug: string,
   now: Date,
@@ -179,7 +189,7 @@ export function findPublishedPost<T extends PostMeta>(
 }
 
 /** Published posts sharing the most tags with `post` (ties: newest first). */
-export function relatedPosts<T extends PostMeta>(
+export function relatedPosts<T extends Post>(
   post: PostMeta,
   posts: T[],
   now: Date,
@@ -195,6 +205,29 @@ export function relatedPosts<T extends PostMeta>(
     .sort((a, b) => b.shared - a.shared)
     .slice(0, limit)
     .map(({ other }) => other);
+}
+
+/**
+ * Series links point at earlier posts, but an earlier post can be held by a
+ * fact flag. Links to posts that aren't live become plain text, so a
+ * published post never links to a 404.
+ */
+export function unlinkUnpublished<T extends Post>(
+  post: T,
+  liveSlugs: ReadonlySet<string>,
+): T {
+  const isLive = (slug: string) => liveSlugs.has(slug);
+  return {
+    ...post,
+    html: post.html.replace(
+      /<a href="\/blog\/([a-z0-9-]+)[^"]*">([\s\S]*?)<\/a>/g,
+      (link, slug: string, label: string) => (isLive(slug) ? link : label),
+    ),
+    markdown: post.markdown.replace(
+      /\[([^\]]+)\]\(\/blog\/([a-z0-9-]+)[^)]*\)/g,
+      (link, label: string, slug: string) => (isLive(slug) ? link : label),
+    ),
+  };
 }
 
 export function toSummary(post: Post): PostSummary {

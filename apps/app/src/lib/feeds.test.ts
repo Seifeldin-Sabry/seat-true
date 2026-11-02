@@ -38,6 +38,26 @@ describe("feeds respect the publish schedule (fake clock)", () => {
     expect(rssXml(later)).toContain(future);
   });
 
+  test("a past-dated post with a verify flag is left out of every feed", () => {
+    const raw = readFileSync(join(dir, `${live}.md`), "utf8");
+    const flagged = parsePost(
+      raw.replace(/\n---\n/, "\n---\n<!-- verify: recheck -->\n"),
+      `${live}.md`,
+    );
+    const held = publishedPosts([flagged], fakeNow);
+    expect(held).toEqual([]);
+    for (const body of [
+      sitemapXml(held),
+      rssXml(held),
+      llmsTxt(held),
+      llmsFullTxt(held),
+    ]) {
+      expect(body).not.toContain(live);
+    }
+    const shown = publishedPosts([parsePost(raw, `${live}.md`)], fakeNow);
+    expect(sitemapXml(shown)).toContain(live);
+  });
+
   test("llms.txt carries the product facts and real prices", () => {
     const text = llmsTxt([]);
     expect(text).toContain("$149/month");

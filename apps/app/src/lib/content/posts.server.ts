@@ -1,11 +1,11 @@
 import {
   assertUniqueSlugs,
-  findPublishedPost,
   type Post,
   parsePost,
   publishedPosts,
   relatedPosts,
   toSummary,
+  unlinkUnpublished,
 } from "./blog";
 
 /**
@@ -25,11 +25,13 @@ const allPosts: Post[] = Object.entries(files).map(([path, raw]) =>
 assertUniqueSlugs(allPosts);
 
 export function livePosts(now = new Date()) {
-  return publishedPosts(allPosts, now);
+  const live = publishedPosts(allPosts, now);
+  const liveSlugs = new Set(live.map((post) => post.slug));
+  return live.map((post) => unlinkUnpublished(post, liveSlugs));
 }
 
 export function livePost(slug: string, now = new Date()) {
-  const post = findPublishedPost(allPosts, slug, now);
+  const post = livePosts(now).find((live) => live.slug === slug);
   if (!post) return null;
   return {
     post,
@@ -37,9 +39,10 @@ export function livePost(slug: string, now = new Date()) {
   };
 }
 
-/** When the next scheduled post goes live (date only, never its title). */
+/** When the next scheduled post goes live (date only, never its title). Held posts have no date yet. */
 export function nextPublishAt(now = new Date()): string | null {
   const upcoming = allPosts
+    .filter((post) => !post.unverified)
     .map((post) => post.publishAt)
     .filter((publishAt) => new Date(publishAt).getTime() > now.getTime())
     .sort();

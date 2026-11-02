@@ -14,7 +14,7 @@
 | Product app UI | **Built.** Overview + CSV upload, exceptions inbox (flag, comments), mappings, per-client page (markup, archive), billing, Members (`/app/members`), Audit log (`/app/audit`), accept-invite page (`/accept-invite/:id`), workspace switcher. Controls hide by role. |
 | Landing page + waitlist form | **Built** (`apps/app/src/routes/index.tsx`). |
 | Marketing site | **Built.** `/pricing`, `/compare/{gradient,pax8-psa-sync,spreadsheet}`, `/for/{pax8-msps,halopsa-msps}`, `/glossary`. Page meta in `apps/app/src/lib/site.ts`; SEO notes and keyword map in `docs/seo.md`. Domain = `SITE_URL` (default `https://seattrue.com`). |
-| Blog | **Built.** Markdown in `apps/app/content/blog/`, live when `publishAt <= now` (checked per request; no rebuild). Feeds: `/sitemap.xml`, `/rss.xml`, `/llms.txt`, `/llms-full.txt`, `/robots.txt`, OG images at `/og/*`. Schedule and verify flags: `docs/content-calendar.md`. |
+| Blog | **Built.** Markdown in `apps/app/content/blog/`, live when `publishAt <= now` and no `<!-- verify` flag is left in the source (checked per request; no rebuild). Feeds: `/sitemap.xml`, `/rss.xml`, `/llms.txt`, `/llms-full.txt`, `/robots.txt`, OG images at `/og/*`. Schedule and verify flags: `docs/content-calendar.md`. |
 | Auth | Better Auth email/password (work email only) + optional Google; organization plugin with owner / admin / tech. Magic link not wired. |
 | Roles & seats | **Done, integration tested.** See [Roles & permissions](#roles--permissions). |
 | Billing | Stripe Solo/Team, per workspace. See below; live secrets still to set. |
