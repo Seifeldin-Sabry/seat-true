@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_USER: starter
+          POSTGRES_PASSWORD: starter
+          POSTGRES_DB: starter
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U starter -d starter"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+      - name: Set up Node for frontend builds
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Configure isolated CI environment
+        run: cp .env.example .env
+      - name: Apply committed migrations
+        run: bun run db:migrate
+      - name: Lint and format check
+        run: bun run lint
+      - name: Typecheck all workspaces
+        run: bun run typecheck
+      - name: Run unit and PostgreSQL integration tests
+        run: bun run test
+      - name: Build API and both frontends
+        run: bun run build
+
+  deploy:
+    # Opt in per product: set repo variable FLY_DEPLOY=true and secret FLY_API_TOKEN
+    # (fly tokens create org). API deploys first so its release_command migrates.
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && vars.FLY_DEPLOY == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency: deploy-production
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Deploy API and run migrations
+        run: flyctl deploy --remote-only -c fly.api.toml
+      - name: Deploy product app
+        run: flyctl deploy --remote-only -c fly.app.toml
+      - name: Deploy landing site
+        run: flyctl deploy --remote-only -c fly.web.toml

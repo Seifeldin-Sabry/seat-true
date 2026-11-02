@@ -1,0 +1,122 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "globalDependencies": ["bunfig.toml", "tsconfig.base.json"],
+  "globalEnv": ["NODE_ENV"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".output/**", ".tanstack/**"]
+    },
+    "@seattrue/app#build": {
+      "dependsOn": ["^build"],
+      "outputs": [".output/**", ".tanstack/**"],
+      "env": [
+        "API_ORIGIN",
+        "API_INTERNAL_ORIGIN",
+        "APP_ORIGIN",
+        "VITE_API_ORIGIN",
+        "VITE_WEB_ORIGIN"
+      ]
+    },
+    "@seattrue/web#build": {
+      "dependsOn": ["^build"],
+      "outputs": [".output/**", ".tanstack/**"],
+      "env": ["VITE_APP_ORIGIN", "VITE_WEB_ORIGIN"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "@seattrue/api#dev": {
+      "cache": false,
+      "persistent": true,
+      "env": [
+        "DATABASE_URL",
+        "API_HOST",
+        "API_PORT",
+        "API_ORIGIN",
+        "APP_ORIGIN",
+        "CORS_ORIGINS",
+        "BETTER_AUTH_SECRET",
+        "AUTH_COOKIE_DOMAIN",
+        "LOG_LEVEL",
+        "RESEND_API_KEY",
+        "EMAIL_FROM",
+        "QSTASH_TOKEN",
+        "QSTASH_CURRENT_SIGNING_KEY",
+        "QSTASH_NEXT_SIGNING_KEY",
+        "QSTASH_DEV",
+        "UPSTASH_REDIS_REST_URL",
+        "UPSTASH_REDIS_REST_TOKEN",
+        "REDIS_KEY_NAMESPACE",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "STRIPE_SUBSCRIPTION_PRICE_ID",
+        "STRIPE_ONE_TIME_PRICE_ID"
+      ]
+    },
+    "@seattrue/app#dev": {
+      "cache": false,
+      "persistent": true,
+      "env": [
+        "API_ORIGIN",
+        "API_INTERNAL_ORIGIN",
+        "APP_ORIGIN",
+        "VITE_API_ORIGIN",
+        "VITE_WEB_ORIGIN"
+      ]
+    },
+    "@seattrue/web#dev": {
+      "cache": false,
+      "persistent": true,
+      "env": ["VITE_APP_ORIGIN", "VITE_WEB_ORIGIN"]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "env": [
+        "DATABASE_URL",
+        "TEST_DATABASE_URL",
+        "API_ORIGIN",
+        "API_INTERNAL_ORIGIN",
+        "APP_ORIGIN",
+        "CORS_ORIGINS",
+        "BETTER_AUTH_SECRET",
+        "AUTH_COOKIE_DOMAIN",
+        "LOG_LEVEL",
+        "RESEND_API_KEY",
+        "EMAIL_FROM",
+        "QSTASH_TOKEN",
+        "QSTASH_CURRENT_SIGNING_KEY",
+        "QSTASH_NEXT_SIGNING_KEY",
+        "QSTASH_DEV",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "STRIPE_SUBSCRIPTION_PRICE_ID",
+        "STRIPE_ONE_TIME_PRICE_ID"
+      ]
+    },
+    "db:generate": {
+      "cache": false,
+      "env": ["DATABASE_URL"]
+    },
+    "db:migrate": {
+      "cache": false,
+      "env": ["DATABASE_URL"]
+    },
+    "db:seed": {
+      "cache": false,
+      "env": ["DATABASE_URL", "SEED_USER_EMAIL"]
+    },
+    "db:studio": {
+      "cache": false,
+      "persistent": true,
+      "env": ["DATABASE_URL"]
+    }
+  },
+  "globalPassThroughEnv": ["FLY_APP_NAME"]
+}
