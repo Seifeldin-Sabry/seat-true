@@ -1,5 +1,27 @@
 # SeatTrue
 
+**Find the license leak before the invoice goes out.** SeatTrue reconciles each month's distributor bill (Pax8 today) against what the PSA invoices every client, and checks quantities *and* price against cost × the agreed markup.
+
+## Demo status (saved 2 Nov 2026)
+
+| Area | State |
+| --- | --- |
+| Reconciliation engine (`packages/recon`) | **Done, unit tested.** Pure TypeScript. Detects unbilled seats, stale price/markup, ghost licences (offboarded client), overbilling (more billed than exists, or billed with no licence) and unmapped distributor customers, each with a monthly $ impact in cents. |
+| Distributor import | **Done for CSV.** Header aliases cover Pax8 API `InvoiceItem` field names and Microsoft Partner Center reconciliation columns (`BillableQuantity`, `EffectiveUnitPrice`). Real Pax8 *portal* CSV headers are unverified. |
+| Adapters | `VendorSource` / `PsaSource` interfaces exist in `packages/recon/src/types.ts`; only the CSV source is implemented. No Pax8 API, HaloPSA or Autotask calls yet. |
+| Database | Owner-scoped tables: `clients`, `customer_mappings`, `agreement_lines`, `reconciliation_runs`, `reconciliation_exceptions`, `waitlist_entries` (migration `0001`). |
+| API (`apps/api/src/recon-routes.ts`) | **Done, integration tested.** `GET /recon/overview`, `GET /recon/clients/:id`, `GET /recon/exceptions`, `PATCH /recon/exceptions/:id` (open / approved / billed / dismissed), `GET`/`PUT /recon/mappings` (re-runs reconciliation and keeps statuses), `POST /recon/runs` (CSV upload), `POST /recon/demo` (loads "Northbeam IT", 8 clients, $548.10/mo leakage), public `POST /waitlist`. |
+| Product app UI | **Not built yet.** The app still shows the template Projects page. Next: overview card + CSV upload, exceptions inbox, mapping screen, per-client page. |
+| Landing page + waitlist form | **Not built yet** (the API endpoint exists). |
+| Auth | Template email/password (Better Auth). Magic link not wired. |
+| Billing | Template Stripe module, unconfigured. |
+
+Try the API locally: sign up in the app at http://localhost:3000, then from the browser console on that origin run `await fetch("http://localhost:3001/recon/demo", { method: "POST", credentials: "include" })` followed by `await (await fetch("http://localhost:3001/recon/overview", { credentials: "include" })).json()`.
+
+Note: this machine's Postgres for SeatTrue runs on port **5433** (5432 was taken); set `POSTGRES_PORT`, `DATABASE_URL` and `TEST_DATABASE_URL` in `.env` accordingly.
+
+---
+
 Reusable full-stack starter with a Bun/Elysia API, two TanStack Start sites, and PostgreSQL (Neon in production), deployed to Fly.io. Projects CRUD shows the complete path from Drizzle through Elysia and typed Eden Treaty calls to a TanStack Query interface. Better Auth supplies email/password sessions. Optional integrations add Upstash Redis, Resend email, Upstash QStash jobs, and Stripe billing with both subscriptions and one-time purchases.
 
 ## First run

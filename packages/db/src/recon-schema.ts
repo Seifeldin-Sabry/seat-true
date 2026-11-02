@@ -74,10 +74,7 @@ export const agreementLines = pgTable(
   },
   (table) => [
     index("agreement_lines_owner_id_idx").on(table.ownerId),
-    uniqueIndex("agreement_lines_client_sku_idx").on(
-      table.clientId,
-      table.sku,
-    ),
+    uniqueIndex("agreement_lines_client_sku_idx").on(table.clientId, table.sku),
   ],
 );
 
