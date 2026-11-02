@@ -132,7 +132,7 @@ const comparison: {
 const faqs = [
   {
     q: "We already sync Pax8 into our PSA. Isn't that enough?",
-    a: "The sync copies quantities. It doesn't check that the price on the agreement is still cost × the markup you agreed, and Microsoft's 2026 increase lands one renewal at a time. That gap is what SeatTrue checks.",
+    a: "The sync copies quantities. It doesn't check that the price on the agreement is still cost × the markup you agreed, and Microsoft's July 2026 price changes land one renewal at a time. That gap is what SeatTrue checks.",
   },
   {
     q: "How long does the free audit take?",
@@ -147,8 +147,8 @@ const faqs = [
     a: "No. It runs on exports and changes nothing in your systems. A Pax8 API connection and HaloPSA sync are next; CSV keeps working regardless.",
   },
   {
-    q: "Why not Gradient MSP?",
-    a: "Gradient is broader: more distributors, 30+ vendors, write-back to five PSAs. If you need that today, it's a good tool. SeatTrue is narrower, cheaper and focused on one thing: is every Microsoft line billed at the right quantity and the right price.",
+    q: "Why not Gradient Reconcile?",
+    a: "Gradient Reconcile is broader: more distributors and vendors, plus PSA integrations. If you need that today, it's a good tool. SeatTrue is narrower, cheaper and focused on one thing: is every Microsoft line billed at the right quantity and the right price.",
   },
   {
     q: "What if we cancel?",
@@ -362,7 +362,7 @@ function LandingPage() {
                 </th>
                 <th scope="col">Spreadsheet</th>
                 <th scope="col">Pax8 → PSA sync</th>
-                <th scope="col">Gradient MSP</th>
+                <th scope="col">Gradient Reconcile</th>
                 <th scope="col" className="st-ours">
                   {brand.name}
                 </th>
@@ -390,9 +390,9 @@ function LandingPage() {
           </table>
         </div>
         <p className="st-footnote">
-          Gradient pricing from meetgradient.com/pricing, November 2026.
-          Gradient covers more distributors and connects to more PSAs; if you
-          need that today, it's the broader tool. Full comparisons:{" "}
+          Gradient Reconcile pricing from meetgradient.com/pricing, checked 2
+          Nov 2026. It covers more distributors and lists more PSA integrations;
+          if you need that today, it's the broader tool. Full comparisons:{" "}
           <Link
             className="st-inline"
             to="/compare/$competitor"

@@ -14,10 +14,8 @@ faq:
   - q: "Should every client have the same markup?"
     a: "Not necessarily. A default plus documented per-client exceptions is common. What matters is that each client's rate is recorded and checked every month."
   - q: "What happens to my markup when Microsoft raises prices?"
-    a: "If your policy marks up on cost, the client price rises with cost at the subscription's renewal. Microsoft says 2026 commercial price changes apply at the next renewal after July 1, 2026."
+    a: "If your policy marks up on cost, the client price rises with cost at the subscription's renewal. Microsoft's list price changes took effect July 1, 2026, and Partner Center applies a mid-term price change only at renewal."
 ---
-
-<!-- verify: Microsoft's 2026 pricing FAQ (microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ) speaks to customers generally; confirm the renewal-timing rule applies the same way to CSP/NCE subscriptions bought via Pax8. -->
 
 Set a Microsoft 365 markup policy by choosing a pricing base (your distributor cost is simplest), a default markup percentage, a written list of per-client exceptions, and a rule for when price changes reach the client. Then check every invoice line against cost × (1 + markup) monthly, so the policy holds after renewals.
 
@@ -52,7 +50,7 @@ The seat-reduction line matters because of new commerce rules. Microsoft Learn s
 
 ## How should price changes reach the client?
 
-Under new commerce, cost is set per term and changes when a subscription renews. Microsoft's [2026 pricing FAQ](https://www.microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ) says commercial Microsoft 365 price updates took effect July 1, 2026, and customers renewing after that date move to the new pricing at their next renewal. That means one client can have subscriptions at old and new cost at the same time.
+Under new commerce, cost is set per term and changes when a subscription renews. Microsoft's [Partner Center pricing rules](https://learn.microsoft.com/en-us/partner-center/pricing/pricing-and-offers#new-commerce-license-based-pricing) say that when prices change mid-term, "the new price applies only at renewal". That covers every CSP new-commerce subscription, including ones bought through Pax8, because distributors transact through Partner Center. Microsoft's list price changes [took effect on July 1, 2026](https://www.microsoft.com/en-us/microsoft-365/blog/2025/12/04/advancing-microsoft-365-new-capabilities-and-pricing-update/). Your Pax8 buy price is set by Pax8 and can differ from Microsoft list; check your Pax8 price list. That means one client can have subscriptions at old and new cost at the same time.
 
 A cost-plus policy handles this cleanly if you apply it line by line: when a subscription renews at a new cost, its invoice line moves too. The common failure is a "stale price", where cost went up at renewal but the invoice kept last year's price. Your markup is quietly squeezed.
 
@@ -79,6 +77,6 @@ Either works if it's written down. Marking up on your actual distributor cost ma
 Not necessarily. A default plus documented per-client exceptions is common. What matters is that each client's rate is recorded and checked every month.
 
 **What happens to my markup when Microsoft raises prices?**
-If your policy marks up on cost, the client price rises with cost at the subscription's renewal. Microsoft says 2026 commercial price changes apply at the next renewal after July 1, 2026.
+If your policy marks up on cost, the client price rises with cost at the subscription's renewal. Microsoft's list price changes took effect July 1, 2026, and Partner Center applies a mid-term price change only at renewal.
 
 When your policy is written, a [free margin audit](/#offer) shows which lines already follow it.

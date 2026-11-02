@@ -19,8 +19,6 @@ faq:
     a: "Monthly terms are generally priced higher than annual terms for the same SKU. Check your distributor or Partner Center price list for the actual figures."
 ---
 
-<!-- verify: Monthly-term price premium is stated without numbers; no Microsoft primary page found that states it. Keep as general practice or confirm on a current Partner Center price list. | Microsoft's 2026 pricing FAQ (microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ) speaks to customers generally; confirm the renewal-timing rule applies the same way to CSP/NCE subscriptions bought via Pax8. -->
-
 On a new commerce (NCE) licence-based subscription you can cancel or reduce seats only within seven days of purchase, renewal, or the moment those seats were added. After that, an annual term holds the seat count until renewal. A monthly term renews every month, so you get a fresh seven-day window each month.
 
 ## What does Microsoft actually say about the seven-day window?
@@ -44,7 +42,7 @@ The [subscription management page](https://learn.microsoft.com/en-us/partner-cen
 | Add seats | Any time | Any time |
 | Price | Generally higher per seat than annual | Generally lower per seat |
 
-Microsoft's own cancellation page suggests a monthly term for customers at risk of non-payment, describing it as an option "that allows for subscription cancellation at the end of any month." The price difference between terms varies by product and market. Check the current price list rather than relying on a remembered percentage.
+Microsoft's own cancellation page suggests a monthly term for customers at risk of non-payment, describing it as an option "that allows for subscription cancellation at the end of any month." Microsoft has described monthly-term pricing as carrying a [20% premium over annual](https://blogs.partner.microsoft.com/mpn/january-10-seat-based-offers-now-available-in-the-new-commerce-experience) (2022); confirm on your current price list.
 
 ## What happens at renewal?
 
@@ -52,9 +50,10 @@ Per [Microsoft Learn](https://learn.microsoft.com/en-us/partner-center/customers
 
 - Subscriptions auto-renew by default; you can turn auto-renew off.
 - You can schedule changes for the next term: change SKU, increase or decrease licences, or change term and billing frequency.
+- A scheduled reduction only works while auto-renew is on. Scheduled changes are cleared if the quantity changes, the subscription is upgraded or cancelled, or auto-renew is turned off mid-term.
 - Renewal is processed the day after the term end date and can take up to 24 hours. The seven-day window to cancel or reduce starts when renewal completes.
 
-Renewal is also when cost changes. Microsoft's [2026 pricing FAQ](https://www.microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ) says customers renewing after July 1, 2026 move to new commercial pricing at their next renewal date. If a subscription renews at a new cost, the client's invoice line needs checking that month.
+Renewal is also when cost changes. Microsoft's [Partner Center pricing rules](https://learn.microsoft.com/en-us/partner-center/pricing/pricing-and-offers#new-commerce-license-based-pricing) say that when prices change mid-term, "the new price applies only at renewal". That covers every CSP new-commerce subscription, including ones bought through Pax8, because distributors transact through Partner Center. Microsoft's list price changes [took effect on July 1, 2026](https://www.microsoft.com/en-us/microsoft-365/blog/2025/12/04/advancing-microsoft-365-new-capabilities-and-pricing-update/). Your Pax8 buy price is set by Pax8 and can differ from Microsoft list; check your Pax8 price list. If a subscription renews at a new cost, the client's invoice line needs checking that month.
 
 ## What does this mean for your client billing?
 

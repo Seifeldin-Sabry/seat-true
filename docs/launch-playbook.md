@@ -32,7 +32,7 @@ Draft, 2 Nov 2026. Nothing has been created, started or sent. Built with the orc
 
 | Alternative | What it lacks | SeatTrue line |
 |---|---|---|
-| Gradient Synthesize: $299/$699/$999 a month plus a $199 Microsoft add-on ([meetgradient.com/pricing](https://www.meetgradient.com/pricing), checked 2 Nov) | Broader and pricier. Its public pages show no check against a per-client markup. | "Gradient reconciles everything. SeatTrue gates margin on Microsoft, for $149." |
+| Gradient Reconcile: $299/$699/$999 a month plus a $199 Microsoft add-on ([meetgradient.com/pricing](https://www.meetgradient.com/pricing), checked 2 Nov) | Broader and pricier. Its public pages show no check against a per-client markup. | "Gradient reconciles everything. SeatTrue gates margin on Microsoft, for $149." |
 | Native Pax8 → Halo/ConnectWise sync | Syncs quantity only; no approval step | "Your sync copies seats. Nobody checks the price." |
 | Spreadsheet close | Takes hours and still misses lines | Exceptions inbox, cleared before invoicing |
 | License Drift, MSPbots, Rewst | Cheaper, or DIY | Markup check per client, plus roles and an audit trail |
@@ -179,7 +179,7 @@ LinkedIn here means Seif's personal profile (HeyReach account 266688). The SDX S
 | Week | Email: new contacts (4 inboxes, ramp 5→10→15→20/day, never >25) | LinkedIn invites | Content | Community / directories |
 |---|---|---|---|---|
 | 3 (30 Nov) | 100 | 25 | `seattrue-vs-pax8-psa-sync`, `ghost-licences-after-offboarding` | Apply to Pax8 Marketplace (curated waitlist, [pax8.com/marketplace/vendors](https://www.pax8.com/en-us/marketplace/vendors)) |
-| 4 (7 Dec) | 100 | 25 | `what-is-nce-…`, `seattrue-vs-gradient-synthesize` | Halo community [verify]; SaaSHub and AlternativeTo listings |
+| 4 (7 Dec) | 100 | 25 | `what-is-nce-…`, `seattrue-vs-gradient-reconcile` | Halo community [verify]; SaaSHub and AlternativeTo listings |
 | 5 (14 Dec) | 100 | 25 | `m365-renewal-price-review-checklist`, `how-seattrue-calculates-license-leakage` | ConnectWise IT Nation / Kaseya user-group posts where rules allow [verify] |
 | 6 (21 Dec) | 50 (holidays) | 15 | Repost best performers | Product Hunt only once 3+ paying users (Jan) |
 
@@ -280,7 +280,7 @@ Volumes are not measured yet. Check them in Search Console and the free tools fr
 |---|---|---|---|
 | / | MSP license margin | Microsoft 365 license reconciliation for MSPs | Commercial |
 | /pricing | seattrue pricing | M365 reconciliation tool cost | Transactional |
-| /compare/gradient | gradient synthesize alternative | gradient msp pricing | Commercial (vs) |
+| /compare/gradient | gradient reconcile alternative | gradient msp pricing | Commercial (vs) |
 | /compare/pax8-psa-sync | pax8 psa sync | pax8 halopsa / connectwise integration price | Commercial |
 | /compare/spreadsheet | m365 billing reconciliation spreadsheet | — | Commercial |
 | /for/halopsa | halopsa pax8 billing | halo microsoft 365 billing | Commercial |

@@ -17,8 +17,6 @@ faq:
     a: "Seven days (168 hours) from the start of any term, with a prorated refund. After that, the partner is billed for the full term."
 ---
 
-<!-- verify: Microsoft's 2026 pricing FAQ (microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ) speaks to customers generally; confirm the renewal-timing rule applies the same way to CSP/NCE subscriptions bought via Pax8. -->
-
 NCE, the New Commerce Experience, is Microsoft's model for how Cloud Solution Provider (CSP) partners buy and manage licence-based subscriptions such as Microsoft 365. It defines products by SKU and term, offers monthly, annual and three-year terms, and limits cancellations and seat reductions to seven days after a term starts or seats are added.
 
 ## Where did NCE come from?
@@ -49,7 +47,7 @@ Seat counts follow a similar rule. Licences can be increased at any time, but [d
 
 New commerce pricing is defined per customer market, and the partner's cost for a subscription is set for its term. Microsoft notes in its [reconciliation file guidance](https://learn.microsoft.com/en-us/partner-center/billing/use-the-reconciliation-files) that a subscription's `UnitPrice` stays fixed for the billing term, and that `EffectiveUnitPrice` should be used for actual cost, since it reflects promotions, partner earned credit and proration.
 
-Price changes therefore reach a subscription when it renews. Microsoft's [2026 pricing FAQ](https://www.microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ) says commercial Microsoft 365 price updates took effect July 1, 2026, and customers renewing after that date move to the new pricing at their next renewal.
+Price changes therefore reach a subscription when it renews. Microsoft's [Partner Center pricing rules](https://learn.microsoft.com/en-us/partner-center/pricing/pricing-and-offers#new-commerce-license-based-pricing) say that when prices change mid-term, "the new price applies only at renewal". That covers every CSP new-commerce subscription, including ones bought through Pax8, because distributors transact through Partner Center. Microsoft's list price changes [took effect on July 1, 2026](https://www.microsoft.com/en-us/microsoft-365/blog/2025/12/04/advancing-microsoft-365-new-capabilities-and-pricing-update/). Your Pax8 buy price is set by Pax8 and can differ from Microsoft list; check your Pax8 price list.
 
 ## Why does NCE matter for MSP billing?
 

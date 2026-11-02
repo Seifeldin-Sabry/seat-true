@@ -1,31 +1,29 @@
 ---
-title: "SeatTrue vs Gradient MSP Synthesize: Which Fits Your MSP?"
-description: "A fair comparison of Gradient MSP's Synthesize billing platform and SeatTrue's Microsoft margin gate: scope, PSA support, pricing and when each fits."
-slug: seattrue-vs-gradient-synthesize
+title: "SeatTrue vs Gradient Reconcile: Which Fits Your MSP?"
+description: "A fair comparison of Gradient MSP's Reconcile billing platform and SeatTrue's Microsoft margin gate: scope, PSA support, pricing and when each fits."
+slug: seattrue-vs-gradient-reconcile
 publishAt: 2026-12-10T09:00:00Z
 updatedAt: 2026-12-10T09:00:00Z
 author: SDX Studio
-tags: [comparison, gradient msp, synthesize, billing reconciliation, msp]
-targetQuestion: "Should I use Gradient Synthesize or SeatTrue for Microsoft billing reconciliation?"
-keyword: gradient synthesize alternative
+tags: [comparison, gradient msp, gradient reconcile, billing reconciliation, msp]
+targetQuestion: "Should I use Gradient Reconcile or SeatTrue for Microsoft billing reconciliation?"
+keyword: gradient reconcile alternative
 faq:
-  - q: "How much does Gradient Synthesize cost?"
-    a: "Gradient's pricing page lists Launch at $299/month, Grow at $699/month and Scale at $999/month by customer count, plus a $199/month Microsoft add-on for resellers. Check the page for current figures."
+  - q: "How much does Gradient Reconcile cost?"
+    a: "When checked on 2 Nov 2026, Gradient's pricing page listed Reconcile at Launch $299/month, Grow $699/month and Scale $999/month by customer count, plus a $199/month Microsoft add-on for resellers. Check the page for current figures."
   - q: "Is SeatTrue a replacement for Gradient?"
-    a: "Only if your billing problem is Microsoft 365 resale through Pax8. Gradient covers many vendors and distributors and integrates with several PSAs; SeatTrue is deliberately narrower."
+    a: "Only if your billing problem is Microsoft 365 resale through Pax8. Gradient Reconcile covers many vendors and distributors and lists PSA integrations; SeatTrue is deliberately narrower."
   - q: "Does SeatTrue write back to my PSA?"
     a: "Not today. SeatTrue works from CSV uploads and an exceptions inbox. HaloPSA sync and a Pax8 API connection are planned, not live."
 ---
 
-<!-- verify: meetgradient.com/synthesize currently describes the product as 'Reconcile'; confirm the current product name. PSA write-back is not stated on Gradient's page, so the post says 'integrations' only. Pricing checked Nov 2026. -->
+Choose Gradient Reconcile if you need billing reconciliation across many vendors and distributors with PSA integration. Choose SeatTrue if your gap is narrower: checking Microsoft 365 resale through Pax8 each month against the markup agreed with each client, using CSV uploads and a sign-off inbox, at a flat $149 or $249 per month.
 
-Choose Gradient MSP's Synthesize if you need billing reconciliation across many vendors and distributors with PSA integration. Choose SeatTrue if your gap is narrower: checking Microsoft 365 resale through Pax8 each month against the markup agreed with each client, using CSV uploads and a sign-off inbox, at a flat $149 or $249 per month.
+## What is Gradient Reconcile?
 
-## What is Gradient Synthesize?
+Gradient Reconcile, from Gradient MSP, is a billing reconciliation platform for MSPs. Its [product page](https://www.meetgradient.com/synthesize-billing) describes monthly reconciliation of vendor usage that catches missed licences, wrong quantities and unbilled services. It lists integrations with ConnectWise, Autotask and HaloPSA, and distributors including Pax8, Ingram Micro and TD SYNNEX StreamOne. Its Microsoft add-on advertises real-time change detection, including price increases.
 
-Gradient MSP's Synthesize is a billing reconciliation platform for MSPs. Its [product page](https://www.meetgradient.com/synthesize) describes monthly reconciliation of vendor usage that catches missed licences, wrong quantities and unbilled services. It shows integrations with Autotask, ConnectWise, HaloPSA, Syncro and Kaseya BMS, and distributors including Pax8, Ingram Micro and TD SYNNEX StreamOne. Its Microsoft add-on advertises real-time change detection, including price increases.
-
-It's a broad, established product. If you resell security, backup and other vendor products alongside Microsoft, that breadth is the point.
+Gradient also sells a separate done-for-you service, Managed Billing Reconciliation. It's a broad, established product. If you resell security, backup and other vendor products alongside Microsoft, that breadth is the point.
 
 ## What is SeatTrue?
 
@@ -33,16 +31,16 @@ SeatTrue is a margin gate for Microsoft resellers. Each month it reconciles the 
 
 ## How do they compare?
 
-| | Gradient Synthesize | SeatTrue |
+| | Gradient Reconcile | SeatTrue |
 |---|---|---|
 | Scope | Many vendors and distributors | Microsoft 365 via Pax8 (Partner Center files supported) |
-| PSA integration | Autotask, ConnectWise, HaloPSA, Syncro, Kaseya BMS | None live; HaloPSA sync planned |
+| PSA integration | Integrations with ConnectWise, Autotask and HaloPSA | None live; HaloPSA sync planned |
 | Input | Integrations | CSV upload |
 | Price check | Price-increase detection (Microsoft add-on) | Every line vs cost × each client's agreed markup |
 | Workflow | Reconcile in platform | Exceptions inbox: approve, mark billed, dismiss; Owner/Admin/Tech roles |
 | Price | $299 / $699 / $999 per month by customer count, + $199/mo Microsoft add-on | $149/mo Solo (≤150 clients, 2 users); $249/mo Team (unlimited) |
 
-Gradient pricing is from [meetgradient.com/pricing](https://www.meetgradient.com/pricing) as of November 2026. Check it for current figures.
+Gradient pricing is from [meetgradient.com/pricing](https://www.meetgradient.com/pricing), checked 2 Nov 2026. Check it for current figures.
 
 ## When is Gradient the better fit?
 
@@ -67,11 +65,11 @@ You can, but most MSPs won't need to. If Gradient already covers your Microsoft 
 
 ## FAQ
 
-**How much does Gradient Synthesize cost?**
-Gradient's pricing page lists Launch at $299/month, Grow at $699/month and Scale at $999/month by customer count, plus a $199/month Microsoft add-on for resellers. Check the page for current figures.
+**How much does Gradient Reconcile cost?**
+When checked on 2 Nov 2026, Gradient's pricing page listed Reconcile at Launch $299/month, Grow $699/month and Scale $999/month by customer count, plus a $199/month Microsoft add-on for resellers. Check the page for current figures.
 
 **Is SeatTrue a replacement for Gradient?**
-Only if your billing problem is Microsoft 365 resale through Pax8. Gradient covers many vendors and distributors and integrates with several PSAs; SeatTrue is deliberately narrower.
+Only if your billing problem is Microsoft 365 resale through Pax8. Gradient Reconcile covers many vendors and distributors and lists PSA integrations; SeatTrue is deliberately narrower.
 
 **Does SeatTrue write back to my PSA?**
 Not today. SeatTrue works from CSV uploads and an exceptions inbox. HaloPSA sync and a Pax8 API connection are planned, not live.

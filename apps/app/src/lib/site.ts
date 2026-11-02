@@ -65,11 +65,11 @@ export const sitePages = {
   },
   compareGradient: {
     path: "/compare/gradient",
-    title: "SeatTrue vs Gradient MSP: reconciliation compared",
+    title: "SeatTrue vs Gradient Reconcile: reconciliation compared",
     description:
-      "Gradient covers more vendors and PSAs; SeatTrue checks Microsoft lines on price × markup at a flat price. A fair, sourced comparison.",
+      "Gradient Reconcile covers more vendors and PSAs; SeatTrue checks Microsoft lines on price × markup at a flat price. A fair, sourced comparison.",
     eyebrow: "Compare",
-    headline: "SeatTrue vs Gradient MSP",
+    headline: "SeatTrue vs Gradient Reconcile",
     updatedAt: "2026-11-02",
     primaryKeyword: "gradient msp alternative",
     secondaryKeyword: "microsoft 365 license reconciliation for msps",

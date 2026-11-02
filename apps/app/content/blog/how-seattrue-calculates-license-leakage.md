@@ -17,9 +17,7 @@ faq:
     a: "No. Overbilling is reported separately as refund risk, because netting it against leakage would hide two separate problems."
 ---
 
-<!-- verify: Confirm Northbeam IT demo figures (8 clients, $548.10/mo) match the live demo, and that the product handles lines with both unbilled seats and a stale price exactly as the formulas show. -->
-
-SeatTrue calculates monthly license leakage by comparing each distributor line with the client's invoice. Expected price is cost × (1 + agreed markup). Leakage is the sum of unbilled seats × expected price, stale-price gaps × billed seats, and ghost-licence seats × cost. Overbilling is reported separately as refund risk, never netted off.
+SeatTrue calculates monthly license leakage by comparing each distributor line with the client's invoice. Expected price is cost × (1 + agreed markup). Leakage is the sum of unbilled seats × expected price, stale-price gaps × billed seats, ghost-licence seats × cost, and unmapped-customer seats × cost. Overbilling is reported separately as refund risk, never netted off.
 
 ## What inputs does the calculation use?
 
@@ -37,20 +35,22 @@ Input is by CSV upload. No integration is needed.
 
 | Exception | Condition | Amount |
 |---|---|---|
-| Expected price | (all lines) | cost × (1 + markup) |
+| Expected price | (all lines) | cost × (1 + markup), rounded to the cent |
 | Unbilled seats | distributor seats > billed seats | (distributor seats − billed seats) × expected price |
-| Stale price | billed price < expected price | (expected price − billed price) × billed seats |
+| Stale price | billed price more than 0.5% below expected price | (expected price − billed price) × billed seats (capped at distributor seats) |
 | Ghost licence | distributor seats for a client you no longer invoice | seats × cost |
-| Overbilling (refund risk) | billed price > expected, or billed seats > distributor seats | reported separately |
-| Unmapped customer | no PSA client match | flagged; not valued until mapped |
+| Overbilling (refund risk) | billed seats > distributor seats, or a billed SKU with no licence on the bill | extra seats × billed price; reported separately |
+| Unmapped customer | distributor customer with no PSA client match | seats × cost, until it's mapped |
 
-**Monthly leakage = unbilled + stale price + ghost licences.** Overbilling is shown alongside it, not subtracted.
+**Monthly leakage = unbilled + stale price + ghost licences + unmapped customers.** Overbilling is shown alongside it, not subtracted.
 
 ## Why these choices?
 
 - **Unbilled seats use expected price**, not cost, because the loss is the revenue you agreed to charge, including margin.
 - **Stale price multiplies by billed seats**, because those are the seats where the price is wrong. Unbilled seats are already counted separately, so nothing is double-counted.
 - **Ghost licences use cost**, because there's no client to bill. The loss is the money paid to the distributor.
+- **Unmapped customers use cost** for the same reason: until the customer is matched to a client, nobody is invoiced for those seats. Once mapped, the line is checked like any other.
+- **The 0.5% tolerance** stops rounding differences of a cent or two from showing up as stale prices.
 - **Overbilling isn't netted**, because a client overcharged on one line doesn't cancel out margin lost on another. Each needs its own decision.
 
 ## What does a worked example look like?
@@ -66,7 +66,7 @@ Leakage for this line = **$56.00**
 
 If a second, offboarded customer still had 3 seats at $20.00 cost on the bill, the ghost licence amount would be 3 × 20.00 = **$60.00**.
 
-For a fuller picture, SeatTrue's demo uses an **example** MSP, "Northbeam IT", with 8 clients and **$548.10/month** of leakage. Northbeam IT is a fictional demo dataset, not a customer.
+For a fuller picture, SeatTrue's demo uses an **example** MSP, "Northbeam IT", with 8 clients and **$548.10/month** of leakage: $285.60 of unbilled seats, $36.00 of stale price, $114.00 of ghost licences and $112.50 for one distributor customer nobody mapped. It also shows $180.10 of overbilling, reported separately. Northbeam IT is a fictional demo dataset, not a customer.
 
 ## What does SeatTrue do after calculating?
 

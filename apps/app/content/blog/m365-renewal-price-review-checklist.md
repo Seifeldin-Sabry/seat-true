@@ -17,13 +17,11 @@ faq:
     a: "Microsoft Learn says partners have a seven-day window to cancel or reduce licences after renewal completes, starting at the datetime renewal completes."
 ---
 
-<!-- verify: Microsoft's 2026 pricing FAQ (microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ) speaks to customers generally; confirm the renewal-timing rule applies the same way to CSP/NCE subscriptions bought via Pax8. -->
-
 When a Microsoft 365 subscription renews, check its new cost on the distributor bill, update the client's invoice price to cost × the agreed markup, confirm the seat count and term still fit the client, and use the seven-day post-renewal window for any reduction. Then tell the client what changed before the invoice arrives.
 
 ## Why does every renewal need a price review?
 
-Under new commerce, a subscription's cost is fixed for its term. Microsoft's [reconciliation guidance](https://learn.microsoft.com/en-us/partner-center/billing/use-the-reconciliation-files) notes that `UnitPrice` stays fixed for the billing term. Changes arrive when it renews. Microsoft's [2026 pricing FAQ](https://www.microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ) says commercial Microsoft 365 price updates took effect July 1, 2026, apply to both annual and monthly billing plans, and reach customers at their next renewal after that date.
+Under new commerce, a subscription's cost is fixed for its term. Microsoft's [reconciliation guidance](https://learn.microsoft.com/en-us/partner-center/billing/use-the-reconciliation-files) notes that `UnitPrice` stays fixed for the billing term. Changes arrive when it renews. Microsoft's [Partner Center pricing rules](https://learn.microsoft.com/en-us/partner-center/pricing/pricing-and-offers#new-commerce-license-based-pricing) say that when prices change mid-term, "the new price applies only at renewal". That covers every CSP new-commerce subscription, including ones bought through Pax8, because distributors transact through Partner Center. Microsoft's list price changes [took effect on July 1, 2026](https://www.microsoft.com/en-us/microsoft-365/blog/2025/12/04/advancing-microsoft-365-new-capabilities-and-pricing-update/). Your Pax8 buy price is set by Pax8 and can differ from Microsoft list; check your Pax8 price list.
 
 If you resell dozens of subscriptions renewing in different months, some line's cost can change almost every month. The usual failure is a stale price: the cost went up at renewal, the invoice line didn't, and your agreed markup shrinks without anyone deciding it should.
 

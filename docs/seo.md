@@ -33,7 +33,7 @@ One primary and one secondary keyword per page, chosen by search intent. Pages a
 | 1 Dec | `/blog/seattrue-vs-pax8-psa-sync` | Comparison | pax8 psa sync | pax8 billing reconciliation |
 | 3 Dec | `/blog/ghost-licences-after-offboarding` | How-to | ghost licences microsoft 365 | nce seat management |
 | 8 Dec | `/blog/what-is-nce-new-commerce-experience` | Definition | what is nce microsoft | nce seat management |
-| 10 Dec | `/blog/seattrue-vs-gradient-synthesize` | Comparison | gradient synthesize alternative | microsoft 365 license reconciliation for msps |
+| 10 Dec | `/blog/seattrue-vs-gradient-reconcile` | Comparison | gradient reconcile alternative | microsoft 365 license reconciliation for msps |
 | 15 Dec | `/blog/m365-renewal-price-review-checklist` | Checklist | microsoft 365 renewal price check | msp license margin |
 | 17 Dec | `/blog/how-seattrue-calculates-license-leakage` | Methodology | how to calculate license leakage | msp license margin |
 

@@ -38,7 +38,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
           <div>
             <h2>Compare</h2>
             <Link to="/compare/$competitor" params={{ competitor: "gradient" }}>
-              vs Gradient MSP
+              vs Gradient Reconcile
             </Link>
             <Link
               to="/compare/$competitor"

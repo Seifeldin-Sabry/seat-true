@@ -110,14 +110,14 @@ ${plans.map((plan) => `- ${plan.name}: $${plan.priceUsd}/month flat. ${plan.summ
 ## How it differs
 
 - Native Pax8-to-PSA syncs keep seat quantities in step; their documentation doesn't describe checking price or markup. ${brand.name} checks both.
-- Gradient MSP covers more distributors, vendors and PSAs. ${brand.name} is narrower (Microsoft lines), checks price against each client's markup, and costs a flat $149 or $249 a month.
+- Gradient Reconcile (Gradient MSP) covers more distributors, vendors and PSAs. ${brand.name} is narrower (Microsoft lines), checks price against each client's markup, and costs a flat $149 or $249 a month.
 - A spreadsheet works if someone rebuilds it every month; ${brand.name} keeps the mappings and markups and shows only the exceptions.
 
 ## Links
 
 - Home: ${absoluteUrl("/")}
 - Pricing: ${absoluteUrl("/pricing")}
-- Compare with Gradient: ${absoluteUrl("/compare/gradient")}
+- Compare with Gradient Reconcile: ${absoluteUrl("/compare/gradient")}
 - Compare with a Pax8-to-PSA sync: ${absoluteUrl("/compare/pax8-psa-sync")}
 - Compare with a spreadsheet: ${absoluteUrl("/compare/spreadsheet")}
 - For Pax8 MSPs: ${absoluteUrl("/for/pax8-msps")}

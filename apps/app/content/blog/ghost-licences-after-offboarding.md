@@ -17,8 +17,6 @@ faq:
     a: "That depends on your client contract. If the contract is silent, the MSP may end up carrying the cost, which is why the commitment term should appear in client agreements."
 ---
 
-<!-- verify: Microsoft's offboarding page describes admin-center steps for directly bought subscriptions; for CSP seats the reduction is made via Pax8 or Partner Center. Wording reflects this, but confirm. -->
-
 Ghost licences are Microsoft 365 seats your distributor still bills you for after a user or whole client has left. They happen because unassigning a licence doesn't reduce the subscription count, and because new commerce only lets you reduce seats within seven days of a term starting. Catch them by checking the distributor bill against active clients every month.
 
 ## How do ghost licences happen?
@@ -35,9 +33,9 @@ Under new commerce, timing decides. Microsoft Learn says:
 
 - Licence-based subscriptions can be [cancelled with a prorated refund within seven days](https://learn.microsoft.com/en-us/partner-center/customers/new-commerce-cancellation-policy) of purchase. After that window the partner [is billed for the full term](https://learn.microsoft.com/en-us/partner-center/customers/create-a-new-subscription#cancel-a-subscription), even if the customer stops paying or using it.
 - Licences can be [decreased only within seven days of being added](https://learn.microsoft.com/en-us/partner-center/customers/create-a-new-subscription#increase-or-decrease-licenses-in-new-commerce-license-based-subscriptions), at purchase, renewal or midterm.
-- You can turn off auto-renew, or [schedule a reduction for renewal](https://learn.microsoft.com/en-us/partner-center/customers/create-a-new-subscription#subscription-renewals).
+- You can turn off auto-renew, or [schedule a reduction for renewal](https://learn.microsoft.com/en-us/partner-center/customers/create-a-new-subscription#subscription-renewals). A scheduled reduction only works while auto-renew is on, and it's cleared if the quantity changes, the subscription is upgraded or cancelled, or auto-renew is turned off mid-term.
 
-So a ghost licence on an annual term may be unavoidable until renewal. What is avoidable is letting it renew. On a monthly term, each month's renewal gives you a new seven-day window, as covered in [NCE monthly vs annual rules](/blog/nce-monthly-vs-annual-seat-reduction-rules).
+So a ghost licence on an annual term may be unavoidable until renewal. What is avoidable is letting it renew. For a departing user, unassign the licence straight away, which frees the seat for the next new hire, then schedule the seat reduction for renewal in Partner Center or Pax8. For CSP seats the reduction is made via Pax8 or Partner Center, not the Microsoft 365 admin center. On a monthly term, each month's renewal gives you a new seven-day window, as covered in [NCE monthly vs annual rules](/blog/nce-monthly-vs-annual-seat-reduction-rules).
 
 ## How do you find ghost licences?
 

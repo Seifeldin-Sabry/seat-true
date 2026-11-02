@@ -17,8 +17,6 @@ faq:
     a: "No. It works from CSV uploads. A Pax8 API connection and HaloPSA sync are planned but not live."
 ---
 
-<!-- verify: Microsoft's 2026 pricing FAQ (microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ) speaks to customers generally; confirm the renewal-timing rule applies the same way to CSP/NCE subscriptions bought via Pax8. -->
-
 A spreadsheet is good enough to reconcile Microsoft 365 billing when you have few clients, one person doing the work, and a markup that rarely changes. It breaks down when price checks per client, renewal-driven cost changes, and sign-off by more than one person matter. SeatTrue automates that margin check and records who resolved each exception.
 
 ## What does a reconciliation spreadsheet do well?
@@ -37,7 +35,7 @@ The problems are rarely the formulas. They're the things around the formulas:
 
 - **Mappings drift.** "Acme Corp" and "Acme Corporation" need a lookup table that someone maintains. New clients get added to the bill before the table.
 - **Price checks get skipped.** Matching quantity is one lookup. Matching price means pulling each client's agreed markup, computing cost × (1 + markup), and comparing. That's the step that tends to drop off under time pressure.
-- **Costs change at renewal.** Microsoft's [2026 pricing FAQ](https://www.microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ) says customers renewing after July 1, 2026 move to new pricing at their next renewal, so costs shift subscription by subscription. A sheet that compares this month's quantities won't flag a price that should have moved.
+- **Costs change at renewal.** Microsoft's [Partner Center pricing rules](https://learn.microsoft.com/en-us/partner-center/pricing/pricing-and-offers#new-commerce-license-based-pricing) say that when prices change mid-term, "the new price applies only at renewal". That covers every CSP new-commerce subscription, including ones bought through Pax8, because distributors transact through Partner Center. Microsoft's list price changes [took effect on July 1, 2026](https://www.microsoft.com/en-us/microsoft-365/blog/2025/12/04/advancing-microsoft-365-new-capabilities-and-pricing-update/). So costs shift subscription by subscription. Your Pax8 buy price is set by Pax8 and can differ from Microsoft list; check your Pax8 price list. A sheet that compares this month's quantities won't flag a price that should have moved.
 - **No record of decisions.** A highlighted cell doesn't say who decided an exception was fine, or why.
 - **Key-person risk.** When the person who built the sheet is on leave, the close often waits.
 

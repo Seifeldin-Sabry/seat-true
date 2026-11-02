@@ -43,8 +43,11 @@ describe("blog content", () => {
   });
 
   test("verify comments never reach the rendered HTML", () => {
-    const raw = readFileSync(join(dir, "what-is-license-leakage.md"), "utf8");
-    expect(raw).toContain("<!-- verify:");
+    const flagged = parsePost(
+      sample(validFrontmatter, "<!-- verify: check this -->\n\nHello"),
+      "flagged.md",
+    );
+    expect(flagged.html).not.toContain("verify:");
     for (const post of posts) {
       expect(post.html).not.toContain("verify:");
       expect(post.html).not.toContain("<!--");
@@ -104,7 +107,7 @@ describe("scheduling (fake clock)", () => {
     ]);
     expect(findPublishedPost(posts, second, now)?.slug).toBe(second);
     expect(
-      findPublishedPost(posts, "seattrue-vs-gradient-synthesize", now),
+      findPublishedPost(posts, "seattrue-vs-gradient-reconcile", now),
     ).toBeNull();
   });
 

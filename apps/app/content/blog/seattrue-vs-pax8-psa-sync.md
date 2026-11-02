@@ -17,7 +17,6 @@ faq:
     a: "No. SeatTrue is a fixed-purpose reconciliation tool for Microsoft resale. Rewst is a general automation platform you configure for many workflows."
 ---
 
-<!-- verify: HaloPSA page is silent on price/markup sync; post says 'not described', not 'absent'. Rewst/MSPbots capabilities are from their own pages. | Microsoft's 2026 pricing FAQ (microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ) speaks to customers generally; confirm the renewal-timing rule applies the same way to CSP/NCE subscriptions bought via Pax8. -->
 
 A native Pax8-to-PSA sync keeps seat quantities on recurring invoices current, but it is not designed to check whether each line is priced at cost times the markup you agreed with that client. Rewst and MSPbots can compare Pax8 data with your PSA. SeatTrue is a narrower tool: a monthly margin gate with sign-off before invoicing.
 
@@ -25,7 +24,7 @@ A native Pax8-to-PSA sync keeps seat quantities on recurring invoices current, b
 
 Native integrations move data so you don't have to re-key it. HaloPSA's [Pax8 integration page](https://usehalo.com/integration/pax8-integration) says subscription quantities on the recurring invoice can update automatically when Pax8 subscriptions change, with pro-rata adjustments added to the client's next invoice. That's valuable: it removes the most common cause of unbilled seats.
 
-What the page doesn't describe is price or markup handling. If a subscription renews at a new cost, a quantity sync has nothing to say about it. Under new commerce that matters, because Microsoft's [2026 pricing FAQ](https://www.microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ) says customers renewing after July 1, 2026 move to new pricing at their next renewal.
+What the page doesn't describe is price or markup handling. If a subscription renews at a new cost, a quantity sync has nothing to say about it. Under new commerce that matters, because Microsoft's [Partner Center pricing rules](https://learn.microsoft.com/en-us/partner-center/pricing/pricing-and-offers#new-commerce-license-based-pricing) say that when prices change mid-term, "the new price applies only at renewal", and Microsoft's list price changes [took effect on July 1, 2026](https://www.microsoft.com/en-us/microsoft-365/blog/2025/12/04/advancing-microsoft-365-new-capabilities-and-pricing-update/). That applies to subscriptions bought through Pax8 too. Your Pax8 buy price is set by Pax8 and can differ from Microsoft list; check your Pax8 price list.
 
 ## What do Rewst and MSPbots offer?
 

@@ -17,8 +17,6 @@ faq:
     a: "Every billing cycle, because seat counts change mid-month and new commerce costs change subscription by subscription at renewal."
 ---
 
-<!-- verify: Microsoft's 2026 pricing FAQ (microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ) speaks to customers generally; confirm the renewal-timing rule applies the same way to CSP/NCE subscriptions bought via Pax8. -->
-
 License leakage is the margin a Microsoft reseller loses when licences it pays the distributor for are not billed to the client, or are billed below the price agreed with that client. In practice it has three sources: unbilled seats, stale prices after a cost change, and ghost licences still running for clients who have left.
 
 ## What exactly counts as license leakage?
@@ -41,12 +39,12 @@ It is a billing gap, not a usage gap. A client who pays for 20 seats and uses 15
 
 **Overbilling** is the mirror image: billed quantity or price above expected. It's not margin you lost, but it is money the client may reasonably ask back, so treat it as refund exposure and count it separately. Netting it against leakage hides both problems.
 
-**Unmapped customers** (a distributor customer you can't match to any PSA client) aren't leakage in themselves, but you can't measure leakage for them until they're mapped.
+**Unmapped customers** (a distributor customer you can't match to any PSA client) can't be checked line by line until they're mapped. Until then nobody is invoiced for those seats, so SeatTrue counts them at seats × distributor cost, like a ghost licence.
 
 ## Why does license leakage happen?
 
 - **Seat changes outside the billing workflow.** A technician adds licences for a new starter; nobody updates the recurring invoice.
-- **Cost changes at renewal.** Under new commerce, prices are set per term and change when a subscription renews. Microsoft's [2026 pricing FAQ](https://www.microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ) says customers renewing after July 1, 2026 move to the new commercial pricing at their next renewal date, so cost increases arrive one subscription at a time.
+- **Cost changes at renewal.** Under new commerce, prices are set per term and change when a subscription renews. Microsoft's [Partner Center pricing rules](https://learn.microsoft.com/en-us/partner-center/pricing/pricing-and-offers#new-commerce-license-based-pricing) say that when prices change mid-term, "the new price applies only at renewal". That covers every CSP new-commerce subscription, including ones bought through Pax8, because distributors transact through Partner Center. Microsoft's list price changes [took effect on July 1, 2026](https://www.microsoft.com/en-us/microsoft-365/blog/2025/12/04/advancing-microsoft-365-new-capabilities-and-pricing-update/). So cost increases arrive one subscription at a time. Your Pax8 buy price is set by Pax8 and can differ from Microsoft list; check your Pax8 price list.
 - **Offboarding without a licence reduction.** Microsoft's own [offboarding guidance](https://learn.microsoft.com/en-us/microsoft-365/admin/add-users/remove-former-employee-step-6) treats unassigning a licence and reducing the licence count as two separate steps. Doing only the first leaves you paying for the seat.
 - **Quantity-only syncs.** Integrations that update seat counts don't check price against markup.
 

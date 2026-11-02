@@ -17,15 +17,13 @@ faq:
     a: "Every billing cycle, after the distributor bill is available and before client invoices are sent, so mistakes are fixed on the invoice rather than chased afterwards."
 ---
 
-<!-- verify: Microsoft's 2026 pricing FAQ (microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ) speaks to customers generally; confirm the renewal-timing rule applies the same way to CSP/NCE subscriptions bought via Pax8. -->
-
 Reconcile a Pax8 bill by matching every distributor line to a client invoice line, then checking two things: the seat count matches, and the price you billed equals your cost times the markup you agreed with that client. Do it every month before invoices go out, and treat each mismatch as an exception someone must resolve.
 
 ## Why isn't a quantity sync enough?
 
 Most native distributor-to-PSA integrations focus on seat quantity. HaloPSA's [Pax8 integration page](https://usehalo.com/integration/pax8-integration), for example, says subscription quantities on the recurring invoice can update automatically when Pax8 subscriptions change. It doesn't describe syncing price or markup.
 
-Quantity is half the check. A line can carry the right number of seats and still be billed at an old price. Under new commerce, cost changes land subscription by subscription at renewal: Microsoft's [2026 pricing FAQ](https://www.microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ) says the commercial Microsoft 365 price updates took effect on July 1, 2026, and that customers renewing after that date move to the new pricing at their next renewal. Two subscriptions for the same client can change cost in different months. A sync that copies quantity won't notice either one.
+Quantity is half the check. A line can carry the right number of seats and still be billed at an old price. Under new commerce, cost changes land subscription by subscription at renewal: Microsoft's [Partner Center pricing rules](https://learn.microsoft.com/en-us/partner-center/pricing/pricing-and-offers#new-commerce-license-based-pricing) say that when prices change mid-term, "the new price applies only at renewal". That covers every CSP new-commerce subscription, including ones bought through Pax8, because distributors transact through Partner Center. Microsoft's list price changes [took effect on July 1, 2026](https://www.microsoft.com/en-us/microsoft-365/blog/2025/12/04/advancing-microsoft-365-new-capabilities-and-pricing-update/). Your Pax8 buy price is set by Pax8 and can differ from Microsoft list; check your Pax8 price list. Two subscriptions for the same client can change cost in different months. A sync that copies quantity won't notice either one.
 
 ## What do you need before you start?
 

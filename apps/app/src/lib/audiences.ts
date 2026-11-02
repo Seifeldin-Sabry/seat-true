@@ -63,8 +63,8 @@ export const audiences: Record<string, Audience> = {
       "Works from the Pax8 billing export today. A Pax8 API connection is planned, not live, and needs Pax8's approval.",
     sources: [
       {
-        label: "Microsoft: 2026 Microsoft 365 pricing updates FAQ",
-        href: "https://www.microsoft.com/licensing/news/2026-M365-Packaging-Pricing-Updates-FAQ",
+        label: "Microsoft Learn: Partner Center pricing and offers",
+        href: "https://learn.microsoft.com/en-us/partner-center/pricing/pricing-and-offers#new-commerce-license-based-pricing",
       },
       {
         label: "Microsoft Learn: new commerce license-based subscriptions",
