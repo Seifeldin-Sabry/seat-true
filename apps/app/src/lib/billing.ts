@@ -94,6 +94,7 @@ export async function getPlanPreflight(plan: PlanId) {
 async function changePlan(input: {
   plan: PlanId;
   keepClientIds?: string[];
+  keepMemberIds?: string[];
   confirm?: string;
 }) {
   const client = await getApiClient();

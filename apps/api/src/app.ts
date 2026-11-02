@@ -34,8 +34,8 @@ export type {
 
 export type AppOptions = {
   projects: ProjectRepository;
-  /** Enables /workspace, /members, /invitations and /audit. */
-  db?: Database;
+  /** Backs /workspace, /members, /invitations and /audit. */
+  db: Database;
   audit?: AuditLog;
   recon: ReconService;
   planLimits?: PlanLimits;
@@ -64,7 +64,7 @@ const idSchema = t.Object({
 export function createApp({
   projects,
   db,
-  audit = db ? createAuditLog(db) : undefined,
+  audit = createAuditLog(db),
   recon,
   planLimits,
   auth,
@@ -214,23 +214,21 @@ export function createApp({
       createPlanRoutes({
         billing: billing ?? null,
         planLimits: planLimits ?? null,
-        ...(audit ? { audit } : {}),
+        audit,
         allowedOrigins,
         guard,
       }),
     )
     .use(
-      db && audit
-        ? createMembersRoutes({
-            db,
-            auth,
-            guard,
-            audit,
-            planLimits: planLimits ?? null,
-            ...(canWriteWorkspace ? { canWrite: canWriteWorkspace } : {}),
-            allowedOrigins,
-          })
-        : new Elysia({ name: "members-routes-disabled" }),
+      createMembersRoutes({
+        db,
+        auth,
+        guard,
+        audit,
+        planLimits: planLimits ?? null,
+        ...(canWriteWorkspace ? { canWrite: canWriteWorkspace } : {}),
+        allowedOrigins,
+      }),
     )
     .get("/health", () => ({ status: "ok" as const }))
     .post(

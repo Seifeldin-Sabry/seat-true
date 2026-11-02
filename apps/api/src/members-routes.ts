@@ -1,5 +1,4 @@
 import {
-  invitableRoles,
   isWorkEmail,
   rolePermissions,
   WORK_EMAIL_REQUIRED_MESSAGE,
@@ -40,8 +39,6 @@ export type MembersRoutesOptions = {
   allowedOrigins: string[];
 };
 
-type ErrorBody = { error: { code: string; message: string } };
-
 const invalidOrigin = {
   error: { code: "INVALID_ORIGIN" as const, message: "Origin not allowed." },
 };
@@ -61,7 +58,8 @@ const readOnly = {
       "Your subscription is inactive. Your data is safe; update billing to make changes.",
   },
 };
-const roleSchema = t.Union(invitableRoles.map((role) => t.Literal(role)));
+// Ownership is never handed out by invite or role change (see invitableRoles).
+const roleSchema = t.Union([t.Literal("admin"), t.Literal("tech")]);
 
 function planLimit(error: PlanLimitError) {
   return {
@@ -73,35 +71,35 @@ function planLimit(error: PlanLimitError) {
   };
 }
 
+type Refusal = {
+  code: 400 | 402 | 403 | 404 | 409 | 422;
+  body: { error: { code: string; message: string; upgradeUrl?: string } };
+};
+
 /** Better Auth refusals in the API's error shape (403 always FORBIDDEN). */
-function pluginRefusal(error: unknown): Response {
+function pluginRefusal(error: unknown): Refusal {
   if (error instanceof PlanLimitError)
-    return Response.json(planLimit(error), { status: 402 });
+    return { code: 402, body: planLimit(error) };
   if (!(error instanceof APIError)) throw error;
   const body = (error.body ?? {}) as { code?: string; message?: string };
   const message = body.message ?? "Request was refused.";
   // The plugin answers some permission failures with 401; the session is valid here.
   if (error.statusCode === 401 || error.statusCode === 403)
-    return Response.json(
-      { error: { code: "FORBIDDEN", message } } satisfies ErrorBody,
-      { status: 403 },
-    );
+    return { code: 403, body: { error: { code: "FORBIDDEN", message } } };
   if (error.statusCode === 402)
-    return Response.json(
-      { error: { code: "PLAN_LIMIT", message, upgradeUrl: "/app/billing" } },
-      { status: 402 },
-    );
-  return Response.json(
-    {
-      error: { code: body.code ?? "BAD_REQUEST", message },
-    } satisfies ErrorBody,
-    {
-      status:
-        error.statusCode >= 400 && error.statusCode < 500
-          ? error.statusCode
-          : 400,
-    },
+    return {
+      code: 402,
+      body: {
+        error: { code: "PLAN_LIMIT", message, upgradeUrl: "/app/billing" },
+      },
+    };
+  const code = ([404, 409, 422] as const).find(
+    (candidate) => candidate === error.statusCode,
   );
+  return {
+    code: code ?? 400,
+    body: { error: { code: body.code ?? "BAD_REQUEST", message } },
+  };
 }
 
 const actorOf = (workspace: Workspace) => ({
@@ -264,7 +262,8 @@ export function createMembersRoutes(options: MembersRoutesOptions) {
               expiresAt: created.expiresAt.toISOString(),
             } satisfies InvitationDto);
           } catch (error) {
-            return pluginRefusal(error);
+            const refusal = pluginRefusal(error);
+            return status(refusal.code, refusal.body);
           }
         },
         {
@@ -301,7 +300,8 @@ export function createMembersRoutes(options: MembersRoutesOptions) {
           try {
             await api.cancelInvitation(request.headers, params.id);
           } catch (error) {
-            return pluginRefusal(error);
+            const refusal = pluginRefusal(error);
+            return status(refusal.code, refusal.body);
           }
           await audit.record({
             organizationId: workspace.organizationId,
@@ -348,7 +348,8 @@ export function createMembersRoutes(options: MembersRoutesOptions) {
               organizationId: workspace.organizationId,
             });
           } catch (error) {
-            return pluginRefusal(error);
+            const refusal = pluginRefusal(error);
+            return status(refusal.code, refusal.body);
           }
           await audit.record({
             organizationId: workspace.organizationId,
@@ -396,7 +397,8 @@ export function createMembersRoutes(options: MembersRoutesOptions) {
               organizationId: workspace.organizationId,
             });
           } catch (error) {
-            return pluginRefusal(error);
+            const refusal = pluginRefusal(error);
+            return status(refusal.code, refusal.body);
           }
           await audit.record({
             organizationId: workspace.organizationId,
@@ -431,7 +433,8 @@ export function createMembersRoutes(options: MembersRoutesOptions) {
               expiresAt: found.expiresAt.toISOString(),
             };
           } catch (error) {
-            return pluginRefusal(error);
+            const refusal = pluginRefusal(error);
+            return status(refusal.code, refusal.body);
           }
         },
         {
@@ -462,7 +465,8 @@ export function createMembersRoutes(options: MembersRoutesOptions) {
             });
             return accepted;
           } catch (error) {
-            return pluginRefusal(error);
+            const refusal = pluginRefusal(error);
+            return status(refusal.code, refusal.body);
           }
         },
         {

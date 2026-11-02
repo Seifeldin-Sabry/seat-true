@@ -6,6 +6,7 @@ import { AppShell } from "../components/app-shell";
 import { requireSession } from "../lib/auth-navigation";
 import { formatCents } from "../lib/format";
 import { mappingsQueryOptions, useSaveMapping } from "../lib/recon-query";
+import { useCan } from "../lib/workspace";
 
 export const Route = createFileRoute("/app/mappings")({
   headers: () => ({ "Cache-Control": "private, no-store" }),
@@ -19,6 +20,7 @@ function MappingsPage() {
   const { user } = Route.useRouteContext();
   const mappings = useQuery(mappingsQueryOptions);
   const save = useSaveMapping();
+  const canEdit = useCan()("mapping", "edit");
   const [choices, setChoices] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState<string | null>(null);
   const data = mappings.data;
@@ -110,6 +112,12 @@ function MappingsPage() {
                           <select
                             id={selectId}
                             className="recon-select"
+                            disabled={!canEdit}
+                            title={
+                              canEdit
+                                ? undefined
+                                : "Only admins and the owner change mappings"
+                            }
                             value={choices[customer.customerKey] ?? ""}
                             onChange={(event) =>
                               setChoices((current) => ({
@@ -131,7 +139,9 @@ function MappingsPage() {
                             size="sm"
                             type="button"
                             disabled={
-                              !choices[customer.customerKey] || save.isPending
+                              !canEdit ||
+                              !choices[customer.customerKey] ||
+                              save.isPending
                             }
                             onClick={() =>
                               map(customer.customerKey, customer.customerName)

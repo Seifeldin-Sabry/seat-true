@@ -12,6 +12,7 @@ import {
   useLoadDemo,
   useUploadRun,
 } from "../lib/recon-query";
+import { useCan } from "../lib/workspace";
 
 export const Route = createFileRoute("/app/")({
   headers: () => ({ "Cache-Control": "private, no-store" }),
@@ -30,6 +31,7 @@ function OverviewPage() {
   const overview = useQuery(overviewQueryOptions);
   const upload = useUploadRun();
   const demo = useLoadDemo();
+  const can = useCan();
   const fileInput = useRef<HTMLInputElement>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const data = overview.data;
@@ -88,7 +90,7 @@ function OverviewPage() {
             <Button
               type="button"
               onClick={() => fileInput.current?.click()}
-              disabled={busy}
+              disabled={busy || !can("run", "upload")}
             >
               {upload.isPending ? (
                 <LoaderCircle size={16} className="spin" aria-hidden="true" />
@@ -97,19 +99,21 @@ function OverviewPage() {
               )}
               Upload Pax8 CSV
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onDemo}
-              disabled={busy}
-            >
-              {demo.isPending ? (
-                <LoaderCircle size={16} className="spin" aria-hidden="true" />
-              ) : (
-                <Sparkles size={16} aria-hidden="true" />
-              )}
-              Load demo data
-            </Button>
+            {can("run", "demo") && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onDemo}
+                disabled={busy}
+              >
+                {demo.isPending ? (
+                  <LoaderCircle size={16} className="spin" aria-hidden="true" />
+                ) : (
+                  <Sparkles size={16} aria-hidden="true" />
+                )}
+                Load demo data
+              </Button>
+            )}
           </div>
         </section>
 

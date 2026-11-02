@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { treaty } from "@elysia/eden";
+import { createDatabase } from "@seattrue/db";
 import { createApp, type Logger } from "./app";
 import type { AuthService } from "./auth";
 import type {
@@ -18,6 +19,10 @@ const unusedRecon = new Proxy({} as ReconService, {
     throw new Error("Reconciliation is not used in project tests");
   },
 });
+// Never queried: postgres-js connects lazily, project tests use a memory repo.
+const unusedDb = createDatabase(
+  "postgres://unused:unused@127.0.0.1:1/unused",
+).db;
 const testUserId = "test-user-1";
 const allowedOrigin = "http://localhost:3000";
 
@@ -81,6 +86,7 @@ function testApp(
 ) {
   return createApp({
     projects: repository,
+    db: unusedDb,
     recon: unusedRecon,
     auth: testAuth(userId),
     allowedOrigins: [allowedOrigin],
@@ -312,6 +318,7 @@ describe("API contract", () => {
     };
     const app = createApp({
       projects: repository,
+      db: unusedDb,
       recon: unusedRecon,
       auth: {
         ...testAuth(),
@@ -354,6 +361,7 @@ describe("API contract", () => {
     };
     const app = createApp({
       projects: memoryRepository(),
+      db: unusedDb,
       recon: unusedRecon,
       auth: testAuth(),
       allowedOrigins: [allowedOrigin],
@@ -386,6 +394,7 @@ describe("API contract", () => {
     const processed: Record<string, unknown>[] = [];
     const app = createApp({
       projects: repository,
+      db: unusedDb,
       recon: unusedRecon,
       auth: testAuth(null),
       allowedOrigins: [allowedOrigin],
@@ -420,6 +429,7 @@ describe("API contract", () => {
   test("job callbacks report unavailable when queue is off", async () => {
     const app = createApp({
       projects: memoryRepository(),
+      db: unusedDb,
       recon: unusedRecon,
       auth: testAuth(),
       allowedOrigins: [allowedOrigin],
@@ -437,6 +447,7 @@ describe("API contract", () => {
   test("advertises optional email capability without exposing credentials", async () => {
     const app = createApp({
       projects: memoryRepository(),
+      db: unusedDb,
       recon: unusedRecon,
       auth: { ...testAuth(), emailEnabled: true },
       allowedOrigins: [allowedOrigin],

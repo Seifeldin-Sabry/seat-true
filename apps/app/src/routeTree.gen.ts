@@ -14,10 +14,13 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as AcceptInviteInvitationIdRouteImport } from './routes/accept-invite.$invitationId'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppAuditRouteImport } from './routes/app.audit'
 import { Route as AppBillingRouteImport } from './routes/app.billing'
 import { Route as AppExceptionsRouteImport } from './routes/app.exceptions'
 import { Route as AppMappingsRouteImport } from './routes/app.mappings'
+import { Route as AppMembersRouteImport } from './routes/app.members'
 import { Route as AppClientsClientIdRouteImport } from './routes/app.clients.$clientId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -45,9 +48,20 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AcceptInviteInvitationIdRoute =
+  AcceptInviteInvitationIdRouteImport.update({
+    id: '/accept-invite/$invitationId',
+    path: '/accept-invite/$invitationId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/app/',
   path: '/app/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppAuditRoute = AppAuditRouteImport.update({
+  id: '/app/audit',
+  path: '/app/audit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppBillingRoute = AppBillingRouteImport.update({
@@ -65,6 +79,11 @@ const AppMappingsRoute = AppMappingsRouteImport.update({
   path: '/app/mappings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppMembersRoute = AppMembersRouteImport.update({
+  id: '/app/members',
+  path: '/app/members',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppClientsClientIdRoute = AppClientsClientIdRouteImport.update({
   id: '/app/clients/$clientId',
   path: '/app/clients/$clientId',
@@ -77,9 +96,12 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/accept-invite/$invitationId': typeof AcceptInviteInvitationIdRoute
+  '/app/audit': typeof AppAuditRoute
   '/app/billing': typeof AppBillingRoute
   '/app/exceptions': typeof AppExceptionsRoute
   '/app/mappings': typeof AppMappingsRoute
+  '/app/members': typeof AppMembersRoute
   '/app/': typeof AppIndexRoute
   '/app/clients/$clientId': typeof AppClientsClientIdRoute
 }
@@ -89,9 +111,12 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/accept-invite/$invitationId': typeof AcceptInviteInvitationIdRoute
+  '/app/audit': typeof AppAuditRoute
   '/app/billing': typeof AppBillingRoute
   '/app/exceptions': typeof AppExceptionsRoute
   '/app/mappings': typeof AppMappingsRoute
+  '/app/members': typeof AppMembersRoute
   '/app': typeof AppIndexRoute
   '/app/clients/$clientId': typeof AppClientsClientIdRoute
 }
@@ -102,9 +127,12 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/accept-invite/$invitationId': typeof AcceptInviteInvitationIdRoute
+  '/app/audit': typeof AppAuditRoute
   '/app/billing': typeof AppBillingRoute
   '/app/exceptions': typeof AppExceptionsRoute
   '/app/mappings': typeof AppMappingsRoute
+  '/app/members': typeof AppMembersRoute
   '/app/': typeof AppIndexRoute
   '/app/clients/$clientId': typeof AppClientsClientIdRoute
 }
@@ -116,9 +144,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/accept-invite/$invitationId'
+    | '/app/audit'
     | '/app/billing'
     | '/app/exceptions'
     | '/app/mappings'
+    | '/app/members'
     | '/app/'
     | '/app/clients/$clientId'
   fileRoutesByTo: FileRoutesByTo
@@ -128,9 +159,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/accept-invite/$invitationId'
+    | '/app/audit'
     | '/app/billing'
     | '/app/exceptions'
     | '/app/mappings'
+    | '/app/members'
     | '/app'
     | '/app/clients/$clientId'
   id:
@@ -140,9 +174,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/accept-invite/$invitationId'
+    | '/app/audit'
     | '/app/billing'
     | '/app/exceptions'
     | '/app/mappings'
+    | '/app/members'
     | '/app/'
     | '/app/clients/$clientId'
   fileRoutesById: FileRoutesById
@@ -153,9 +190,12 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  AcceptInviteInvitationIdRoute: typeof AcceptInviteInvitationIdRoute
+  AppAuditRoute: typeof AppAuditRoute
   AppBillingRoute: typeof AppBillingRoute
   AppExceptionsRoute: typeof AppExceptionsRoute
   AppMappingsRoute: typeof AppMappingsRoute
+  AppMembersRoute: typeof AppMembersRoute
   AppIndexRoute: typeof AppIndexRoute
   AppClientsClientIdRoute: typeof AppClientsClientIdRoute
 }
@@ -197,11 +237,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/accept-invite/$invitationId': {
+      id: '/accept-invite/$invitationId'
+      path: '/accept-invite/$invitationId'
+      fullPath: '/accept-invite/$invitationId'
+      preLoaderRoute: typeof AcceptInviteInvitationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/': {
       id: '/app/'
       path: '/app'
       fullPath: '/app/'
       preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/audit': {
+      id: '/app/audit'
+      path: '/app/audit'
+      fullPath: '/app/audit'
+      preLoaderRoute: typeof AppAuditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/billing': {
@@ -225,6 +279,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMappingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/members': {
+      id: '/app/members'
+      path: '/app/members'
+      fullPath: '/app/members'
+      preLoaderRoute: typeof AppMembersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/clients/$clientId': {
       id: '/app/clients/$clientId'
       path: '/app/clients/$clientId'
@@ -241,9 +302,12 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  AcceptInviteInvitationIdRoute: AcceptInviteInvitationIdRoute,
+  AppAuditRoute: AppAuditRoute,
   AppBillingRoute: AppBillingRoute,
   AppExceptionsRoute: AppExceptionsRoute,
   AppMappingsRoute: AppMappingsRoute,
+  AppMembersRoute: AppMembersRoute,
   AppIndexRoute: AppIndexRoute,
   AppClientsClientIdRoute: AppClientsClientIdRoute,
 }

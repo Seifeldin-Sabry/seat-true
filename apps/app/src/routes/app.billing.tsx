@@ -12,6 +12,7 @@ import {
   useBillingPortal,
 } from "../lib/billing";
 import { formatCents } from "../lib/format";
+import { useCan } from "../lib/workspace";
 
 type BillingSearch = { checkout?: "success" | "cancelled" };
 
@@ -51,6 +52,7 @@ function BillingPage() {
   const overview = useQuery(billingOverviewQueryOptions);
   const checkout = useBillingCheckout();
   const portal = useBillingPortal();
+  const canManage = useCan()("billing", "manage");
   const data = overview.data;
   const subscription = data?.subscription ?? null;
   const subscribed =
@@ -87,7 +89,7 @@ function BillingPage() {
               paid period. No refunds.
             </p>
           </div>
-          {subscription && (
+          {subscription && canManage && (
             <Button type="button" onClick={manage} disabled={portal.isPending}>
               {portal.isPending ? (
                 <LoaderCircle size={16} className="spin" aria-hidden="true" />
@@ -98,6 +100,12 @@ function BillingPage() {
             </Button>
           )}
         </section>
+
+        {!canManage && (
+          <div className="notice-banner" role="status">
+            <span>Only the workspace owner changes the plan or billing.</span>
+          </div>
+        )}
 
         {checkoutResult === "success" && (
           <div className="notice-banner" role="status">
@@ -168,7 +176,7 @@ function BillingPage() {
           </section>
         )}
 
-        {subscription && subscribed && (
+        {subscription && subscribed && canManage && (
           <PlanChange
             currentPlanId={subscription.planId}
             scheduledPlanId={subscription.scheduledPlanId}
@@ -196,7 +204,7 @@ function BillingPage() {
                     <Button
                       type="button"
                       onClick={() => choose(plan.id)}
-                      disabled={checkout.isPending}
+                      disabled={checkout.isPending || !canManage}
                     >
                       Choose {plan.name}
                     </Button>

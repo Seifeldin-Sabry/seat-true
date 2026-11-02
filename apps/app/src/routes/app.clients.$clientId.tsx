@@ -1,7 +1,8 @@
-import { Badge, Button } from "@seattrue/ui";
+import { Badge, Button, Input, Label } from "@seattrue/ui";
 import { useQuery } from "@tanstack/react-query";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { AppShell } from "../components/app-shell";
 import { requireSession } from "../lib/auth-navigation";
 import {
@@ -9,7 +10,12 @@ import {
   exceptionStatusLabels,
   formatCents,
 } from "../lib/format";
-import { clientQueryOptions, useSetClientArchived } from "../lib/recon-query";
+import {
+  clientQueryOptions,
+  useSetClientArchived,
+  useSetClientMarkup,
+} from "../lib/recon-query";
+import { useCan } from "../lib/workspace";
 
 export const Route = createFileRoute("/app/clients/$clientId")({
   headers: () => ({ "Cache-Control": "private, no-store" }),
@@ -41,6 +47,9 @@ function ClientPage() {
   const { clientId } = Route.useParams();
   const { data } = useQuery(clientQueryOptions(clientId));
   const archive = useSetClientArchived();
+  const markup = useSetClientMarkup();
+  const can = useCan();
+  const [markupDraft, setMarkupDraft] = useState<string | null>(null);
   if (!data) return null;
   const { client, agreements, exceptions, customerKeys } = data;
 
@@ -77,19 +86,59 @@ function ClientPage() {
           </div>
         )}
         <div className="recon-actions" style={{ marginBottom: 16 }}>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={archive.isPending}
-            onClick={() =>
-              archive.mutate({
-                id: data.client.id,
-                archived: !data.client.archivedAt,
-              })
-            }
-          >
-            {data.client.archivedAt ? "Restore client" : "Archive client"}
-          </Button>
+          {can("client", "markup") && (
+            <form
+              className="inline-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const value = Number(markupDraft);
+                if (markupDraft === null || !Number.isFinite(value)) return;
+                markup.mutate(
+                  { id: data.client.id, markupPct: value },
+                  { onSuccess: () => setMarkupDraft(null) },
+                );
+              }}
+            >
+              <Label htmlFor="markup">Markup %</Label>
+              <Input
+                id="markup"
+                type="number"
+                min={0}
+                max={500}
+                step="0.01"
+                style={{ width: 100 }}
+                value={markupDraft ?? String(data.client.markupPct)}
+                onChange={(event) => setMarkupDraft(event.target.value)}
+              />
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={markupDraft === null || markup.isPending}
+              >
+                Save markup
+              </Button>
+            </form>
+          )}
+          {markup.error && (
+            <span className="dialog-error" role="alert">
+              {markup.error.message}
+            </span>
+          )}
+          {can("client", "archive") && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={archive.isPending}
+              onClick={() =>
+                archive.mutate({
+                  id: data.client.id,
+                  archived: !data.client.archivedAt,
+                })
+              }
+            >
+              {data.client.archivedAt ? "Restore client" : "Archive client"}
+            </Button>
+          )}
           {archive.error && (
             <span className="dialog-error" role="alert">
               {archive.error.message}

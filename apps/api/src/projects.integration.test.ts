@@ -54,6 +54,7 @@ integrationTest(
     });
     const app = createApp({
       projects: createProjectRepository(connection.db),
+      db: connection.db,
       recon: createReconService(connection.db),
       auth,
       allowedOrigins: [appOrigin],

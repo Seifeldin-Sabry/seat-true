@@ -1,5 +1,6 @@
 import type {
   ClientDetailDto,
+  CommentDto,
   ExceptionDto,
   MappingsDto,
   OverviewDto,
@@ -7,7 +8,14 @@ import type {
 } from "@seattrue/api/contract";
 import { apiErrorMessage, getApiClient } from "./api";
 
-export type { ClientDetailDto, ExceptionDto, MappingsDto, OverviewDto, RunDto };
+export type {
+  ClientDetailDto,
+  CommentDto,
+  ExceptionDto,
+  MappingsDto,
+  OverviewDto,
+  RunDto,
+};
 export type ExceptionStatus = ExceptionDto["status"];
 
 export async function getOverview(): Promise<OverviewDto> {
@@ -96,6 +104,50 @@ export async function joinWaitlist(input: {
   const { error } = await api.waitlist.post(input);
   if (error)
     throw new Error(apiErrorMessage(error, "Could not join the waitlist."));
+}
+
+export async function setClientMarkup(input: {
+  id: string;
+  markupPct: number;
+}) {
+  const api = await getApiClient();
+  const { data, error } = await api.recon
+    .clients({ id: input.id })
+    .patch({ markupPct: input.markupPct });
+  if (error) throw new Error(apiErrorMessage(error, "Could not save markup."));
+  if (!data) throw new Error("Client response was empty.");
+  return data;
+}
+
+export async function setExceptionFlag(input: {
+  id: string;
+  flagged: boolean;
+}) {
+  const api = await getApiClient();
+  const { data, error } = await api.recon
+    .exceptions({ id: input.id })
+    .flag.put({ flagged: input.flagged });
+  if (error) throw new Error(apiErrorMessage(error, "Could not flag."));
+  if (!data) throw new Error("Flag response was empty.");
+  return data;
+}
+
+export async function listComments(id: string): Promise<CommentDto[]> {
+  const api = await getApiClient();
+  const { data, error } = await api.recon.exceptions({ id }).comments.get();
+  if (error)
+    throw new Error(apiErrorMessage(error, "Could not load comments."));
+  if (!data) throw new Error("Comments response was empty.");
+  return data.comments;
+}
+
+export async function addComment(input: { id: string; body: string }) {
+  const api = await getApiClient();
+  const { data, error } = await api.recon
+    .exceptions({ id: input.id })
+    .comments.post({ body: input.body });
+  if (error) throw new Error(apiErrorMessage(error, "Could not comment."));
+  return data;
 }
 
 export async function setClientArchived(input: {

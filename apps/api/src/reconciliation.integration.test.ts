@@ -138,6 +138,7 @@ integrationTest("routes enforce auth, origin and CSV validation", async () => {
   };
   const app = createApp({
     projects: createProjectRepository(connection.db),
+    db: connection.db,
     recon: createReconService(connection.db),
     auth,
     allowedOrigins: [appOrigin],

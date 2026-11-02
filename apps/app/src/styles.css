@@ -1898,3 +1898,58 @@ body {
 .st-risk strong {
   color: var(--st-ink);
 }
+
+/* Workspaces, members and exception discussion */
+.workspace-switcher {
+  width: calc(100% - 13px);
+  margin: -6px 0 14px 13px;
+  padding: 7px 9px;
+  border: 1px solid
+    color-mix(in oklch, var(--primary-foreground) 20%, transparent);
+  border-radius: 7px;
+  color: var(--primary-foreground);
+  background: var(--color-graphite-2);
+  font-size: 13px;
+}
+
+.exception-thread {
+  display: grid;
+  gap: 10px;
+  padding: 12px 0 4px;
+}
+
+.exception-thread ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.exception-thread li {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--card);
+}
+
+.exception-thread small {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: end;
+}
+
+.inline-form select {
+  min-height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--card);
+}

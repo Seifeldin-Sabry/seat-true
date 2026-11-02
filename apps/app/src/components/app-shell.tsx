@@ -1,18 +1,25 @@
 import { Button, brand } from "@seattrue/ui";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowUpRight,
   CreditCard,
   Gauge,
+  History,
   Inbox,
   Layers3,
   Link2,
   LogOut,
+  Users,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { authClient } from "../lib/auth-client";
+import {
+  useCan,
+  useSwitchWorkspace,
+  workspaceQueryOptions,
+} from "../lib/workspace";
 import { BillingBanner } from "./billing-banner";
 
 const iconStroke = 1.8;
@@ -20,7 +27,14 @@ const primaryLinks = [
   { to: "/app", label: "Overview", Icon: Gauge },
   { to: "/app/exceptions", label: "Exceptions", Icon: Inbox },
   { to: "/app/mappings", label: "Mappings", Icon: Link2 },
+  { to: "/app/members", label: "Members", Icon: Users },
 ] as const;
+
+const roleLabels: Record<string, string> = {
+  owner: "Owner",
+  admin: "Admin",
+  tech: "Tech",
+};
 
 export function AppShell({
   children,
@@ -30,6 +44,15 @@ export function AppShell({
   userName?: string;
 }) {
   const queryClient = useQueryClient();
+  const workspace = useQuery(workspaceQueryOptions);
+  const switchWorkspace = useSwitchWorkspace();
+  const can = useCan();
+  const links = [
+    ...primaryLinks,
+    ...(can("audit", "view")
+      ? [{ to: "/app/audit", label: "Audit log", Icon: History } as const]
+      : []),
+  ];
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
 
@@ -66,9 +89,34 @@ export function AppShell({
             <span>{brand.name}</span>
           </Link>
 
-          <div className="sidebar-section-label">Workspace</div>
+          <div className="sidebar-section-label">
+            {workspace.data?.organization?.name ?? "Workspace"}
+            {workspace.data?.role && (
+              <> · {roleLabels[workspace.data.role] ?? workspace.data.role}</>
+            )}
+          </div>
+          {(workspace.data?.workspaces.length ?? 0) > 1 && (
+            <select
+              className="workspace-switcher"
+              aria-label="Switch workspace"
+              value={workspace.data?.organization?.id ?? ""}
+              disabled={switchWorkspace.isPending}
+              onChange={(event) => switchWorkspace.mutate(event.target.value)}
+            >
+              {workspace.data?.workspaces.map((entry) => (
+                <option
+                  key={entry.id}
+                  value={entry.id}
+                  disabled={entry.suspended}
+                >
+                  {entry.name}
+                  {entry.suspended ? " (suspended)" : ""}
+                </option>
+              ))}
+            </select>
+          )}
           <nav aria-label="Primary" className="sidebar-navigation">
-            {primaryLinks.map(({ to, label, Icon }) => (
+            {links.map(({ to, label, Icon }) => (
               <Link
                 key={to}
                 className="sidebar-link"
@@ -145,7 +193,7 @@ export function AppShell({
           </a>
         </header>
         <nav className="mobile-nav" aria-label="Primary">
-          {primaryLinks.map(({ to, label }) => (
+          {links.map(({ to, label }) => (
             <Link
               key={to}
               to={to}
@@ -168,6 +216,17 @@ export function AppShell({
         {signOutError && (
           <div className="mobile-signout-error" role="alert">
             {signOutError}
+          </div>
+        )}
+        {workspace.data?.suspended && (
+          <div className="error-banner" role="alert">
+            <div>
+              <strong>Your access is suspended</strong>
+              <p>
+                {workspace.data.organization?.name} is over its plan's seat
+                limit. Ask the owner to upgrade, or switch to another workspace.
+              </p>
+            </div>
           </div>
         )}
         <BillingBanner />
