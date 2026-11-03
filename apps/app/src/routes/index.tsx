@@ -124,7 +124,7 @@ const comparison: {
     sheet: "Your time",
     psa: "Included",
     gradient: "$299–$999/mo + $199",
-    ours: "$49 or $179 flat",
+    ours: "$49 or $149 flat",
   },
 ];
 
@@ -309,7 +309,7 @@ function LandingPage() {
               <strong>$49</strong>/month
             </p>
             <p>
-              Starter: flat, up to 50 clients. Pro: $179/month flat, unlimited
+              Starter: flat, up to 50 clients. Pro: $149/month flat, unlimited
               clients. Unlimited users on both.
             </p>
             <ul>

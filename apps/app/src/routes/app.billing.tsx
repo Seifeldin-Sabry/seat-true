@@ -132,7 +132,7 @@ function BillingPage() {
             <h2>Plans open soon</h2>
             <p>
               Your workspace has full access while plans are being set up.
-              Starter is $49/month (up to 50 clients); Pro is $179/month
+              Starter is $49/month (up to 50 clients); Pro is $149/month
               (unlimited). Users are unlimited on both.
             </p>
           </div>

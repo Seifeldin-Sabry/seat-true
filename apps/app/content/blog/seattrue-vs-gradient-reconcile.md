@@ -17,7 +17,7 @@ faq:
     a: "Not today. SeatTrue works from CSV uploads and an exceptions inbox. HaloPSA sync and a Pax8 API connection are planned, not live."
 ---
 
-Choose Gradient Reconcile if you need billing reconciliation across many vendors and distributors with PSA integration. Choose SeatTrue if your gap is narrower: checking Microsoft 365 resale through Pax8 each month against the markup agreed with each client, using CSV uploads and a sign-off inbox, at a flat $49 or $179 per month.
+Choose Gradient Reconcile if you need billing reconciliation across many vendors and distributors with PSA integration. Choose SeatTrue if your gap is narrower: checking Microsoft 365 resale through Pax8 each month against the markup agreed with each client, using CSV uploads and a sign-off inbox, at a flat $49 or $149 per month.
 
 ## What is Gradient Reconcile?
 
@@ -38,7 +38,7 @@ SeatTrue is a margin gate for Microsoft resellers. Each month it reconciles the 
 | Input | Integrations | CSV upload |
 | Price check | Price-increase detection (Microsoft add-on) | Every line vs cost × each client's agreed markup |
 | Workflow | Reconcile in platform | Exceptions inbox: approve, mark billed, dismiss; Owner/Admin/Tech roles |
-| Price | $299 / $699 / $999 per month by customer count, + $199/mo Microsoft add-on | $49/mo Starter (≤50 clients); $179/mo Pro (unlimited); unlimited users on both |
+| Price | $299 / $699 / $999 per month by customer count, + $199/mo Microsoft add-on | $49/mo Starter (≤50 clients); $149/mo Pro (unlimited); unlimited users on both |
 
 Gradient pricing is from [meetgradient.com/pricing](https://www.meetgradient.com/pricing), checked 2 Nov 2026. Check it for current figures.
 

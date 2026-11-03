@@ -24,7 +24,7 @@ const included = [
 const pricingFaq = [
   {
     q: "Is there a per-licence or per-client fee?",
-    a: "No. Starter is $49 a month flat for up to 50 active clients. Pro is $179 a month flat with unlimited clients. Users are unlimited on both.",
+    a: "No. Starter is $49 a month flat for up to 50 active clients. Pro is $149 a month flat with unlimited clients. Users are unlimited on both.",
   },
   {
     q: "Do I have to pay before the audit?",

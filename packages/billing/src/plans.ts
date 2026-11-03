@@ -23,7 +23,7 @@ export const plans = [
     lookupKey: "seattrue_pro_monthly",
     productId: "seattrue_pro",
     description: "Unlimited clients and users",
-    unitAmount: 17900,
+    unitAmount: 14900,
     rank: 2,
     limits: { clients: null },
   },

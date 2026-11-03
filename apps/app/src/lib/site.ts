@@ -32,11 +32,11 @@ export const sitePages = {
   },
   pricing: {
     path: "/pricing",
-    title: "SeatTrue pricing: $49 Starter or $179 Pro, flat monthly",
+    title: "SeatTrue pricing: $49 Starter or $149 Pro, flat monthly",
     description:
-      "Flat monthly plans for Microsoft 365 license reconciliation with unlimited users: Starter $49 for up to 50 clients, Pro $179 unlimited. Free audit first.",
+      "Flat monthly plans for Microsoft 365 license reconciliation with unlimited users: Starter $49 for up to 50 clients, Pro $149 unlimited. Free audit first.",
     eyebrow: "Pricing",
-    headline: "$49 or $179 a month. Flat. Free audit first.",
+    headline: "$49 or $149 a month. Flat. Free audit first.",
     updatedAt: "2026-11-03",
     primaryKeyword: "msp billing reconciliation software pricing",
     secondaryKeyword: "msp license margin",
@@ -222,7 +222,7 @@ export const plans = [
   {
     id: "pro",
     name: "Pro",
-    priceUsd: 179,
+    priceUsd: 149,
     summary: "Unlimited clients and unlimited users",
   },
 ] as const;

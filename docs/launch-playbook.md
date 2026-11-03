@@ -61,7 +61,7 @@ Draft, 2 Nov 2026. Nothing has been created, started or sent. Built with the orc
    - Files are deleted after 30 days unless they subscribe (A: confirm the data policy).
 2. **Honest go/no-go.** If the audit finds less leakage than the subscription costs, Seif tells them not to buy. This is the risk reversal, and it needs no refunds.
 3. **Founding price lock for the first 20 MSPs.**
-   - Starter $49/mo (50 clients) or Pro $179/mo (unlimited clients), unlimited users on both, stays fixed while the subscription stays active.
+   - Starter $49/mo (50 clients) or Pro $149/mo (unlimited clients), unlimited users on both, stays fixed while the subscription stays active.
    - Show a real "N of 20 left" count on /pricing.
 4. **4 onboarding slots a week.**
    - Use a Calendly event capped at 4 bookings a week. This is a real capacity limit.
@@ -270,7 +270,7 @@ Welcome blueprint: Day 0, 1, 2, 4, 7. The sequence stops when an audit is booked
 | 2 | 1 | Why I built a margin gate | Story: SDX works only with MSPs; quantities sync, price doesn't. Soft mention of SeatTrue. |
 | 3 | 2 | The 10-minute renewal check | Quick win: filter Pax8 for subscriptions renewed since 1 July and compare unit price to the PSA. CTA: reply with what you found. |
 | 4 | 4 | What $548.10 of leakage looks like | Proof: the labelled *Example: Northbeam IT* breakdown by exception type. Medium CTA: book the audit. |
-| 5 | 7 | Founding price, while it lasts | Offer: Starter $49 / Pro $179 locked for the first 20 MSPs; 4 onboarding slots a week; cancel any time, effective at period end. Objection: "we already use Gradient/the sync". |
+| 5 | 7 | Founding price, while it lasts | Offer: Starter $49 / Pro $149 locked for the first 20 MSPs; 4 onboarding slots a week; cancel any time, effective at period end. Objection: "we already use Gradient/the sync". |
 
 ## 8. SEO and AI-search plan
 
@@ -342,7 +342,7 @@ Volumes are not measured yet. Check them in Search Console and the free tools fr
 | Pax8 refuses API delegation | CSV upload stays the core path; the audit already works from CSV |
 | Deliverability on new domains | 14-day warmup, ≤20 sends per inbox per day, plain text, no tracking, 2% bounce stop rule |
 | One LinkedIn sender shared three ways | 100 a week total; dedupe by company; lean on email |
-| Gradient adds markup checks | Compete on price ($49–$179 vs ~$498), setup time and the UK Halo + Giacom niche |
+| Gradient adds markup checks | Compete on price ($49–$149 vs ~$498), setup time and the UK Halo + Giacom niche |
 | Halo or Pax8 add native price sync | Stay multi-distributor plus markup policy; keep the audit-trail sign-off |
 | $99 tools and free AI skills | Sell the gate and the audit trail, not the matching |
 | Leakage claims unproven | Only quote the labelled example until real audits exist; then publish anonymised ranges with consent |

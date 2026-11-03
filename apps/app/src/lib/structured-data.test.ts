@@ -133,7 +133,7 @@ describe("JSON-LD", () => {
       offers.map((offer) => [offer.name, offer.price, offer.priceCurrency]),
     ).toEqual([
       ["Starter", "49.00", "USD"],
-      ["Pro", "179.00", "USD"],
+      ["Pro", "149.00", "USD"],
     ]);
   });
 

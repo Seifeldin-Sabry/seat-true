@@ -35,7 +35,7 @@ function fakeStripe(suffix: string) {
     lookup_key: lookupKey,
     active: true,
     recurring: { interval: "month" },
-    unit_amount: lookupKey.includes("starter") ? 4900 : 17900,
+    unit_amount: lookupKey.includes("starter") ? 4900 : 14900,
     currency: "usd",
   });
   const prices = [

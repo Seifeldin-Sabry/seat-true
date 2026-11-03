@@ -46,7 +46,7 @@ PostgreSQL binds to localhost. If port 5432 is occupied, change `POSTGRES_PORT`,
 
 ## Billing (SeatTrue)
 
-Two flat monthly plans with unlimited users, resolved by Stripe lookup key so sandbox and live both work: `seattrue_starter_monthly` ($49, up to 50 active clients) and `seattrue_pro_monthly` ($179, unlimited clients). Run `bun run stripe:seed` against each Stripe account to create them; it also points the portal configuration at the new prices. The earlier Solo ($149) and Team ($249) live prices are no longer used by the code: archive them in the Stripe dashboard.
+Two flat monthly plans with unlimited users, resolved by Stripe lookup key so sandbox and live both work: `seattrue_starter_monthly` ($49, up to 50 active clients) and `seattrue_pro_monthly` ($149, unlimited clients). Run `bun run stripe:seed` against each Stripe account to create them; it also points the portal configuration at the new prices. The earlier Solo ($149, 2 users) and Team ($249) live prices are no longer used by the code: archive them in the Stripe dashboard.
 
 - Checkout is subscription mode; Stripe charges automatically and emails receipts and invoices (turn on the customer email toggles in the Stripe dashboard). The app sends no billing email of its own.
 - **No refunds.** Cancellation takes effect at period end with no proration. Upgrades in the portal invoice immediately; downgrades apply at period end, so no credits are issued. There is no refund code path.

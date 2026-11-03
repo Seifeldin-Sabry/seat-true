@@ -83,7 +83,7 @@ export const audiences: Record<string, Audience> = {
       noAccessFaq,
       {
         q: "What does it cost?",
-        a: "$49 a month for Starter (up to 50 active clients) or $179 a month for Pro (unlimited clients). Users are unlimited on both. The first margin audit on your own export is free.",
+        a: "$49 a month for Starter (up to 50 active clients) or $149 a month for Pro (unlimited clients). Users are unlimited on both. The first margin audit on your own export is free.",
       },
     ],
     sources: [partnerCenterPricing, newCommerceSubscriptions],
@@ -207,7 +207,7 @@ export const audiences: Record<string, Audience> = {
     faq: [
       {
         q: "Is Starter enough for us?",
-        a: "Starter is $49 a month for up to 50 active clients, with unlimited users. If you pass 50 clients, Pro is $179 a month with no client limit.",
+        a: "Starter is $49 a month for up to 50 active clients, with unlimited users. If you pass 50 clients, Pro is $149 a month with no client limit.",
       },
       {
         q: "We don't have a PSA. Does that matter?",

@@ -43,7 +43,7 @@ function fakeStripe(suffix: string) {
   const state = {
     prices: [
       priceFor("seattrue_starter_monthly", 4900),
-      priceFor("seattrue_pro_monthly", 17900),
+      priceFor("seattrue_pro_monthly", 14900),
     ],
     subscription: {
       id: `sub_${suffix}`,
@@ -244,7 +244,7 @@ databaseTest(
         status: "active",
         planId: "starter",
       });
-      expect(view.plans.map((plan) => plan.amount)).toEqual([4900, 17900]);
+      expect(view.plans.map((plan) => plan.amount)).toEqual([4900, 14900]);
 
       // Double checkout while subscribed goes to the portal instead.
       await expect(
