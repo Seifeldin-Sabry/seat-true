@@ -42,15 +42,15 @@ function fakeStripe(suffix: string) {
   });
   const state = {
     prices: [
-      priceFor("seattrue_solo_monthly", 14900),
-      priceFor("seattrue_team_monthly", 24900),
+      priceFor("seattrue_starter_monthly", 4900),
+      priceFor("seattrue_pro_monthly", 14900),
     ],
     subscription: {
       id: `sub_${suffix}`,
       customer: `cus_${suffix}`,
       status: "active" as Stripe.Subscription.Status,
       cancel_at_period_end: false,
-      lookupKey: "seattrue_solo_monthly",
+      lookupKey: "seattrue_starter_monthly",
     },
     liveSubscriptions: [] as unknown[],
   };
@@ -117,7 +117,7 @@ function fakeStripe(suffix: string) {
           customer: `cus_${suffix}`,
           metadata: {
             organizationId: undefined as string | undefined,
-            planLookupKey: "seattrue_solo_monthly",
+            planLookupKey: "seattrue_starter_monthly",
           },
         }),
         expire: async () => ({}),
@@ -201,18 +201,18 @@ databaseTest(
 
     try {
       // Checkout: one customer, stable idempotency keys, lookup-key prices.
-      const first = await billing.checkout(owner, "solo", "attempt-1");
+      const first = await billing.checkout(owner, "starter", "attempt-1");
       expect(first.url).toContain("checkout.stripe.test");
       const created = calls.filter(
         (call) => call.method === "checkout.sessions.create",
       );
       expect(created[0]?.idempotencyKey).toBe(
-        `checkout:${organizationId}:seattrue_solo_monthly:attempt-1`,
+        `checkout:${organizationId}:seattrue_starter_monthly:attempt-1`,
       );
       expect(created[0]?.params).toMatchObject({
         mode: "subscription",
         line_items: [
-          { price: `price_seattrue_solo_monthly_${suffix}`, quantity: 1 },
+          { price: `price_seattrue_starter_monthly_${suffix}`, quantity: 1 },
         ],
         success_url: "http://localhost:3000/app/billing?checkout=success",
       });
@@ -242,13 +242,13 @@ databaseTest(
       const view = await billing.overview(organizationId);
       expect(view.subscription).toMatchObject({
         status: "active",
-        planId: "solo",
+        planId: "starter",
       });
-      expect(view.plans.map((plan) => plan.amount)).toEqual([14900, 24900]);
+      expect(view.plans.map((plan) => plan.amount)).toEqual([4900, 14900]);
 
       // Double checkout while subscribed goes to the portal instead.
       await expect(
-        billing.checkout(owner, "team", "attempt-2"),
+        billing.checkout(owner, "pro", "attempt-2"),
       ).rejects.toBeInstanceOf(ExistingSubscriptionError);
 
       // Portal uses the configured portal and returns to /app/billing.

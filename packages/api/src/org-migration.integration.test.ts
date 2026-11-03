@@ -70,7 +70,7 @@ integrationTest(
         INSERT INTO billing_subscriptions (stripe_subscription_id, user_id, stripe_customer_id, price_id, status)
           VALUES ('sub_1', 'u1', 'cus_1', 'price_1', 'active');
         INSERT INTO billing_plan_changes (id, user_id, stripe_subscription_id, target_lookup_key, keep_client_ids, status)
-          VALUES ('pc1', 'u1', 'sub_1', 'seattrue_solo_monthly', '[]', 'applied');
+          VALUES ('pc1', 'u1', 'sub_1', 'seattrue_starter_monthly', '[]', 'applied');
       `);
 
       await apply(db, tags[backfill - 1] as string);

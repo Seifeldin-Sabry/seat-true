@@ -1,4 +1,7 @@
+import { cimd } from "@better-auth/cimd";
+import { fetchClientMetadataResource } from "@better-auth/cimd/node";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import { mcp, requireMcpAuth } from "@better-auth/mcp";
 import {
   ac,
   invitableRoles,
@@ -12,7 +15,15 @@ import {
   account,
   type Database,
   invitation,
+  jwks,
   member,
+  oauthAccessToken,
+  oauthClient,
+  oauthClientAssertion,
+  oauthClientResource,
+  oauthConsent,
+  oauthRefreshToken,
+  oauthResource,
   organization,
   rateLimit,
   session,
@@ -20,9 +31,9 @@ import {
   verification,
 } from "@seattrue/db";
 import type { EmailService } from "@seattrue/email";
-import { betterAuth } from "better-auth";
+import { type BetterAuthPlugin, betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
-import { organization as organizationPlugin } from "better-auth/plugins";
+import { jwt, organization as organizationPlugin } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import type { Logger } from "./logger";
 import {
@@ -32,7 +43,6 @@ import {
   membershipsFor,
   pickActiveMembership,
 } from "./organizations";
-import { PlanLimitError } from "./plan-limits";
 
 export type AuthEnvironment = {
   /** Public app origin; Better Auth serves /api/auth/* on it. */
@@ -47,11 +57,6 @@ export type AuthEnvironment = {
   google?: { clientId: string; clientSecret: string };
   /** Where invitation links point (the app's /accept-invite page). */
   appOrigin?: string;
-  /** Seat limits; each throws PlanLimitError when the plan is full. */
-  seats?: {
-    assertCanInvite(organizationId: string): Promise<void>;
-    assertCanJoin(organizationId: string): Promise<void>;
-  };
 };
 
 export type AuthenticatedSession = {
@@ -84,7 +89,7 @@ export type { Membership } from "./organizations";
 /** The signed-in user plus the workspace (organization) the session acts in. */
 export type WorkspaceSession = AuthenticatedSession & {
   memberships: Membership[];
-  /** Null when the user belongs to no workspace. May be suspended. */
+  /** Null when the user belongs to no workspace. */
   active: Membership | null;
 };
 
@@ -135,6 +140,15 @@ export type AuthService = {
     permissions: Permissions,
   ): Promise<boolean>;
   organization?: OrganizationApi;
+  /**
+   * Wraps the MCP handler with OAuth bearer verification (requireMcpAuth):
+   * unauthenticated calls get a 401 with the RFC 9728 challenge.
+   */
+  protectMcp?(
+    handler: (request: Request, userId: string) => Promise<Response>,
+  ): (request: Request) => Promise<Response>;
+  /** Better Auth's own handler, for root /.well-known discovery documents. */
+  discovery?(request: Request): Promise<Response>;
 };
 
 /**
@@ -161,16 +175,6 @@ const serverOnlyOrganizationPaths = new Set(
   ].map((path) => `/api/auth/organization/${path}`),
 );
 
-function planLimitApiError(error: unknown): never {
-  if (error instanceof PlanLimitError) {
-    throw new APIError("PAYMENT_REQUIRED", {
-      code: "PLAN_LIMIT",
-      message: error.message,
-    });
-  }
-  throw error;
-}
-
 /**
  * Runs before any user row is created, so it covers email sign-up and a
  * first Google sign-in alike. Personal mailboxes never get an account.
@@ -185,6 +189,11 @@ export async function requireWorkEmail<T extends { email: string }>(
     });
   }
   return { data: user };
+}
+
+/** The MCP server's canonical resource identifier (token audience). */
+export function mcpResource(baseURL: string) {
+  return `${baseURL}/api/mcp`;
 }
 
 export function createAuth(db: Database, environment: AuthEnvironment) {
@@ -204,6 +213,14 @@ export function createAuth(db: Database, environment: AuthEnvironment) {
         organization,
         member,
         invitation,
+        jwks,
+        oauthClient,
+        oauthResource,
+        oauthClientResource,
+        oauthRefreshToken,
+        oauthAccessToken,
+        oauthConsent,
+        oauthClientAssertion,
       },
     }),
     emailAndPassword: {
@@ -293,6 +310,17 @@ export function createAuth(db: Database, environment: AuthEnvironment) {
       },
     },
     plugins: [
+      // MCP authorization server: JWT access tokens bound to /api/mcp, MCP
+      // clients register with Client ID Metadata Documents.
+      jwt(),
+      // Cast: the plugin's OpenAPI metadata types trip exactOptionalPropertyTypes.
+      mcp({
+        loginPage: "/login",
+        consentPage: "/mcp/consent",
+        resource: mcpResource(environment.baseURL),
+        scopes: ["openid", "profile", "email", "offline_access", "recon:read"],
+      }) as unknown as BetterAuthPlugin,
+      cimd({ fetchClientMetadataResource, metadataProfile: "mcp-2026-07-28" }),
       organizationPlugin({
         ac,
         roles,
@@ -343,14 +371,6 @@ export function createAuth(db: Database, environment: AuthEnvironment) {
                 message: "Invite people as admin or tech.",
               });
             }
-            await environment.seats
-              ?.assertCanInvite(invitation.organizationId)
-              .catch(planLimitApiError);
-          },
-          beforeAcceptInvitation: async ({ invitation }) => {
-            await environment.seats
-              ?.assertCanJoin(invitation.organizationId)
-              .catch(planLimitApiError);
           },
         },
       }),
@@ -444,6 +464,28 @@ export function createAuthService(
       const address = environment.getClientIp?.(request);
       if (address) headers.set("x-real-ip", address);
       return auth.handler(new Request(request, { headers }));
+    },
+    protectMcp(handler) {
+      return requireMcpAuth(
+        auth,
+        async (request, claims) => {
+          if (!claims.sub)
+            return Response.json(
+              {
+                error: {
+                  code: "UNAUTHORIZED",
+                  message: "Token has no subject.",
+                },
+              },
+              { status: 401 },
+            );
+          return handler(request, claims.sub);
+        },
+        { resource: mcpResource(environment.baseURL) },
+      );
+    },
+    discovery(request) {
+      return auth.handler(request);
     },
     async getSession(headers) {
       const current = await getSession(headers);

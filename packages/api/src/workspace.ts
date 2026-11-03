@@ -19,8 +19,8 @@ type Denied = {
 export type GuardResult = { ok: true; workspace: Workspace } | Denied;
 
 /**
- * Every API route goes through this: reads need an active (not suspended)
- * membership; writes also pass the organization plugin's hasPermission.
+ * Every API route goes through this: reads need a membership; writes also
+ * pass the organization plugin's hasPermission.
  */
 export type WorkspaceGuard = (
   headers: Headers,
@@ -47,11 +47,6 @@ export function createWorkspaceGuard(auth: AuthService): WorkspaceGuard {
     if (!current) return unauthorized;
     const active = current.active;
     if (!active) return forbidden("You don't belong to a workspace.");
-    if (active.suspendedAt) {
-      return forbidden(
-        `Your access to ${active.organizationName} is suspended because the plan's seat limit was reduced. Ask the owner to upgrade.`,
-      );
-    }
     if (
       permissions &&
       !(await auth.hasPermission(headers, active.organizationId, permissions))

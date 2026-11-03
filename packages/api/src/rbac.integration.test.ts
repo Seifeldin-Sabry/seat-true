@@ -4,7 +4,6 @@ import type { BillingService } from "@seattrue/billing";
 import {
   createDatabase,
   invitation,
-  member,
   organization,
   session,
   user,
@@ -126,19 +125,19 @@ function permissionMatrix(): {
     {
       method: "POST",
       path: "/billing/checkout",
-      body: { plan: "solo" },
+      body: { plan: "starter" },
       allowed: ownerOnly,
     },
     { method: "POST", path: "/billing/portal", allowed: ownerOnly },
     {
       method: "GET",
-      path: "/billing/plan-change/preflight?plan=solo",
+      path: "/billing/plan-change/preflight?plan=starter",
       allowed: ownerOnly,
     },
     {
       method: "POST",
       path: "/billing/plan-change",
-      body: { plan: "solo" },
+      body: { plan: "starter" },
       allowed: ownerOnly,
     },
     { method: "GET", path: "/members", allowed: everyone },
@@ -171,13 +170,13 @@ function permissionMatrix(): {
 }
 
 integrationTest(
-  "roles, invites, seat limits and the permission matrix against real Better Auth",
+  "roles, invites (no seat limits) and the permission matrix against real Better Auth",
   async () => {
     if (!databaseUrl || !authSecret) return;
     const connection = createDatabase(databaseUrl);
     const db = connection.db;
     const recon = createReconService(db);
-    let planLookupKey: string | null = "seattrue_solo_monthly";
+    const planLookupKey: string | null = "seattrue_starter_monthly";
     const billing = {
       currentPlanLookupKey: async () => planLookupKey,
       access: async () => "full" as const,
@@ -190,10 +189,6 @@ integrationTest(
       trustedOrigins: [appOrigin],
       appOrigin,
       logger: silent,
-      seats: {
-        assertCanInvite: planLimits.assertCanInvite,
-        assertCanJoin: planLimits.assertCanJoin,
-      },
       // Fresh address per run keeps Better Auth rate limits out of the way.
       getClientIp: () =>
         `10.1.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`,
@@ -310,14 +305,6 @@ integrationTest(
       expect(hours).toBeGreaterThan(47.9);
       expect(hours).toBeLessThanOrEqual(48);
 
-      // Solo: owner + pending admin invite fill both seats; a third is refused.
-      const third = await call("owner", "POST", "/members/invitations", {
-        email: emails.tech,
-        role: "tech",
-      });
-      expect(third.status).toBe(402);
-      expect((await third.json()).error.code).toBe("PLAN_LIMIT");
-
       // Only the invitee can accept; accepting switches their workspace.
       expect(
         (await call("tech", "POST", `/invitations/${adminInvite.id}/accept`))
@@ -334,24 +321,13 @@ integrationTest(
           .id,
       ).toBe(workspaceId);
 
-      // Team: unlimited seats.
-      planLookupKey = "seattrue_team_monthly";
+      // Starter has no seat limit: a third person joins on the cheapest plan.
       const invitedTech = await call("admin", "POST", "/members/invitations", {
         email: emails.tech,
         role: "tech",
       });
       expect(invitedTech.status).toBe(201);
       const techInvite = await invitedTech.json();
-      // Back on Solo before accepting: the seat check runs again on accept.
-      planLookupKey = "seattrue_solo_monthly";
-      const blocked = await call(
-        "tech",
-        "POST",
-        `/invitations/${techInvite.id}/accept`,
-      );
-      expect(blocked.status).toBe(402);
-      expect((await blocked.json()).error.code).toBe("PLAN_LIMIT");
-      planLookupKey = "seattrue_team_monthly";
       expect(
         (await call("tech", "POST", `/invitations/${techInvite.id}/accept`))
           .status,
@@ -429,18 +405,6 @@ integrationTest(
           actorEmail: emails.admin,
         }),
       );
-
-      // Suspended members can't read the workspace's data.
-      await db
-        .update(member)
-        .set({ suspendedAt: new Date() })
-        .where(eq(member.id, techMember.id));
-      const suspended = await call("tech", "GET", "/recon/overview");
-      expect(suspended.status).toBe(403);
-      expect((await suspended.json()).error.code).toBe("FORBIDDEN");
-      expect(
-        (await (await call("tech", "GET", "/workspace")).json()).suspended,
-      ).toBe(true);
     } finally {
       await db.delete(organization).where(
         inArray(
@@ -459,6 +423,9 @@ integrationTest(
   async () => {
     if (!databaseUrl || !authSecret) return;
     const connection = createDatabase(databaseUrl);
+    // The MCP/OAuth plugins read their tables on startup; let that finish
+    // before the connection closes.
+    const starting: Promise<unknown>[] = [];
     try {
       const pluginOptions = (environmentEmail: boolean) => {
         const email = createEmailService({
@@ -473,6 +440,7 @@ integrationTest(
           trustedOrigins: [appOrigin],
           email,
         });
+        starting.push(auth.$context.catch(() => {}));
         const plugin = auth.options.plugins?.find(
           (entry) => entry.id === "organization",
         ) as { options?: Record<string, unknown> } | undefined;
@@ -487,6 +455,7 @@ integrationTest(
         false,
       );
     } finally {
+      await Promise.all(starting);
       await connection.close();
     }
   },

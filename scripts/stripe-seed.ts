@@ -89,7 +89,7 @@ for (const plan of plans) {
 }
 
 /**
- * Portal: switch Solo <-> Team (upgrades invoiced now, downgrades at period
+ * Portal: switch Starter <-> Pro (upgrades invoiced now, downgrades at period
  * end, so no credits), cancel at period end without proration, update card,
  * address and tax ID, see invoices. No refunds anywhere.
  */

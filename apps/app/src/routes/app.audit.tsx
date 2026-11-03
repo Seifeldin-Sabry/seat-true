@@ -32,9 +32,8 @@ const actionLabels: Record<string, string> = {
   "member.joined": "Joined workspace",
   "member.removed": "Removed member",
   "member.role_changed": "Changed role",
-  "member.suspended": "Suspended member (seat limit)",
-  "member.restored": "Restored member",
   "plan.change": "Changed plan",
+  "mcp.tool_called": "AI assistant read (MCP)",
 };
 
 function describe(value: unknown) {

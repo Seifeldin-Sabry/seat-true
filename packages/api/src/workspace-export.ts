@@ -41,7 +41,6 @@ export async function exportWorkspace(db: Database, organizationId: string) {
         email: user.email,
         name: user.name,
         role: member.role,
-        suspendedAt: member.suspendedAt,
         joinedAt: member.createdAt,
       })
       .from(member)

@@ -12,8 +12,7 @@ import {
   isPlatformAdmin,
   type OrganizationApi,
 } from "./auth";
-import { listPendingInvitations, listSeatMembers } from "./organizations";
-import { PlanLimitError, type PlanLimits } from "./plan-limits";
+import { listMembers, listPendingInvitations } from "./organizations";
 import type { Workspace, WorkspaceGuard } from "./workspace";
 
 export type MemberDto = {
@@ -21,7 +20,6 @@ export type MemberDto = {
   name: string;
   email: string;
   role: string;
-  suspended: boolean;
   lastActiveAt: string;
   isYou: boolean;
 };
@@ -38,7 +36,6 @@ export type MembersRoutesOptions = {
   auth: AuthService;
   guard: WorkspaceGuard;
   audit: AuditLog;
-  planLimits?: PlanLimits | null;
   canWrite?: (organizationId: string) => Promise<boolean>;
   allowedOrigins: string[];
   platformAdminEmails?: readonly string[];
@@ -66,38 +63,19 @@ const readOnly = {
 // Ownership is never handed out by invite or role change (see invitableRoles).
 const roleSchema = t.Union([t.Literal("admin"), t.Literal("tech")]);
 
-function planLimit(error: PlanLimitError) {
-  return {
-    error: {
-      code: "PLAN_LIMIT" as const,
-      message: error.message,
-      upgradeUrl: "/app/billing",
-    },
-  };
-}
-
 type Refusal = {
-  code: 400 | 402 | 403 | 404 | 409 | 422;
-  body: { error: { code: string; message: string; upgradeUrl?: string } };
+  code: 400 | 403 | 404 | 409 | 422;
+  body: { error: { code: string; message: string } };
 };
 
 /** Better Auth refusals in the API's error shape (403 always FORBIDDEN). */
 function pluginRefusal(error: unknown): Refusal {
-  if (error instanceof PlanLimitError)
-    return { code: 402, body: planLimit(error) };
   if (!(error instanceof APIError)) throw error;
   const body = (error.body ?? {}) as { code?: string; message?: string };
   const message = body.message ?? "Request was refused.";
   // The plugin answers some permission failures with 401; the session is valid here.
   if (error.statusCode === 401 || error.statusCode === 403)
     return { code: 403, body: { error: { code: "FORBIDDEN", message } } };
-  if (error.statusCode === 402)
-    return {
-      code: 402,
-      body: {
-        error: { code: "PLAN_LIMIT", message, upgradeUrl: "/app/billing" },
-      },
-    };
   const code = ([404, 409, 422] as const).find(
     (candidate) => candidate === error.statusCode,
   );
@@ -115,10 +93,10 @@ const actorOf = (workspace: Workspace) => ({
 /**
  * Workspace, members, invitations and the audit log. Membership changes go
  * through Better Auth's organization API (server-side) so its own checks run;
- * these routes add the 403 contract, seat limits and the audit trail.
+ * these routes add the 403 contract and the audit trail.
  */
 export function createMembersRoutes(options: MembersRoutesOptions) {
-  const { db, auth, guard, audit, planLimits } = options;
+  const { db, auth, guard, audit } = options;
   const canWrite = options.canWrite ?? (async () => true);
   const trustedOrigins = new Set(options.allowedOrigins);
   const isTrusted = (request: Request) =>
@@ -127,14 +105,13 @@ export function createMembersRoutes(options: MembersRoutesOptions) {
     auth.organization ?? null;
 
   async function membersOf(organizationId: string, userId: string) {
-    const members = await listSeatMembers(db, organizationId);
+    const members = await listMembers(db, organizationId);
     return members.map(
       (entry): MemberDto => ({
         id: entry.id,
         name: entry.name,
         email: entry.email,
         role: entry.role,
-        suspended: Boolean(entry.suspendedAt),
         lastActiveAt: new Date(entry.lastActiveAt).toISOString(),
         isYou: entry.userId === userId,
       }),
@@ -142,7 +119,7 @@ export function createMembersRoutes(options: MembersRoutesOptions) {
   }
 
   async function memberIn(organizationId: string, memberId: string) {
-    const members = await listSeatMembers(db, organizationId);
+    const members = await listMembers(db, organizationId);
     return members.find((entry) => entry.id === memberId) ?? null;
   }
 
@@ -164,14 +141,11 @@ export function createMembersRoutes(options: MembersRoutesOptions) {
             current.user,
             options.platformAdminEmails ?? [],
           ),
-          suspended: Boolean(active?.suspendedAt),
-          permissions:
-            active && !active.suspendedAt ? rolePermissions(active.role) : {},
+          permissions: active ? rolePermissions(active.role) : {},
           workspaces: current.memberships.map((entry) => ({
             id: entry.organizationId,
             name: entry.organizationName,
             role: entry.role,
-            suspended: Boolean(entry.suspendedAt),
           })),
         };
       })
@@ -184,7 +158,7 @@ export function createMembersRoutes(options: MembersRoutesOptions) {
           const target = current.memberships.find(
             (entry) => entry.organizationId === body.organizationId,
           );
-          if (!target || target.suspendedAt)
+          if (!target)
             return status(403, {
               error: {
                 code: "FORBIDDEN" as const,
@@ -207,10 +181,9 @@ export function createMembersRoutes(options: MembersRoutesOptions) {
         const access = await guard(request.headers);
         if (!access.ok) return status(access.status, access.body);
         const { workspace } = access;
-        const [members, invitations, seats] = await Promise.all([
+        const [members, invitations] = await Promise.all([
           membersOf(workspace.organizationId, workspace.user.id),
           listPendingInvitations(db, workspace.organizationId),
-          planLimits?.seatUsage(workspace.organizationId) ?? null,
         ]);
         return {
           members,
@@ -220,12 +193,6 @@ export function createMembersRoutes(options: MembersRoutesOptions) {
               expiresAt: entry.expiresAt.toISOString(),
             }),
           ),
-          seats: seats ?? {
-            used:
-              members.filter((entry) => !entry.suspended).length +
-              invitations.length,
-            limit: null,
-          },
         };
       })
       .post(
@@ -251,7 +218,6 @@ export function createMembersRoutes(options: MembersRoutesOptions) {
           const api = organizationApi();
           if (!api) return status(503, unavailable);
           try {
-            await planLimits?.assertCanInvite(workspace.organizationId);
             const created = await api.createInvitation(request.headers, {
               email,
               role: body.role,
@@ -460,7 +426,6 @@ export function createMembersRoutes(options: MembersRoutesOptions) {
           const api = organizationApi();
           if (!api) return status(503, unavailable);
           try {
-            // Seat check also runs in the plugin's beforeAcceptInvitation hook.
             const accepted = await api.acceptInvitation(
               request.headers,
               params.id,

@@ -47,7 +47,7 @@ export const comparisons: Record<string, Comparison> = {
     chooseUs: [
       "Your leak is Microsoft 365 through Pax8, and you want price checked against each client's markup, not just quantity.",
       "You want a sign-off inbox with owner, admin and technician roles before invoices go out.",
-      "You'd rather pay a flat $149 or $249 a month than a tier plus a Microsoft add-on.",
+      "You'd rather pay a flat $49 or $149 a month than a tier plus a Microsoft add-on.",
     ],
     rows: [
       {
@@ -83,7 +83,7 @@ export const comparisons: Record<string, Comparison> = {
       {
         check: "Price",
         them: "$299 / $699 / $999 per month by customer count, plus $199/month Microsoft add-on (pricing page, checked 2 Nov 2026)",
-        us: "$149/month (up to 150 clients, 2 users) or $249/month unlimited",
+        us: "$49/month (up to 50 clients) or $149/month unlimited; unlimited users on both",
       },
     ],
     theirStrengths:
@@ -150,7 +150,7 @@ export const comparisons: Record<string, Comparison> = {
       {
         check: "Price",
         them: "Included",
-        us: "$149 or $249 a month flat",
+        us: "$49 or $149 a month flat",
       },
     ],
     theirStrengths:
@@ -197,7 +197,7 @@ export const comparisons: Record<string, Comparison> = {
       {
         check: "Cost",
         them: "Your time, every month",
-        us: "$149 or $249 a month flat",
+        us: "$49 or $149 a month flat",
       },
       {
         check: "Customer and SKU mapping",

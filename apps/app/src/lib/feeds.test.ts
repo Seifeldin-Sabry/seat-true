@@ -67,9 +67,9 @@ describe("feeds respect the publish schedule (fake clock)", () => {
 
   test("llms.txt carries the product facts and real prices", () => {
     const text = llmsTxt([]);
+    expect(text).toContain("$49/month");
     expect(text).toContain("$149/month");
-    expect(text).toContain("$249/month");
-    expect(text).toContain("Up to 150 active clients and 2 users");
+    expect(text).toContain("Up to 50 active clients and unlimited users");
     expect(text).toContain(
       "No refunds; cancel anytime and keep access until the end of the paid period.",
     );

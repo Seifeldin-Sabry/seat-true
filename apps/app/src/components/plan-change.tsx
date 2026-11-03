@@ -36,7 +36,6 @@ export function PlanChange({
   const dialog = useRef<HTMLDialogElement>(null);
   const [preflight, setPreflight] = useState<PlanPreflight | null>(null);
   const [keep, setKeep] = useState<Set<string>>(new Set());
-  const [keepMembers, setKeepMembers] = useState<Set<string>>(new Set());
   const [typed, setTyped] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -45,10 +44,9 @@ export function PlanChange({
     setNotice(null);
     setLoadError(null);
     try {
-      const result = await getPlanPreflight("solo");
+      const result = await getPlanPreflight("starter");
       setPreflight(result);
       setKeep(new Set(result.defaultKeepClientIds));
-      setKeepMembers(new Set(result.defaultKeepMemberIds));
       setTyped("");
       change.reset();
       dialog.current?.showModal();
@@ -60,8 +58,8 @@ export function PlanChange({
   async function upgrade() {
     setNotice(null);
     try {
-      await change.mutateAsync({ plan: "team" });
-      setNotice("You're on Team now. Every client and user is restored.");
+      await change.mutateAsync({ plan: "pro" });
+      setNotice("You're on Pro now. Every client is unlocked.");
     } catch {
       // Shown via change.error.
     }
@@ -73,17 +71,11 @@ export function PlanChange({
     const overage = preflight.overages.length > 0;
     try {
       await change.mutateAsync({
-        plan: "solo",
-        ...(overage
-          ? {
-              keepClientIds: [...keep],
-              keepMemberIds: [...keepMembers],
-              confirm: typed,
-            }
-          : {}),
+        plan: "starter",
+        ...(overage ? { keepClientIds: [...keep], confirm: typed } : {}),
       });
       dialog.current?.close();
-      setNotice(`Switching to Solo on ${formatDate(periodEnd)}.`);
+      setNotice(`Switching to Starter on ${formatDate(periodEnd)}.`);
     } catch {
       // Shown via change.error.
     }
@@ -94,30 +86,12 @@ export function PlanChange({
   const clientOverage = preflight?.overages.find(
     (entry) => entry.kind === "clients",
   );
-  const userOverage = preflight?.overages.find(
-    (entry) => entry.kind === "users",
-  );
   const lockedNames =
     preflight?.clients.filter((client) => !keep.has(client.id)) ?? [];
   const keepValid = limit === null || keep.size <= limit;
-  // The owner always stays and takes one seat.
-  const otherMembers =
-    preflight?.members.filter((entry) => entry.role !== "owner") ?? [];
-  const memberSeats =
-    preflight?.memberLimit == null
-      ? null
-      : preflight.memberLimit -
-        (preflight.members.length - otherMembers.length);
-  const membersValid = memberSeats === null || keepMembers.size <= memberSeats;
-  const suspendedNames = otherMembers.filter(
-    (entry) => !keepMembers.has(entry.id),
-  );
   const canConfirm =
     !overage ||
-    (keepValid &&
-      membersValid &&
-      (!clientOverage || keep.size > 0) &&
-      typed === CONFIRMATION);
+    (keepValid && (!clientOverage || keep.size > 0) && typed === CONFIRMATION);
 
   return (
     <section
@@ -126,9 +100,9 @@ export function PlanChange({
       style={{ marginTop: 16 }}
     >
       <h2 id="plan-change-title">Change plan</h2>
-      {scheduledPlanId === "solo" ? (
+      {scheduledPlanId === "starter" ? (
         <p>
-          Switching to Solo on {formatDate(periodEnd)}. Upgrading to Team
+          Switching to Starter on {formatDate(periodEnd)}. Upgrading to Pro
           cancels the switch.
         </p>
       ) : (
@@ -149,17 +123,17 @@ export function PlanChange({
         </p>
       )}
       <div className="recon-actions">
-        {currentPlanId === "team" && scheduledPlanId !== "solo" && (
+        {currentPlanId === "pro" && scheduledPlanId !== "starter" && (
           <Button type="button" variant="outline" onClick={startDowngrade}>
-            Switch to Solo
+            Switch to Starter
           </Button>
         )}
-        {(currentPlanId === "solo" || scheduledPlanId === "solo") && (
+        {(currentPlanId === "starter" || scheduledPlanId === "starter") && (
           <Button type="button" onClick={upgrade} disabled={change.isPending}>
             {change.isPending && (
               <LoaderCircle size={16} className="spin" aria-hidden="true" />
             )}
-            {currentPlanId === "team" ? "Stay on Team" : "Upgrade to Team"}
+            {currentPlanId === "pro" ? "Stay on Pro" : "Upgrade to Pro"}
           </Button>
         )}
       </div>
@@ -172,22 +146,20 @@ export function PlanChange({
         <form onSubmit={confirmDowngrade}>
           <div className="dialog-heading">
             <div>
-              <span className="section-kicker">Downgrade to Solo</span>
+              <span className="section-kicker">Downgrade to Starter</span>
               <h2 id="downgrade-title">
-                {overage
-                  ? "Some clients or users will be locked"
-                  : "Switch to Solo"}
+                {overage ? "Some clients will be locked" : "Switch to Starter"}
               </h2>
               <p>
-                Takes effect {formatDate(periodEnd)}. You keep Team until then.
+                Takes effect {formatDate(periodEnd)}. You keep Pro until then.
               </p>
             </div>
           </div>
 
           {preflight && !overage && (
             <p>
-              You have {preflight.clients.length} active clients, within Solo's{" "}
-              {limit ?? "unlimited"}. Nothing will be locked.
+              You have {preflight.clients.length} active clients, within
+              Starter's {limit ?? "unlimited"}. Nothing will be locked.
             </p>
           )}
 
@@ -236,7 +208,7 @@ export function PlanChange({
                   </div>
                   {!keepValid && (
                     <p className="dialog-error" role="alert">
-                      Solo keeps at most {limit} clients. Uncheck{" "}
+                      Starter keeps at most {limit} clients. Uncheck{" "}
                       {keep.size - (limit ?? 0)} more.
                     </p>
                   )}
@@ -246,56 +218,6 @@ export function PlanChange({
                       "none"}
                   </p>
                 </fieldset>
-              )}
-              {userOverage && memberSeats !== null && (
-                <>
-                  <div className="error-banner" role="alert">
-                    <TriangleAlert size={18} aria-hidden="true" />
-                    <div>
-                      <strong>{userOverage.summary}</strong>
-                      <p>
-                        You stay as owner. People you don't keep are suspended:
-                        they can't open the workspace until you upgrade. Nobody
-                        is deleted.
-                      </p>
-                    </div>
-                  </div>
-                  <fieldset className="field-stack">
-                    <legend>
-                      Keep {keepMembers.size} of {memberSeats} besides you
-                      (least recently active are unchecked by default)
-                    </legend>
-                    {otherMembers.map((entry) => (
-                      <label key={entry.id} style={{ display: "flex", gap: 8 }}>
-                        <input
-                          type="checkbox"
-                          checked={keepMembers.has(entry.id)}
-                          onChange={(event) =>
-                            setKeepMembers((current) => {
-                              const next = new Set(current);
-                              if (event.target.checked) next.add(entry.id);
-                              else next.delete(entry.id);
-                              return next;
-                            })
-                          }
-                        />
-                        {entry.name || entry.email} · {entry.role}
-                      </label>
-                    ))}
-                    {!membersValid && (
-                      <p className="dialog-error" role="alert">
-                        Solo has room for {memberSeats} besides you. Uncheck{" "}
-                        {keepMembers.size - memberSeats} more.
-                      </p>
-                    )}
-                    <p>
-                      Will be suspended:{" "}
-                      {suspendedNames
-                        .map((entry) => entry.name || entry.email)
-                        .join(", ") || "none"}
-                    </p>
-                  </fieldset>
-                </>
               )}
               <div className="field-group">
                 <Label htmlFor="downgrade-confirm">
@@ -326,7 +248,7 @@ export function PlanChange({
               variant="outline"
               onClick={() => dialog.current?.close()}
             >
-              Keep Team
+              Keep Pro
             </Button>
             <Button
               type="submit"

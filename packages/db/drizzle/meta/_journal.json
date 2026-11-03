@@ -92,6 +92,20 @@
       "when": 1793628103355,
       "tag": "0012_organization_last_active",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793689321712,
+      "tag": "0013_drop_seat_limits",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793690476224,
+      "tag": "0014_mcp_oauth_provider",
+      "breakpoints": true
     }
   ]
 }

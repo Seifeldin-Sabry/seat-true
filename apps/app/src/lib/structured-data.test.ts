@@ -132,8 +132,8 @@ describe("JSON-LD", () => {
     expect(
       offers.map((offer) => [offer.name, offer.price, offer.priceCurrency]),
     ).toEqual([
-      ["Solo", "149.00", "USD"],
-      ["Team", "249.00", "USD"],
+      ["Starter", "49.00", "USD"],
+      ["Pro", "149.00", "USD"],
     ]);
   });
 
@@ -184,12 +184,13 @@ describe("integrations", () => {
 
   // Live = shipped and tested in packages/recon (pax8-csv.ts, billing-csv.ts).
   // Changing this list means pointing at new code and tests, not editing copy.
-  test("only the tested CSV importers are marked live", () => {
+  test("only the tested CSV importers and the MCP server are marked live", () => {
     const live = integrations.filter((i) => i.status === "live");
     expect(live.map((i) => [i.slug, i.method])).toEqual([
       ["pax8-csv", "CSV import"],
       ["partner-center-csv", "CSV import"],
       ["psa-billing-csv", "CSV import"],
+      ["mcp-server", "MCP server"],
     ]);
     // Every Coming soon page takes "notify me" sign-ups; the API's list matches.
     expect(

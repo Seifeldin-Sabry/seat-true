@@ -6,6 +6,8 @@ import {
   integrationWaitlist,
   invitation,
   member,
+  oauthAccessToken,
+  oauthRefreshToken,
   organization,
   rateLimit,
   session,
@@ -369,6 +371,16 @@ export function createRetention(options: RetentionOptions) {
         ["sessions", session, lt(session.expiresAt, now)],
         ["verifications", verification, lt(verification.expiresAt, now)],
         ["invitations", invitation, lt(invitation.expiresAt, now)],
+        [
+          "mcpAccessTokens",
+          oauthAccessToken,
+          lt(oauthAccessToken.expiresAt, now),
+        ],
+        [
+          "mcpRefreshTokens",
+          oauthRefreshToken,
+          lt(oauthRefreshToken.expiresAt, now),
+        ],
         [
           "rateLimits",
           rateLimit,

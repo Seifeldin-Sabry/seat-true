@@ -38,7 +38,6 @@ export function testAuthService(workspace: Workspace | null): AuthService {
     organizationId: workspace.organizationId,
     organizationName: workspace.organizationName,
     role: workspace.role,
-    suspendedAt: null,
     createdAt: new Date(0),
   };
   return {

@@ -37,10 +37,7 @@ test("selection is deterministic across replays", () => {
 });
 
 test("plan limits come from the shared plans table", () => {
-  expect(limitsFor("seattrue_solo_monthly")).toEqual({
-    clients: 150,
-    users: 2,
-  });
-  expect(limitsFor("seattrue_team_monthly").clients).toBeNull();
+  expect(limitsFor("seattrue_starter_monthly")).toEqual({ clients: 50 });
+  expect(limitsFor("seattrue_pro_monthly").clients).toBeNull();
   expect(limitsFor(null).clients).toBeNull();
 });

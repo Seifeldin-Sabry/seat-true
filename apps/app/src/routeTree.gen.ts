@@ -25,6 +25,7 @@ import { Route as RssDotxmlRouteImport } from './routes/rss[.]xml'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as DotwellKnownSplatRouteImport } from './routes/[.]well-known.$'
 import { Route as AcceptInviteInvitationIdRouteImport } from './routes/accept-invite.$invitationId'
 import { Route as ApiSplatRouteImport } from './routes/api.$'
 import { Route as AppIndexRouteImport } from './routes/app.index'
@@ -39,6 +40,7 @@ import { Route as CompareCompetitorRouteImport } from './routes/compare.$competi
 import { Route as ForAudienceRouteImport } from './routes/for.$audience'
 import { Route as IntegrationsIndexRouteImport } from './routes/integrations.index'
 import { Route as IntegrationsSlugRouteImport } from './routes/integrations.$slug'
+import { Route as McpConsentRouteImport } from './routes/mcp.consent'
 import { Route as OgSplatRouteImport } from './routes/og.$'
 import { Route as AppClientsClientIdRouteImport } from './routes/app.clients.$clientId'
 
@@ -122,6 +124,11 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownSplatRoute = DotwellKnownSplatRouteImport.update({
+  id: '/.well-known/$',
+  path: '/.well-known/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AcceptInviteInvitationIdRoute =
   AcceptInviteInvitationIdRouteImport.update({
     id: '/accept-invite/$invitationId',
@@ -193,6 +200,11 @@ const IntegrationsSlugRoute = IntegrationsSlugRouteImport.update({
   path: '/integrations/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpConsentRoute = McpConsentRouteImport.update({
+  id: '/mcp/consent',
+  path: '/mcp/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OgSplatRoute = OgSplatRouteImport.update({
   id: '/og/$',
   path: '/og/$',
@@ -221,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/.well-known/$': typeof DotwellKnownSplatRoute
   '/accept-invite/$invitationId': typeof AcceptInviteInvitationIdRoute
   '/api/$': typeof ApiSplatRoute
   '/app/audit': typeof AppAuditRoute
@@ -232,6 +245,7 @@ export interface FileRoutesByFullPath {
   '/compare/$competitor': typeof CompareCompetitorRoute
   '/for/$audience': typeof ForAudienceRoute
   '/integrations/$slug': typeof IntegrationsSlugRoute
+  '/mcp/consent': typeof McpConsentRoute
   '/og/$': typeof OgSplatRoute
   '/app/': typeof AppIndexRoute
   '/blog/': typeof BlogIndexRoute
@@ -255,6 +269,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/.well-known/$': typeof DotwellKnownSplatRoute
   '/accept-invite/$invitationId': typeof AcceptInviteInvitationIdRoute
   '/api/$': typeof ApiSplatRoute
   '/app/audit': typeof AppAuditRoute
@@ -266,6 +281,7 @@ export interface FileRoutesByTo {
   '/compare/$competitor': typeof CompareCompetitorRoute
   '/for/$audience': typeof ForAudienceRoute
   '/integrations/$slug': typeof IntegrationsSlugRoute
+  '/mcp/consent': typeof McpConsentRoute
   '/og/$': typeof OgSplatRoute
   '/app': typeof AppIndexRoute
   '/blog': typeof BlogIndexRoute
@@ -290,6 +306,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/.well-known/$': typeof DotwellKnownSplatRoute
   '/accept-invite/$invitationId': typeof AcceptInviteInvitationIdRoute
   '/api/$': typeof ApiSplatRoute
   '/app/audit': typeof AppAuditRoute
@@ -301,6 +318,7 @@ export interface FileRoutesById {
   '/compare/$competitor': typeof CompareCompetitorRoute
   '/for/$audience': typeof ForAudienceRoute
   '/integrations/$slug': typeof IntegrationsSlugRoute
+  '/mcp/consent': typeof McpConsentRoute
   '/og/$': typeof OgSplatRoute
   '/app/': typeof AppIndexRoute
   '/blog/': typeof BlogIndexRoute
@@ -326,6 +344,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/terms'
+    | '/.well-known/$'
     | '/accept-invite/$invitationId'
     | '/api/$'
     | '/app/audit'
@@ -337,6 +356,7 @@ export interface FileRouteTypes {
     | '/compare/$competitor'
     | '/for/$audience'
     | '/integrations/$slug'
+    | '/mcp/consent'
     | '/og/$'
     | '/app/'
     | '/blog/'
@@ -360,6 +380,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/terms'
+    | '/.well-known/$'
     | '/accept-invite/$invitationId'
     | '/api/$'
     | '/app/audit'
@@ -371,6 +392,7 @@ export interface FileRouteTypes {
     | '/compare/$competitor'
     | '/for/$audience'
     | '/integrations/$slug'
+    | '/mcp/consent'
     | '/og/$'
     | '/app'
     | '/blog'
@@ -394,6 +416,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/terms'
+    | '/.well-known/$'
     | '/accept-invite/$invitationId'
     | '/api/$'
     | '/app/audit'
@@ -405,6 +428,7 @@ export interface FileRouteTypes {
     | '/compare/$competitor'
     | '/for/$audience'
     | '/integrations/$slug'
+    | '/mcp/consent'
     | '/og/$'
     | '/app/'
     | '/blog/'
@@ -429,6 +453,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  DotwellKnownSplatRoute: typeof DotwellKnownSplatRoute
   AcceptInviteInvitationIdRoute: typeof AcceptInviteInvitationIdRoute
   ApiSplatRoute: typeof ApiSplatRoute
   AppAuditRoute: typeof AppAuditRoute
@@ -440,6 +465,7 @@ export interface RootRouteChildren {
   CompareCompetitorRoute: typeof CompareCompetitorRoute
   ForAudienceRoute: typeof ForAudienceRoute
   IntegrationsSlugRoute: typeof IntegrationsSlugRoute
+  McpConsentRoute: typeof McpConsentRoute
   OgSplatRoute: typeof OgSplatRoute
   AppIndexRoute: typeof AppIndexRoute
   BlogIndexRoute: typeof BlogIndexRoute
@@ -561,6 +587,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.well-known/$': {
+      id: '/.well-known/$'
+      path: '/.well-known/$'
+      fullPath: '/.well-known/$'
+      preLoaderRoute: typeof DotwellKnownSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/accept-invite/$invitationId': {
       id: '/accept-invite/$invitationId'
       path: '/accept-invite/$invitationId'
@@ -659,6 +692,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IntegrationsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp/consent': {
+      id: '/mcp/consent'
+      path: '/mcp/consent'
+      fullPath: '/mcp/consent'
+      preLoaderRoute: typeof McpConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/og/$': {
       id: '/og/$'
       path: '/og/$'
@@ -693,6 +733,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  DotwellKnownSplatRoute: DotwellKnownSplatRoute,
   AcceptInviteInvitationIdRoute: AcceptInviteInvitationIdRoute,
   ApiSplatRoute: ApiSplatRoute,
   AppAuditRoute: AppAuditRoute,
@@ -704,6 +745,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompareCompetitorRoute: CompareCompetitorRoute,
   ForAudienceRoute: ForAudienceRoute,
   IntegrationsSlugRoute: IntegrationsSlugRoute,
+  McpConsentRoute: McpConsentRoute,
   OgSplatRoute: OgSplatRoute,
   AppIndexRoute: AppIndexRoute,
   BlogIndexRoute: BlogIndexRoute,

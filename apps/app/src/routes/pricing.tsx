@@ -18,12 +18,13 @@ const included = [
   "Owner, admin and technician roles with an audit log",
   "CSV import: no API access, nothing written to Pax8 or your PSA",
   "Customer-to-client mapping set up with you",
+  "Read-only MCP server: ask Claude, Cursor or any MCP client about your leakage",
 ];
 
 const pricingFaq = [
   {
     q: "Is there a per-licence or per-client fee?",
-    a: "No. Solo is $149 a month flat for up to 150 active clients and 2 users. Team is $249 a month flat with unlimited clients and users.",
+    a: "No. Starter is $49 a month flat for up to 50 active clients. Pro is $149 a month flat with unlimited clients. Users are unlimited on both.",
   },
   {
     q: "Do I have to pay before the audit?",
@@ -35,7 +36,7 @@ const pricingFaq = [
   },
   {
     q: "Can we switch plans?",
-    a: "Yes. Upgrading to Team takes effect immediately. Moving to Solo starts at the end of the period you've paid for.",
+    a: "Yes. Upgrading to Pro takes effect immediately. Moving to Starter starts at the end of the period you've paid for.",
   },
 ];
 
@@ -56,9 +57,9 @@ function PricingPage() {
     <SiteShell>
       <PageIntro eyebrow="Pricing" title="Two flat plans. Free audit first.">
         <p>
-          No per-licence fees and no setup fee. Run the free margin audit:
-          upload your Pax8 bill and your client billing export, then pick the
-          plan that fits your client count.
+          No per-licence fees, no per-user fees and no setup fee. Run the free
+          margin audit: upload your Pax8 bill and your client billing export,
+          then pick the plan that fits your client count.
         </p>
       </PageIntro>
 

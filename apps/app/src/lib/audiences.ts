@@ -83,7 +83,7 @@ export const audiences: Record<string, Audience> = {
       noAccessFaq,
       {
         q: "What does it cost?",
-        a: "$149 a month for Solo (up to 150 active clients, 2 users) or $249 a month for Team (unlimited clients and users). The first margin audit on your own export is free.",
+        a: "$49 a month for Starter (up to 50 active clients) or $149 a month for Pro (unlimited clients). Users are unlimited on both. The first margin audit on your own export is free.",
       },
     ],
     sources: [partnerCenterPricing, newCommerceSubscriptions],
@@ -200,14 +200,14 @@ export const audiences: Record<string, Audience> = {
         body: "Upload the new bill. Only changes and exceptions show up, sorted by dollars.",
       },
       {
-        title: "Two users included",
-        body: "Solo covers up to 150 active clients and 2 users: you and whoever helps with billing.",
+        title: "Everyone included",
+        body: "Starter covers up to 50 active clients with unlimited users: you, whoever helps with billing, and your techs.",
       },
     ],
     faq: [
       {
-        q: "Is Solo enough for us?",
-        a: "Solo is $149 a month for up to 150 active clients and 2 users. If you add more people or pass 150 clients, Team is $249 a month with no limit on either.",
+        q: "Is Starter enough for us?",
+        a: "Starter is $49 a month for up to 50 active clients, with unlimited users. If you pass 50 clients, Pro is $149 a month with no client limit.",
       },
       {
         q: "We don't have a PSA. Does that matter?",
@@ -267,7 +267,7 @@ export const audiences: Record<string, Audience> = {
       },
       {
         q: "How many people can we add?",
-        a: "Team ($249 a month) has unlimited users and clients. Solo ($149) is limited to 2 users. Invites grant admin or tech; ownership is never handed out by invite.",
+        a: "As many as you like, on either plan. Plans differ only by client count. Invites grant admin or tech; ownership is never handed out by invite.",
       },
       {
         q: "Is there a record of who approved what?",

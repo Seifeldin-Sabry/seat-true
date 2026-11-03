@@ -19,7 +19,6 @@ export const waitlistIntegrationSlugs = [
   "connectwise",
   "autotask",
   "halopsa",
-  "mcp-server",
 ] as const;
 
 export type IntegrationWaitlistCountDto = { slug: string; count: number };

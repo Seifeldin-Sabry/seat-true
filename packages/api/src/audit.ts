@@ -22,9 +22,8 @@ export type AuditAction =
   | "member.joined"
   | "member.removed"
   | "member.role_changed"
-  | "member.suspended"
-  | "member.restored"
-  | "plan.change";
+  | "plan.change"
+  | "mcp.tool_called";
 
 export type AuditEntry = {
   organizationId: string;
