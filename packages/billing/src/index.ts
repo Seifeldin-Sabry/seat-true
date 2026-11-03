@@ -5,7 +5,13 @@ export { readBillingEnvironment } from "./env";
 export type { LimitCandidate } from "./limits";
 export { selectClientsToKeep } from "./limits";
 export type { Plan, PlanId, PlanLimits } from "./plans";
-export { limitsFor, planById, planByLookupKey, plans } from "./plans";
+export {
+  freePlan,
+  limitsFor,
+  planById,
+  planByLookupKey,
+  plans,
+} from "./plans";
 export type {
   BillingOverview,
   BillingService,

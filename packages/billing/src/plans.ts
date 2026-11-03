@@ -46,8 +46,18 @@ export function planByLookupKey(lookupKey: string | null | undefined) {
   return plans.find((plan) => plan.lookupKey === lookupKey) ?? null;
 }
 
-/** Limits when the workspace has never subscribed (free audit stage). */
-export const unsubscribedLimits = { clients: null } as const;
+/**
+ * Free: every workspace without a paid plan. No card, no Stripe customer,
+ * no time limit; only active clients are capped.
+ */
+export const freePlan = {
+  id: "free",
+  name: "Free",
+  description: "Up to 10 active clients, unlimited users, no card",
+  limits: { clients: 10 },
+} as const;
+
+export const unsubscribedLimits = freePlan.limits;
 
 export type PlanLimits = { clients: number | null };
 

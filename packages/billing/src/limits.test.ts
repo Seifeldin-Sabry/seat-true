@@ -39,5 +39,6 @@ test("selection is deterministic across replays", () => {
 test("plan limits come from the shared plans table", () => {
   expect(limitsFor("seattrue_starter_monthly")).toEqual({ clients: 50 });
   expect(limitsFor("seattrue_pro_monthly").clients).toBeNull();
-  expect(limitsFor(null).clients).toBeNull();
+  // No paid plan = Free.
+  expect(limitsFor(null)).toEqual({ clients: 10 });
 });
