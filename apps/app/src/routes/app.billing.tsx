@@ -138,6 +138,16 @@ function BillingPage() {
           </div>
         )}
 
+        {data?.enabled && !subscription && (
+          <section className="recon-panel" aria-labelledby="free-plan">
+            <h2 id="free-plan">You're on Free</h2>
+            <p>
+              Up to 10 active clients with unlimited users and every feature. No
+              card on file. Subscribe below when you need more clients.
+            </p>
+          </section>
+        )}
+
         {subscription && (
           <section className="recon-panel" aria-labelledby="current-plan">
             <h2 id="current-plan">Current plan</h2>

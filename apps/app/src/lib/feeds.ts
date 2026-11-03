@@ -2,7 +2,7 @@ import { brand } from "@seattrue/ui";
 import type { Post, PostMeta } from "./content/blog";
 import { glossary } from "./content/glossary";
 import { integrationPath, integrations } from "./integrations";
-import { absoluteUrl, plans, refundPolicy, sitePages } from "./site";
+import { absoluteUrl, freeTier, plans, refundPolicy, sitePages } from "./site";
 
 /**
  * sitemap.xml, rss.xml, llms.txt and llms-full.txt. Pure: callers pass the
@@ -109,6 +109,7 @@ MSPs that resell Microsoft 365: owners of small MSPs (1–20 staff) who do the b
 
 ## Pricing
 
+- ${freeTier.name}: $0, no card. ${freeTier.summary}.
 ${plans.map((plan) => `- ${plan.name}: $${plan.priceUsd}/month flat. ${plan.summary}.`).join("\n")}
 - Free margin audit first, on one month's export.
 - ${refundPolicy}

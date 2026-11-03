@@ -34,9 +34,9 @@ export const sitePages = {
     path: "/pricing",
     title: "SeatTrue pricing: $49 Starter or $149 Pro, flat monthly",
     description:
-      "Flat monthly plans for Microsoft 365 license reconciliation with unlimited users: Starter $49 for up to 50 clients, Pro $149 unlimited. Free audit first.",
+      "Microsoft 365 license reconciliation for MSPs. Free for up to 10 clients with no card, then Starter $49 for 50 clients or Pro $149 unlimited.",
     eyebrow: "Pricing",
-    headline: "$49 or $149 a month. Flat. Free audit first.",
+    headline: "Free for 10 clients. Then $49 or $149 a month, flat.",
     updatedAt: "2026-11-03",
     primaryKeyword: "msp billing reconciliation software pricing",
     secondaryKeyword: "msp license margin",
@@ -210,6 +210,15 @@ export function pageOgImage(key: SitePageKey): string {
 export function postOgImage(slug: string): string {
   return absoluteUrl(`/og/blog/${slug}.png`);
 }
+
+/** The no-card tier. Mirrors freePlan in packages/billing/src/plans.ts. */
+export const freeTier = {
+  id: "free",
+  name: "Free",
+  clients: 10,
+  summary:
+    "Up to 10 active clients and unlimited users. No card, no time limit",
+} as const;
 
 /** Facts reused by pricing, structured data and llms.txt. One source. */
 export const plans = [

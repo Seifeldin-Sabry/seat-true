@@ -187,7 +187,8 @@ function LandingPage() {
               <ArrowRight size={18} aria-hidden="true" />
             </a>
             <span className="st-hero-note">
-              Upload one Pax8 export. See the leak in about 5 minutes. Free.
+              Upload one Pax8 export. See the leak in about 5 minutes. Free for
+              up to 10 clients, no card. <a href="/signup">Start free</a>
             </span>
           </div>
         </div>
@@ -313,6 +314,7 @@ function LandingPage() {
               clients. Unlimited users on both.
             </p>
             <ul>
+              <li>Free for up to 10 clients, no card, no time limit</li>
               <li>No per-licence fees</li>
               <li>
                 No refunds; cancel anytime and keep access until the end of the

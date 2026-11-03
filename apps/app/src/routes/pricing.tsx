@@ -8,7 +8,7 @@ import {
 } from "../components/marketing";
 import { SiteShell } from "../components/site-chrome";
 import { getLivePostLinks } from "../lib/content/blog-fns";
-import { plans, refundPolicy } from "../lib/site";
+import { freeTier, plans, refundPolicy } from "../lib/site";
 import { faqPage, softwareApplication } from "../lib/structured-data";
 
 const included = [
@@ -27,8 +27,8 @@ const pricingFaq = [
     a: "No. Starter is $49 a month flat for up to 50 active clients. Pro is $149 a month flat with unlimited clients. Users are unlimited on both.",
   },
   {
-    q: "Do I have to pay before the audit?",
-    a: "No. The margin audit runs on one month's Pax8 export first and costs nothing. You choose a plan only if you want to keep reconciling every month.",
+    q: "Is there a free plan?",
+    a: "Yes. Free covers up to 10 active clients with unlimited users and every feature, with no card and no time limit. You pick Starter or Pro only when you pass 10 clients.",
   },
   {
     q: "What happens if we cancel?",
@@ -55,16 +55,26 @@ function PricingPage() {
   const livePosts = Route.useLoaderData();
   return (
     <SiteShell>
-      <PageIntro eyebrow="Pricing" title="Two flat plans. Free audit first.">
+      <PageIntro eyebrow="Pricing" title="Start free. Two flat plans after.">
         <p>
-          No per-licence fees, no per-user fees and no setup fee. Run the free
-          margin audit: upload your Pax8 bill and your client billing export,
-          then pick the plan that fits your client count.
+          Reconcile up to {freeTier.clients} clients free, with no card and no
+          time limit. No per-licence fees, no per-user fees and no setup fee.
+          Pay only when you pass {freeTier.clients} active clients.
         </p>
       </PageIntro>
 
       <section className="st-section st-section-tight" aria-label="Plans">
         <div className="st-plans">
+          <article className="st-plan" aria-labelledby="plan-free">
+            <h2 id="plan-free">{freeTier.name}</h2>
+            <p className="st-price-figure">
+              <strong>$0</strong>/month
+            </p>
+            <p>{freeTier.summary}.</p>
+            <a className="st-btn" href="/signup">
+              Start free, no card
+            </a>
+          </article>
           {plans.map((plan) => (
             <article
               key={plan.id}
@@ -90,7 +100,7 @@ function PricingPage() {
         aria-labelledby="included"
       >
         <h2 id="included" className="st-h2-small">
-          Included in both plans
+          Included in every plan, Free too
         </h2>
         <ul className="st-checklist">
           {included.map((item) => (
