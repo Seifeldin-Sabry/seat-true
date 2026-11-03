@@ -32,7 +32,6 @@ import {
   membershipsFor,
   pickActiveMembership,
 } from "./organizations";
-import { PlanLimitError } from "./plan-limits";
 
 export type AuthEnvironment = {
   /** Public app origin; Better Auth serves /api/auth/* on it. */
@@ -47,11 +46,6 @@ export type AuthEnvironment = {
   google?: { clientId: string; clientSecret: string };
   /** Where invitation links point (the app's /accept-invite page). */
   appOrigin?: string;
-  /** Seat limits; each throws PlanLimitError when the plan is full. */
-  seats?: {
-    assertCanInvite(organizationId: string): Promise<void>;
-    assertCanJoin(organizationId: string): Promise<void>;
-  };
 };
 
 export type AuthenticatedSession = {
@@ -84,7 +78,7 @@ export type { Membership } from "./organizations";
 /** The signed-in user plus the workspace (organization) the session acts in. */
 export type WorkspaceSession = AuthenticatedSession & {
   memberships: Membership[];
-  /** Null when the user belongs to no workspace. May be suspended. */
+  /** Null when the user belongs to no workspace. */
   active: Membership | null;
 };
 
@@ -160,16 +154,6 @@ const serverOnlyOrganizationPaths = new Set(
     "delete-role",
   ].map((path) => `/api/auth/organization/${path}`),
 );
-
-function planLimitApiError(error: unknown): never {
-  if (error instanceof PlanLimitError) {
-    throw new APIError("PAYMENT_REQUIRED", {
-      code: "PLAN_LIMIT",
-      message: error.message,
-    });
-  }
-  throw error;
-}
 
 /**
  * Runs before any user row is created, so it covers email sign-up and a
@@ -343,14 +327,6 @@ export function createAuth(db: Database, environment: AuthEnvironment) {
                 message: "Invite people as admin or tech.",
               });
             }
-            await environment.seats
-              ?.assertCanInvite(invitation.organizationId)
-              .catch(planLimitApiError);
-          },
-          beforeAcceptInvitation: async ({ invitation }) => {
-            await environment.seats
-              ?.assertCanJoin(invitation.organizationId)
-              .catch(planLimitApiError);
           },
         },
       }),

@@ -2,28 +2,30 @@
  * Plans are identified by Stripe lookup keys, not price IDs, so the same code
  * works against a sandbox and the live account. `scripts/stripe-seed.ts`
  * creates these prices; Stripe owns the amounts.
+ *
+ * Both plans are flat with unlimited users: the only limit is active clients.
  */
 export const plans = [
   {
-    id: "solo",
-    name: "Solo",
-    lookupKey: "seattrue_solo_monthly",
-    productId: "seattrue_solo",
-    description: "Up to 150 clients, 2 users",
-    unitAmount: 14900,
+    id: "starter",
+    name: "Starter",
+    lookupKey: "seattrue_starter_monthly",
+    productId: "seattrue_starter",
+    description: "Up to 50 active clients, unlimited users",
+    unitAmount: 4900,
     rank: 1,
-    /** null = unlimited. `users` counts members plus pending invites. */
-    limits: { clients: 150, users: 2 },
+    /** null = unlimited. */
+    limits: { clients: 50 },
   },
   {
-    id: "team",
-    name: "Team",
-    lookupKey: "seattrue_team_monthly",
-    productId: "seattrue_team",
+    id: "pro",
+    name: "Pro",
+    lookupKey: "seattrue_pro_monthly",
+    productId: "seattrue_pro",
     description: "Unlimited clients and users",
-    unitAmount: 24900,
+    unitAmount: 17900,
     rank: 2,
-    limits: { clients: null, users: null },
+    limits: { clients: null },
   },
 ] as const;
 
@@ -45,9 +47,9 @@ export function planByLookupKey(lookupKey: string | null | undefined) {
 }
 
 /** Limits when the workspace has never subscribed (free audit stage). */
-export const unsubscribedLimits = { clients: null, users: null } as const;
+export const unsubscribedLimits = { clients: null } as const;
 
-export type PlanLimits = { clients: number | null; users: number | null };
+export type PlanLimits = { clients: number | null };
 
 export function limitsFor(lookupKey: string | null | undefined): PlanLimits {
   return planByLookupKey(lookupKey)?.limits ?? unsubscribedLimits;

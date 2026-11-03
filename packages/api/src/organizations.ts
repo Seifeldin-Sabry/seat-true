@@ -25,7 +25,6 @@ export type Membership = {
   organizationId: string;
   organizationName: string;
   role: string;
-  suspendedAt: Date | null;
   createdAt: Date;
 };
 
@@ -75,7 +74,6 @@ export async function membershipsFor(
       organizationId: member.organizationId,
       organizationName: organization.name,
       role: member.role,
-      suspendedAt: member.suspendedAt,
       createdAt: member.createdAt,
     })
     .from(member)
@@ -86,8 +84,7 @@ export async function membershipsFor(
 
 /**
  * The workspace a session acts in: the stored active organization when the
- * user still belongs to it (suspended included, so the API can say why access
- * stopped), otherwise the newest membership that isn't suspended.
+ * user still belongs to it, otherwise the newest membership.
  */
 export function pickActiveMembership(
   memberships: Membership[],
@@ -97,19 +94,18 @@ export function pickActiveMembership(
     memberships.find(
       (entry) => entry.organizationId === activeOrganizationId,
     ) ??
-    memberships.find((entry) => !entry.suspendedAt) ??
+    memberships[0] ??
     null
   );
 }
 
-export type SeatMember = {
+export type WorkspaceMember = {
   id: string;
   userId: string;
   name: string;
   email: string;
   role: string;
   lastActiveAt: Date;
-  suspendedAt: Date | null;
 };
 
 /** Most recently active first, ties by id: deterministic for webhook replays. */
@@ -121,10 +117,10 @@ export const byRecency = (
   a.id.localeCompare(b.id);
 
 /** Members with their last session activity; owner first, then recency. */
-export async function listSeatMembers(
+export async function listMembers(
   db: Database,
   organizationId: string,
-): Promise<SeatMember[]> {
+): Promise<WorkspaceMember[]> {
   const lastSeen = db
     .select({
       userId: session.userId,
@@ -141,7 +137,6 @@ export async function listSeatMembers(
       email: user.email,
       role: member.role,
       createdAt: member.createdAt,
-      suspendedAt: member.suspendedAt,
       lastSeenAt: lastSeen.lastSeenAt,
     })
     .from(member)
@@ -159,7 +154,7 @@ export async function listSeatMembers(
     );
 }
 
-/** Invitations that still hold a seat: pending and not expired. */
+/** Invitations that can still be accepted: pending and not expired. */
 export async function listPendingInvitations(
   db: Database,
   organizationId: string,

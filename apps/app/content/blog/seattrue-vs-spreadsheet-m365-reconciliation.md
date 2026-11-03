@@ -43,7 +43,7 @@ The problems are rarely the formulas. They're the things around the formulas:
 
 | | Spreadsheet | SeatTrue |
 |---|---|---|
-| Cost to start | Free | Free margin audit; then $149/mo (Solo) or $249/mo (Team), flat |
+| Cost to start | Free | Free margin audit; then $49/mo (Starter) or $179/mo (Pro), flat |
 | Input | Any export you can paste | CSV upload: Pax8 (Partner Center files supported) and PSA invoice export |
 | Quantity check | Yes, if built | Yes, every line |
 | Price vs cost × client markup | Manual, if built | Yes, every line |
@@ -65,7 +65,7 @@ Consider one when any of these hold:
 - Renewals are spread across the year, so cost changes arrive every month.
 - You've found a stale price or a [ghost licence](/blog/what-is-license-leakage) after the invoice had already gone out.
 
-SeatTrue is that tool for MSPs reselling Microsoft 365 through Pax8. Solo is $149/mo flat for up to 150 clients and 2 users; Team is $249/mo flat with unlimited clients and users. You can cancel any time, effective at the end of the period; there are no refunds. Built by SDX Studio.
+SeatTrue is that tool for MSPs reselling Microsoft 365 through Pax8. Starter is $49/mo flat for up to 50 clients; Pro is $179/mo flat with unlimited clients. Users are unlimited on both. You can cancel any time, effective at the end of the period; there are no refunds. Built by SDX Studio.
 
 ## FAQ
 

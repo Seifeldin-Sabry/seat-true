@@ -77,7 +77,6 @@ export type PlanChangeResult =
       planId: PlanId;
       effectiveAt: string | null;
       keepClientIds: string[];
-      keepMemberIds: string[];
     };
 
 export type BillingOverview = {
@@ -572,11 +571,7 @@ export function createBillingService(
   async function changePlan(
     organizationId: string,
     planId: PlanId,
-    options: {
-      keepClientIds?: string[];
-      keepMemberIds?: string[];
-      attemptId?: string;
-    } = {},
+    options: { keepClientIds?: string[]; attemptId?: string } = {},
   ): Promise<PlanChangeResult> {
     const attemptId = options.attemptId ?? crypto.randomUUID();
     const target = planById(planId);
@@ -646,7 +641,6 @@ export function createBillingService(
       },
     );
     const keepClientIds = options.keepClientIds ?? [];
-    const keepMemberIds = options.keepMemberIds ?? [];
     const effectiveAt = periodEnd ? new Date(periodEnd * 1000) : null;
     await db.insert(billingPlanChanges).values({
       id: attemptId,
@@ -655,7 +649,6 @@ export function createBillingService(
       stripeScheduleId: scheduleId,
       targetLookupKey: target.lookupKey,
       keepClientIds,
-      keepMemberIds,
       status: "scheduled",
       effectiveAt,
     });
@@ -664,25 +657,21 @@ export function createBillingService(
       planId: target.id,
       effectiveAt: effectiveAt?.toISOString() ?? null,
       keepClientIds,
-      keepMemberIds,
     };
   }
 
-  /** The keep-lists for a downgrade that just took effect; marks it applied. */
+  /** The keep-list for a downgrade that just took effect; marks it applied. */
   async function takeScheduledKeepList(
     organizationId: string,
     planLookupKey: string,
-  ): Promise<{ clientIds: string[]; memberIds: string[] } | null> {
+  ): Promise<{ clientIds: string[] } | null> {
     const pending = await scheduledChange(organizationId);
     if (!pending || pending.targetLookupKey !== planLookupKey) return null;
     await db
       .update(billingPlanChanges)
       .set({ status: "applied" })
       .where(eq(billingPlanChanges.id, pending.id));
-    return {
-      clientIds: pending.keepClientIds,
-      memberIds: pending.keepMemberIds,
-    };
+    return { clientIds: pending.keepClientIds };
   }
 
   async function currentPlanLookupKey(organizationId: string) {

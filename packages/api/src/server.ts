@@ -73,10 +73,6 @@ export function createServerApp({ env, getSocketIp }: ServerAppOptions) {
     logger,
     ...(environment.google ? { google: environment.google } : {}),
     appOrigin: environment.appOrigin,
-    seats: {
-      assertCanInvite: planLimits.assertCanInvite,
-      assertCanJoin: planLimits.assertCanJoin,
-    },
   });
   const app = createApp({
     projects: createProjectRepository(connection.db),

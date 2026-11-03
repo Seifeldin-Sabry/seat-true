@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-query";
 import { getApiClient } from "./api";
 
-export type PlanId = "solo" | "team";
+export type PlanId = "starter" | "pro";
 
 function billingErrorMessage(error: unknown, fallback: string): string {
   if (error && typeof error === "object") {

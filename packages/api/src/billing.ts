@@ -95,7 +95,7 @@ export function createBillingRoutes({
       {
         body: t.Object(
           {
-            plan: t.Union([t.Literal("solo"), t.Literal("team")]),
+            plan: t.Union([t.Literal("starter"), t.Literal("pro")]),
           },
           { additionalProperties: false },
         ),

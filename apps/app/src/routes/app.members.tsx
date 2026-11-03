@@ -52,8 +52,6 @@ function MembersPage() {
   const [role, setRole] = useState<InvitableRole>("tech");
   const [notice, setNotice] = useState<string | null>(null);
   const data = members.data;
-  const seats = data?.seats;
-  const full = seats?.limit != null && seats.used >= seats.limit;
   const error =
     invite.error ?? cancelInvite.error ?? changeRole.error ?? remove.error;
 
@@ -77,9 +75,8 @@ function MembersPage() {
             <div className="eyebrow">Workspace / Members</div>
             <h1 id="members-title">Members</h1>
             <p>
-              {seats
-                ? `${seats.used} of ${seats.limit ?? "unlimited"} seats in use, pending invites included.`
-                : "Who can see and change this workspace."}
+              Who can see and change this workspace. Every plan includes
+              unlimited users.
             </p>
           </div>
         </section>
@@ -105,52 +102,40 @@ function MembersPage() {
           <section className="recon-panel" aria-labelledby="invite-title">
             <h2 id="invite-title">Invite someone</h2>
             <p>Work email only. They sign up or sign in, then accept.</p>
-            {full ? (
-              <p>
-                Every seat on your plan is taken.{" "}
-                <Link to="/app/billing">Upgrade to Team</Link> for unlimited
-                users.
-              </p>
-            ) : (
-              <form className="inline-form" onSubmit={sendInvite}>
-                <div className="field-group">
-                  <Label htmlFor="invite-email">Work email</Label>
-                  <Input
-                    id="invite-email"
-                    type="email"
-                    required
-                    autoComplete="off"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                  />
-                </div>
-                <div className="field-group">
-                  <Label htmlFor="invite-role">Role</Label>
-                  <select
-                    id="invite-role"
-                    value={role}
-                    onChange={(event) =>
-                      setRole(event.target.value as InvitableRole)
-                    }
-                  >
-                    <option value="tech">Tech</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-                <Button type="submit" disabled={invite.isPending}>
-                  {invite.isPending ? (
-                    <LoaderCircle
-                      size={16}
-                      className="spin"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <UserPlus size={16} aria-hidden="true" />
-                  )}
-                  Send invite
-                </Button>
-              </form>
-            )}
+            <form className="inline-form" onSubmit={sendInvite}>
+              <div className="field-group">
+                <Label htmlFor="invite-email">Work email</Label>
+                <Input
+                  id="invite-email"
+                  type="email"
+                  required
+                  autoComplete="off"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </div>
+              <div className="field-group">
+                <Label htmlFor="invite-role">Role</Label>
+                <select
+                  id="invite-role"
+                  value={role}
+                  onChange={(event) =>
+                    setRole(event.target.value as InvitableRole)
+                  }
+                >
+                  <option value="tech">Tech</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <Button type="submit" disabled={invite.isPending}>
+                {invite.isPending ? (
+                  <LoaderCircle size={16} className="spin" aria-hidden="true" />
+                ) : (
+                  <UserPlus size={16} aria-hidden="true" />
+                )}
+                Send invite
+              </Button>
+            </form>
           </section>
         )}
 
@@ -168,10 +153,7 @@ function MembersPage() {
             </thead>
             <tbody>
               {data?.members.map((entry) => (
-                <tr
-                  key={entry.id}
-                  className={entry.suspended ? "is-resolved" : undefined}
-                >
+                <tr key={entry.id}>
                   <td data-label="Person">
                     <div>
                       {entry.name || entry.email}
@@ -197,9 +179,6 @@ function MembersPage() {
                       </select>
                     ) : (
                       <Badge variant="secondary">{entry.role}</Badge>
-                    )}
-                    {entry.suspended && (
-                      <Badge variant="destructive">suspended</Badge>
                     )}
                     <div className="recon-summary">
                       {roleDescriptions[entry.role]}

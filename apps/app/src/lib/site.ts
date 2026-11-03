@@ -32,12 +32,12 @@ export const sitePages = {
   },
   pricing: {
     path: "/pricing",
-    title: "SeatTrue pricing: $149 Solo or $249 Team, flat monthly",
+    title: "SeatTrue pricing: $49 Starter or $179 Pro, flat monthly",
     description:
-      "Two flat monthly plans for Microsoft 365 license reconciliation. Solo $149 for up to 150 clients and 2 users; Team $249 unlimited. Free audit first.",
+      "Flat monthly plans for Microsoft 365 license reconciliation with unlimited users: Starter $49 for up to 50 clients, Pro $179 unlimited. Free audit first.",
     eyebrow: "Pricing",
-    headline: "$149 or $249 a month. Flat. Free audit first.",
-    updatedAt: "2026-11-02",
+    headline: "$49 or $179 a month. Flat. Free audit first.",
+    updatedAt: "2026-11-03",
     primaryKeyword: "msp billing reconciliation software pricing",
     secondaryKeyword: "msp license margin",
   },
@@ -122,7 +122,7 @@ export const sitePages = {
     path: "/for/small-msps",
     title: "Microsoft 365 reconciliation for small MSPs · SeatTrue",
     description:
-      "For MSPs with 1 to 20 staff, where the owner does the billing: a monthly Microsoft 365 check that takes minutes, at a flat $149 a month.",
+      "For MSPs with 1 to 20 staff, where the owner does the billing: a monthly Microsoft 365 check that takes minutes, from a flat $49 a month.",
     eyebrow: "For small MSPs (1–20 staff)",
     headline: "Billing is one of your ten jobs. Make it a short one.",
     updatedAt: "2026-11-02",
@@ -214,15 +214,15 @@ export function postOgImage(slug: string): string {
 /** Facts reused by pricing, structured data and llms.txt. One source. */
 export const plans = [
   {
-    id: "solo",
-    name: "Solo",
-    priceUsd: 149,
-    summary: "Up to 150 active clients and 2 users",
+    id: "starter",
+    name: "Starter",
+    priceUsd: 49,
+    summary: "Up to 50 active clients and unlimited users",
   },
   {
-    id: "team",
-    name: "Team",
-    priceUsd: 249,
+    id: "pro",
+    name: "Pro",
+    priceUsd: 179,
     summary: "Unlimited clients and unlimited users",
   },
 ] as const;

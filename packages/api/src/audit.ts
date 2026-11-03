@@ -22,8 +22,6 @@ export type AuditAction =
   | "member.joined"
   | "member.removed"
   | "member.role_changed"
-  | "member.suspended"
-  | "member.restored"
   | "plan.change";
 
 export type AuditEntry = {

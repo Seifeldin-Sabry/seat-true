@@ -60,7 +60,7 @@ export const billingSubscriptions = pgTable(
     status: text("status").notNull(),
     currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
     cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false).notNull(),
-    /** Plan lookup key (e.g. seattrue_solo_monthly); price IDs differ per Stripe account. */
+    /** Plan lookup key (e.g. seattrue_starter_monthly); price IDs differ per Stripe account. */
     planLookupKey: text("plan_lookup_key"),
     /** First moment the subscription went past_due; drives the 7-day grace period. */
     pastDueSince: timestamp("past_due_since", { withTimezone: true }),
@@ -102,11 +102,6 @@ export const billingPlanChanges = pgTable(
     stripeScheduleId: text("stripe_schedule_id"),
     targetLookupKey: text("target_lookup_key").notNull(),
     keepClientIds: jsonb("keep_client_ids").$type<string[]>().notNull(),
-    /** Members who stay active; the owner always stays and is not listed. */
-    keepMemberIds: jsonb("keep_member_ids")
-      .$type<string[]>()
-      .default([])
-      .notNull(),
     status: text("status")
       .$type<"scheduled" | "applied" | "canceled">()
       .notNull(),

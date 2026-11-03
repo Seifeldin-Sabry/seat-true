@@ -32,7 +32,7 @@ Draft, 2 Nov 2026. Nothing has been created, started or sent. Built with the orc
 
 | Alternative | What it lacks | SeatTrue line |
 |---|---|---|
-| Gradient Reconcile: $299/$699/$999 a month plus a $199 Microsoft add-on ([meetgradient.com/pricing](https://www.meetgradient.com/pricing), checked 2 Nov) | Broader and pricier. Its public pages show no check against a per-client markup. | "Gradient reconciles everything. SeatTrue gates margin on Microsoft, for $149." |
+| Gradient Reconcile: $299/$699/$999 a month plus a $199 Microsoft add-on ([meetgradient.com/pricing](https://www.meetgradient.com/pricing), checked 2 Nov) | Broader and pricier. Its public pages show no check against a per-client markup. | "Gradient reconciles everything. SeatTrue gates margin on Microsoft, from $49." |
 | Native Pax8 → Halo/ConnectWise sync | Syncs quantity only; no approval step | "Your sync copies seats. Nobody checks the price." |
 | Spreadsheet close | Takes hours and still misses lines | Exceptions inbox, cleared before invoicing |
 | License Drift, MSPbots, Rewst | Cheaper, or DIY | Markup check per client, plus roles and an audit trail |
@@ -61,7 +61,7 @@ Draft, 2 Nov 2026. Nothing has been created, started or sent. Built with the orc
    - Files are deleted after 30 days unless they subscribe (A: confirm the data policy).
 2. **Honest go/no-go.** If the audit finds less leakage than the subscription costs, Seif tells them not to buy. This is the risk reversal, and it needs no refunds.
 3. **Founding price lock for the first 20 MSPs.**
-   - Solo $149/mo (150 clients, 2 users) or Team $249/mo (unlimited) stays fixed while the subscription stays active.
+   - Starter $49/mo (50 clients) or Pro $179/mo (unlimited clients), unlimited users on both, stays fixed while the subscription stays active.
    - Show a real "N of 20 left" count on /pricing.
 4. **4 onboarding slots a week.**
    - Use a Calendly event capped at 4 bookings a week. This is a real capacity limit.
@@ -76,7 +76,7 @@ Draft, 2 Nov 2026. Nothing has been created, started or sent. Built with the orc
 
 | Min | Talk track |
 |---|---|
-| 0–2 | Agenda and permission: "I'll show what the audit found, then you decide if it's worth $149. Fair?" |
+| 0–2 | Agenda and permission: "I'll show what the audit found, then you decide if it's worth $49. Fair?" |
 | 2–5 | Their close today: who invoices, which PSA, which distributors, and how renewals get repriced. Let them name the pain. |
 | 5–10 | Exceptions inbox on their data, or the labelled Northbeam IT example if no export yet. Show one of each: stale renewal price, unbilled seat, ghost licence, overbilling, unmapped customer. Show the $ total and how a Tech clears a line while the Owner signs off. |
 | 10–12 | Objections. "We have the sync": it copies quantity, not price. "Gradient": broader, ~$498/mo for Microsoft resellers; this does one job. "Data": CSV only, deleted after 30 days if you don't continue. |
@@ -131,7 +131,7 @@ Steps:
 | Domains | Buy 2 lookalike domains via Zapmail by **Sat 7 Nov**, kept apart from the SDX brand | Seif |
 | Mailboxes | 2 per domain = 4 inboxes (A), into Smartlead warmup, ≥14 days, started by Mon 9 Nov. Antwerp address and a "reply no" line in the signature. | Seif + Claude |
 | Deploy | Site live with /, /audit, /pricing, /blog by Mon 9 Nov. The blog starts Tue 10 Nov. | Seif |
-| Stripe live | Solo and Team prices, founding price IDs, cancel-at-period-end | Seif |
+| Stripe live | Starter and Pro prices, founding price IDs, cancel-at-period-end | Seif |
 | Calendly | "SeatTrue 15-min audit" event and "Onboarding" event capped at 4 a week | Seif |
 | Waitlist + founding list | Waitlist form on /; founding list = sheet of the 20 lock slots | Claude drafts, Seif publishes |
 | Pax8 API | Email integrations@pax8.com for OAuth delegation (approval is case by case) | Seif |
@@ -270,7 +270,7 @@ Welcome blueprint: Day 0, 1, 2, 4, 7. The sequence stops when an audit is booked
 | 2 | 1 | Why I built a margin gate | Story: SDX works only with MSPs; quantities sync, price doesn't. Soft mention of SeatTrue. |
 | 3 | 2 | The 10-minute renewal check | Quick win: filter Pax8 for subscriptions renewed since 1 July and compare unit price to the PSA. CTA: reply with what you found. |
 | 4 | 4 | What $548.10 of leakage looks like | Proof: the labelled *Example: Northbeam IT* breakdown by exception type. Medium CTA: book the audit. |
-| 5 | 7 | Founding price, while it lasts | Offer: Solo $149 / Team $249 locked for the first 20 MSPs; 4 onboarding slots a week; cancel any time, effective at period end. Objection: "we already use Gradient/the sync". |
+| 5 | 7 | Founding price, while it lasts | Offer: Starter $49 / Pro $179 locked for the first 20 MSPs; 4 onboarding slots a week; cancel any time, effective at period end. Objection: "we already use Gradient/the sync". |
 
 ## 8. SEO and AI-search plan
 
@@ -314,7 +314,7 @@ Volumes are not measured yet. Check them in Search Console and the free tools fr
 **Kill and change rules**
 - **Demand test:** fewer than 10 positive replies by about 300 contacts (around the end of week 4) → change the angle (subject, hook or offer, one at a time).
 - Two failed angles (about 600 contacts) → park SeatTrue.
-- 5 delivered audits that each find less than $149/mo of leakage → the pain is too small. Stop.
+- 5 delivered audits that each find less than $49/mo of leakage → the pain is too small. Stop.
 - Bounces above 2% in a day → pause and re-verify. Any spam complaint → pause that inbox for 7 days.
 
 ## 10. Week-1 task list (Sat 7 – Sun 15 Nov)
@@ -342,7 +342,7 @@ Volumes are not measured yet. Check them in Search Console and the free tools fr
 | Pax8 refuses API delegation | CSV upload stays the core path; the audit already works from CSV |
 | Deliverability on new domains | 14-day warmup, ≤20 sends per inbox per day, plain text, no tracking, 2% bounce stop rule |
 | One LinkedIn sender shared three ways | 100 a week total; dedupe by company; lean on email |
-| Gradient adds markup checks | Compete on price ($149 vs ~$498), setup time and the UK Halo + Giacom niche |
+| Gradient adds markup checks | Compete on price ($49–$179 vs ~$498), setup time and the UK Halo + Giacom niche |
 | Halo or Pax8 add native price sync | Stay multi-distributor plus markup policy; keep the audit-trail sign-off |
 | $99 tools and free AI skills | Sell the gate and the audit trail, not the matching |
 | Leakage claims unproven | Only quote the labelled example until real audits exist; then publish anonymised ranges with consent |

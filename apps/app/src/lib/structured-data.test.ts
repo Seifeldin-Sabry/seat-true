@@ -132,8 +132,8 @@ describe("JSON-LD", () => {
     expect(
       offers.map((offer) => [offer.name, offer.price, offer.priceCurrency]),
     ).toEqual([
-      ["Solo", "149.00", "USD"],
-      ["Team", "249.00", "USD"],
+      ["Starter", "49.00", "USD"],
+      ["Pro", "179.00", "USD"],
     ]);
   });
 

@@ -117,7 +117,7 @@ test("add client: owner only, plan-limited, actor passed for the audit log", asy
       guard: testGuard(testWorkspace(role)),
       allowedOrigins: [origin],
       assertCanAddClient: async () => {
-        if (full) throw new PlanLimitError("Solo covers 150 clients.");
+        if (full) throw new PlanLimitError("Starter covers 50 clients.");
       },
     });
   const body = { name: "Acme", psaId: "CW-1", markupPct: 18 };

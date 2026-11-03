@@ -119,7 +119,7 @@ const comparison: {
     sheet: "Your time",
     psa: "Included",
     gradient: "$299–$999/mo + $199",
-    ours: "$149 or $249 flat",
+    ours: "$49 or $179 flat",
   },
 ];
 
@@ -299,13 +299,13 @@ function LandingPage() {
             </tfoot>
           </table>
           <aside className="st-price" aria-labelledby="st-price-title">
-            <h3 id="st-price-title">Solo plan</h3>
+            <h3 id="st-price-title">Starter plan</h3>
             <p className="st-price-figure">
-              <strong>$149</strong>/month
+              <strong>$49</strong>/month
             </p>
             <p>
-              Solo: flat, up to 150 clients and 2 users. Team: $249/month flat,
-              unlimited clients and unlimited users.
+              Starter: flat, up to 50 clients. Pro: $179/month flat, unlimited
+              clients. Unlimited users on both.
             </p>
             <ul>
               <li>No per-licence fees</li>

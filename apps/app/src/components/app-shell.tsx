@@ -97,13 +97,8 @@ export function AppShell({
               onChange={(event) => switchWorkspace.mutate(event.target.value)}
             >
               {workspace.data?.workspaces.map((entry) => (
-                <option
-                  key={entry.id}
-                  value={entry.id}
-                  disabled={entry.suspended}
-                >
+                <option key={entry.id} value={entry.id}>
                   {entry.name}
-                  {entry.suspended ? " (suspended)" : ""}
                 </option>
               ))}
             </select>
@@ -206,17 +201,6 @@ export function AppShell({
         {signOutError && (
           <div className="mobile-signout-error" role="alert">
             {signOutError}
-          </div>
-        )}
-        {workspace.data?.suspended && (
-          <div className="error-banner" role="alert">
-            <div>
-              <strong>Your access is suspended</strong>
-              <p>
-                {workspace.data.organization?.name} is over its plan's seat
-                limit. Ask the owner to upgrade, or switch to another workspace.
-              </p>
-            </div>
           </div>
         )}
         <BillingBanner />

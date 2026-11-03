@@ -249,7 +249,6 @@ export function createApp({
         auth,
         guard,
         audit,
-        planLimits: planLimits ?? null,
         ...(canWriteWorkspace ? { canWrite: canWriteWorkspace } : {}),
         allowedOrigins,
         platformAdminEmails,

@@ -45,8 +45,6 @@ export const member = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
-    /** Over the plan's seat limit after a downgrade: no access, never deleted. */
-    suspendedAt: timestamp("suspended_at", { withTimezone: true }),
   },
   (table) => [
     uniqueIndex("member_organization_user_idx").on(

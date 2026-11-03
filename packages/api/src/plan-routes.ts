@@ -19,9 +19,9 @@ const unavailable = {
     message: "Billing is not configured for this deployment.",
   },
 };
-const planSchema = t.Union([t.Literal("solo"), t.Literal("team")]);
+const planSchema = t.Union([t.Literal("starter"), t.Literal("pro")]);
 
-/** Typed confirmation required when a downgrade locks clients or suspends users. */
+/** Typed confirmation required when a downgrade locks clients. */
 export const DOWNGRADE_CONFIRMATION = "DOWNGRADE";
 
 /**
@@ -70,23 +70,12 @@ export function createPlanRoutes(options: {
         const preflight = await planLimits.preflight(organizationId, body.plan);
         const isDowngrade = current !== null && target.rank < current.rank;
         let keepClientIds: string[] = [];
-        let keepMemberIds: string[] = [];
         if (isDowngrade && preflight.overages.length > 0) {
           if (body.confirm !== DOWNGRADE_CONFIRMATION) {
-            const effects = [
-              preflight.defaultLockClientIds.length
-                ? `locks ${preflight.defaultLockClientIds.length} clients`
-                : null,
-              preflight.defaultSuspendMemberIds.length
-                ? `suspends ${preflight.defaultSuspendMemberIds.length} users`
-                : null,
-            ]
-              .filter(Boolean)
-              .join(" and ");
             return status(422, {
               error: {
                 code: "CONFIRMATION_REQUIRED" as const,
-                message: `This downgrade ${effects}. Type ${DOWNGRADE_CONFIRMATION} to confirm.`,
+                message: `This downgrade locks ${preflight.defaultLockClientIds.length} clients. Type ${DOWNGRADE_CONFIRMATION} to confirm.`,
               },
             });
           }
@@ -107,33 +96,11 @@ export function createPlanRoutes(options: {
               },
             });
           }
-          // The owner always stays and takes one seat.
-          const otherMembers = new Set(
-            preflight.members
-              .filter((entry) => entry.role !== "owner")
-              .map((entry) => entry.id),
-          );
-          keepMemberIds = (
-            body.keepMemberIds ?? preflight.defaultKeepMemberIds
-          ).filter((id) => otherMembers.has(id));
-          const owners = preflight.members.length - otherMembers.size;
-          if (
-            preflight.memberLimit !== null &&
-            keepMemberIds.length + owners > preflight.memberLimit
-          ) {
-            return status(422, {
-              error: {
-                code: "TOO_MANY_KEPT" as const,
-                message: `Choose at most ${preflight.memberLimit - owners} people to keep besides the owner.`,
-              },
-            });
-          }
         }
 
         try {
           const result = await billing.changePlan(organizationId, body.plan, {
             keepClientIds,
-            keepMemberIds,
           });
           // Upgrades take effect now; unlock immediately instead of waiting
           // for the webhook (which will reach the same state).
@@ -176,9 +143,6 @@ export function createPlanRoutes(options: {
             plan: planSchema,
             keepClientIds: t.Optional(
               t.Array(t.String({ maxLength: 64 }), { maxItems: 1000 }),
-            ),
-            keepMemberIds: t.Optional(
-              t.Array(t.String({ maxLength: 128 }), { maxItems: 1000 }),
             ),
             confirm: t.Optional(t.String({ maxLength: 32 })),
           },

@@ -31,7 +31,7 @@ test("unconfigured billing remains readable and disables payment actions", async
         "content-type": "application/json",
         origin: "http://localhost:3000",
       },
-      body: JSON.stringify({ plan: "solo" }),
+      body: JSON.stringify({ plan: "starter" }),
     }),
   );
   expect(checkout.status).toBe(503);
@@ -41,7 +41,7 @@ test("unconfigured billing remains readable and disables payment actions", async
     new Request("http://localhost/billing/checkout", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ plan: "solo" }),
+      body: JSON.stringify({ plan: "starter" }),
     }),
   );
   expect(missingOrigin.status).toBe(403);
@@ -80,7 +80,7 @@ test("billing validates the plan and maps subscription conflict", async () => {
   expect((await routes.handle(request("price_attacker_selected"))).status).toBe(
     422,
   );
-  const duplicate = await routes.handle(request("team"));
+  const duplicate = await routes.handle(request("pro"));
   expect(duplicate.status).toBe(409);
   expect((await duplicate.json()).error.code).toBe(
     "SUBSCRIPTION_ALREADY_EXISTS",
