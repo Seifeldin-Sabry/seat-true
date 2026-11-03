@@ -34,9 +34,15 @@ export const sitePages = {
     path: "/pricing",
     title: "SeatTrue pricing: $49 Starter or $149 Pro, flat monthly",
     description:
+<<<<<<< HEAD
       "Microsoft 365 license reconciliation for MSPs. Free for up to 10 clients with no card, then Starter $49 for 50 clients or Pro $149 unlimited.",
     eyebrow: "Pricing",
     headline: "Free for 10 clients. Then $49 or $149 a month, flat.",
+=======
+      "Flat monthly plans for Microsoft 365 license reconciliation with unlimited users: Starter $49 for up to 50 clients, Pro $149 unlimited. Free audit first.",
+    eyebrow: "Pricing",
+    headline: "$49 or $149 a month. Flat. Free audit first.",
+>>>>>>> origin/claude/project-thread-gz1x6d
     updatedAt: "2026-11-03",
     primaryKeyword: "msp billing reconciliation software pricing",
     secondaryKeyword: "msp license margin",

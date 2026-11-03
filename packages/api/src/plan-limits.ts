@@ -77,9 +77,13 @@ export function createPlanLimits(options: {
     const active = activeOnly(await recon.limitClients(organizationId));
     if (active.length >= limit) {
       throw new PlanLimitError(
+<<<<<<< HEAD
         lookupKey
           ? `${planByLookupKey(lookupKey)?.name ?? "Your plan"} includes ${limit} active clients. Upgrade to ${topPlan.name}, or archive a client, to add another.`
           : `The Free plan includes ${limit} active clients. Subscribe to a paid plan, or archive a client, to add another.`,
+=======
+        `${planByLookupKey(lookupKey)?.name ?? "Your plan"} includes ${limit} active clients. Upgrade to ${topPlan.name}, or archive a client, to add another.`,
+>>>>>>> origin/claude/project-thread-gz1x6d
       );
     }
   }
