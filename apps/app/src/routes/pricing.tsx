@@ -57,15 +57,9 @@ function PricingPage() {
     <SiteShell>
       <PageIntro eyebrow="Pricing" title="Start free. Two flat plans after.">
         <p>
-<<<<<<< HEAD
           Reconcile up to {freeTier.clients} clients free, with no card and no
           time limit. No per-licence fees, no per-user fees and no setup fee.
           Pay only when you pass {freeTier.clients} active clients.
-=======
-          No per-licence fees, no per-user fees and no setup fee. Run the free
-          margin audit: upload your Pax8 bill and your client billing export,
-          then pick the plan that fits your client count.
->>>>>>> origin/claude/project-thread-gz1x6d
         </p>
       </PageIntro>
 
