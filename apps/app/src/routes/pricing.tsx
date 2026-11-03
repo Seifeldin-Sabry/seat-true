@@ -18,6 +18,7 @@ const included = [
   "Owner, admin and technician roles with an audit log",
   "CSV import: no API access, nothing written to Pax8 or your PSA",
   "Customer-to-client mapping set up with you",
+  "Read-only MCP server: ask Claude, Cursor or any MCP client about your leakage",
 ];
 
 const pricingFaq = [

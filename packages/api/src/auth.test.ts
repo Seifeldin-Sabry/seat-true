@@ -4,7 +4,17 @@ import { createDatabase } from "@seattrue/db";
 import { createEmailService } from "@seattrue/email";
 import { createAuth, requireWorkEmail } from "./auth";
 
-const databaseUrl = "postgres://starter:starter@localhost:5432/starter";
+// The MCP/OAuth provider plugins read their tables when Better Auth starts,
+// so these tests use the local test database and wait for startup to finish.
+const databaseUrl =
+  process.env.TEST_DATABASE_URL ??
+  "postgres://starter:starter@localhost:5432/starter";
+const starting: Promise<unknown>[] = [];
+function makeAuth(...args: Parameters<typeof createAuth>) {
+  const auth = createAuth(...args);
+  starting.push(auth.$context.catch(() => {}));
+  return auth;
+}
 const baseEnvironment = {
   baseURL: "https://app.example.com",
   secret: "test-secret-with-at-least-32-characters",
@@ -35,10 +45,10 @@ test("optional secondary storage changes rate limits while sessions remain in Po
   };
 
   try {
-    const postgresOnly = createAuth(connection.db, baseEnvironment);
+    const postgresOnly = makeAuth(connection.db, baseEnvironment);
     expect(postgresOnly.options.rateLimit?.storage).toBe("database");
 
-    const withCache = createAuth(connection.db, {
+    const withCache = makeAuth(connection.db, {
       ...baseEnvironment,
       secondaryStorage,
     });
@@ -46,6 +56,7 @@ test("optional secondary storage changes rate limits while sessions remain in Po
     expect(withCache.options.rateLimit?.storage).toBe("secondary-storage");
     expect(withCache.options.session?.storeSessionInDatabase).toBe(true);
   } finally {
+    await Promise.all(starting.splice(0));
     await connection.close();
   }
 });
@@ -64,7 +75,7 @@ test("enables verification and reset callbacks only with configured email", asyn
     },
   });
   try {
-    const withoutEmail = createAuth(connection.db, {
+    const withoutEmail = makeAuth(connection.db, {
       ...baseEnvironment,
       email: createEmailService({ env: {} }),
     });
@@ -73,7 +84,7 @@ test("enables verification and reset callbacks only with configured email", asyn
     ).toBeUndefined();
     expect(withoutEmail.options.emailVerification).toBeUndefined();
 
-    const configured = createAuth(connection.db, { ...baseEnvironment, email });
+    const configured = makeAuth(connection.db, { ...baseEnvironment, email });
     expect(configured.options.emailAndPassword?.requireEmailVerification).toBe(
       true,
     );
@@ -108,6 +119,7 @@ test("enables verification and reset callbacks only with configured email", asyn
       { to: user.email, subject: "Reset your SeatTrue password" },
     ]);
   } finally {
+    await Promise.all(starting.splice(0));
     await connection.close();
   }
 });
@@ -123,7 +135,7 @@ test("propagates email delivery failure without exposing provider details", asyn
     }),
   });
   try {
-    const auth = createAuth(connection.db, {
+    const auth = makeAuth(connection.db, {
       ...baseEnvironment,
       email,
       logger: { info() {}, warn() {}, error: (entry) => errors.push(entry) },
@@ -139,6 +151,7 @@ test("propagates email delivery failure without exposing provider details", asyn
     expect(errors[0]?.event).toBe("verification_email_failed");
     expect(JSON.stringify(errors)).not.toContain("provider token is private");
   } finally {
+    await Promise.all(starting.splice(0));
     await connection.close();
   }
 });
@@ -164,11 +177,11 @@ test("user-create hook rejects personal mailboxes for email and Google sign-ups"
 test("Google provider is configured only when credentials are present", async () => {
   const connection = createDatabase(databaseUrl);
   try {
-    const without = createAuth(connection.db, baseEnvironment);
+    const without = makeAuth(connection.db, baseEnvironment);
     expect(without.options.socialProviders).toBeUndefined();
     expect(without.options.databaseHooks?.user?.create?.before).toBeDefined();
 
-    const withGoogle = createAuth(connection.db, {
+    const withGoogle = makeAuth(connection.db, {
       ...baseEnvironment,
       google: { clientId: "id.apps.googleusercontent.com", clientSecret: "x" },
     });
@@ -177,6 +190,7 @@ test("Google provider is configured only when credentials are present", async ()
       prompt: "select_account",
     });
   } finally {
+    await Promise.all(starting.splice(0));
     await connection.close();
   }
 });

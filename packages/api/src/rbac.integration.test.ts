@@ -423,6 +423,9 @@ integrationTest(
   async () => {
     if (!databaseUrl || !authSecret) return;
     const connection = createDatabase(databaseUrl);
+    // The MCP/OAuth plugins read their tables on startup; let that finish
+    // before the connection closes.
+    const starting: Promise<unknown>[] = [];
     try {
       const pluginOptions = (environmentEmail: boolean) => {
         const email = createEmailService({
@@ -437,6 +440,7 @@ integrationTest(
           trustedOrigins: [appOrigin],
           email,
         });
+        starting.push(auth.$context.catch(() => {}));
         const plugin = auth.options.plugins?.find(
           (entry) => entry.id === "organization",
         ) as { options?: Record<string, unknown> } | undefined;
@@ -451,6 +455,7 @@ integrationTest(
         false,
       );
     } finally {
+      await Promise.all(starting);
       await connection.close();
     }
   },

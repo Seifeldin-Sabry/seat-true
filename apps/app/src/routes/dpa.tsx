@@ -47,7 +47,7 @@ function DpaPage() {
           ],
           [
             "Purpose",
-            "Reconciling the Customer's distributor bills against its client billing, at cost times the Customer's markup, and tracking the exceptions found.",
+            "Reconciling the Customer's distributor bills against its client billing, at cost times the Customer's markup, tracking the exceptions found, and read-only access through the MCP server.",
           ],
           [
             "Types of personal data",

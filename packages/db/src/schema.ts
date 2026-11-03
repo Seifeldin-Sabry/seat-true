@@ -18,6 +18,16 @@ export {
   billingWebhookEvents,
 } from "./billing-schema";
 export {
+  jwks,
+  oauthAccessToken,
+  oauthClient,
+  oauthClientAssertion,
+  oauthClientResource,
+  oauthConsent,
+  oauthRefreshToken,
+  oauthResource,
+} from "./oauth-schema";
+export {
   auditLog,
   invitation,
   member,

@@ -33,6 +33,7 @@ const actionLabels: Record<string, string> = {
   "member.removed": "Removed member",
   "member.role_changed": "Changed role",
   "plan.change": "Changed plan",
+  "mcp.tool_called": "AI assistant read (MCP)",
 };
 
 function describe(value: unknown) {

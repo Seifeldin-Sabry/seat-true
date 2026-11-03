@@ -162,6 +162,10 @@ Copy the printed `whsec_...` value into `STRIPE_WEBHOOK_SECRET`, restart `bun ru
 
 Billing records demonstrate integration; they do not grant application entitlements yet. Add an explicit server-side entitlement check for paid product features. For production billing, enable email verification/recovery and reconcile operational exceptions from Stripe Dashboard.
 
+### MCP server
+
+`POST /api/mcp` is a read-only remote MCP server for Claude, Cursor and other MCP clients. Better Auth's `mcp()`, `jwt()` and `cimd()` plugins act as the OAuth authorization server, with discovery at the root `/.well-known/` and consent at `/mcp/consent`. It has five tools: leakage overview, exceptions, one exception, one client, and unmapped customers. Each runs as the token's member in their workspace, and every call is audited as `mcp.tool_called`. See [docs/integrations/mcp.md](docs/integrations/mcp.md).
+
 ### QStash jobs
 
 Jobs are optional. With no `QSTASH_*` values, API runs without a queue and never publishes. With all three set, creating a project publishes a `project-created` message after the database write succeeds. QStash then calls `POST {APP_ORIGIN}/api/jobs/project-created`; API verifies the `Upstash-Signature` JWT against the raw body and that public URL, re-reads the committed project by owner and ID, and logs the outcome. Messages carry identifiers only, use a stable deduplication ID, and retry three times before landing in the QStash dead letter queue. Non-2xx responses trigger retries, so handlers must be idempotent. Partial configuration fails at startup. Enqueue failure produces a warning while the saved project remains available; use a transactional outbox if future jobs must be delivered reliably.

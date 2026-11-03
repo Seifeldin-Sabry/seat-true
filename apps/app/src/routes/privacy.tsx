@@ -158,6 +158,12 @@ function PrivacyPage() {
           <strong>Reconciliation results:</strong> exceptions found, their
           monthly impact, status, and comments with the author's email.
         </li>
+        <li>
+          <strong>MCP access:</strong> when an MSP user connects an AI assistant
+          to the SeatTrue MCP server and approves it, we issue that assistant a
+          read-only access token for the workspace. The assistant is chosen and
+          run by the MSP.
+        </li>
       </ul>
       <p>
         Client names are usually company names, but they can identify a person,
@@ -219,8 +225,10 @@ function PrivacyPage() {
       <p>
         <strong>Tools you export from are not our sub-processors.</strong> Pax8,
         Microsoft Partner Center and your PSA (such as ConnectWise, Autotask or
-        HaloPSA) are chosen by the MSP, which has its own agreement with each of
-        them. SeatTrue receives only the files the MSP uploads.
+        HaloPSA), and any AI assistant connected to the MCP server, are chosen
+        by the MSP, which has its own agreement with each of them. SeatTrue
+        receives only the files the MSP uploads, and an assistant reads only
+        what the MSP approved it to.
       </p>
 
       <h2 id="transfers">7. Transfers outside the EU</h2>

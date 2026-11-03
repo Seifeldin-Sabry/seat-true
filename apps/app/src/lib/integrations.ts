@@ -300,22 +300,36 @@ export const integrations: Integration[] = [
     slug: "mcp-server",
     name: "SeatTrue MCP server",
     category: "ai",
-    status: "soon",
+    status: "live",
     method: "MCP server",
     pulls:
-      "Lets your AI assistant read exceptions and leakage totals. Read-only.",
-    title: "SeatTrue MCP server (coming soon) · SeatTrue",
+      "Lets Claude, Cursor or any MCP client read exceptions and leakage. Read-only.",
+    title: "SeatTrue MCP server for Claude · SeatTrue",
     description:
-      "An MCP server is coming to SeatTrue so AI assistants can read your exceptions, leakage totals and client detail, read-only. Not live yet.",
+      "Connect Claude, Cursor or another MCP client to SeatTrue and ask about leakage, exceptions and clients. Read-only, on every plan, every call audited.",
     intro:
-      "A Model Context Protocol server, so an AI assistant such as Claude can answer “which clients leaked most this month?” from your SeatTrue workspace, read-only. Not live yet.",
+      "A remote Model Context Protocol server, so an AI assistant such as Claude can answer “which clients leaked most this month?” from your SeatTrue workspace. It is read-only and included on every plan.",
     data: [
-      "Open exceptions with their monthly dollar figure",
-      "Leakage totals per run",
-      "Client detail: mappings, markup and exception history",
+      "Leakage overview: totals, recovered, overbilled and per client",
+      "Exceptions by client, kind and status, largest impact first",
+      "One exception in full, with its comment thread",
+      "Client detail: mappings, markup, agreement lines and exceptions",
+      "Distributor customers and billed clients that aren't mapped yet",
     ],
-    setup: [],
-    meanwhile: "Everything is in the SeatTrue app today.",
+    setup: [
+      {
+        title: "Add the server",
+        body: "In your MCP client (Claude, Cursor or another), add a remote server at your SeatTrue address followed by /api/mcp.",
+      },
+      {
+        title: "Approve read-only access",
+        body: "Sign in to SeatTrue when the client asks, and approve read-only access for your workspace. Every tool call is written to your audit log.",
+      },
+      {
+        title: "Ask",
+        body: "For example: which five clients leaked the most this month, and why?",
+      },
+    ],
   },
 ];
 

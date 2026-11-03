@@ -123,7 +123,15 @@ export function createServerApp({ env, getSocketIp }: ServerAppOptions) {
     },
   });
 
-  return { app, logger, close: () => connection.close() };
+  return {
+    app,
+    logger,
+    /** Root /.well-known OAuth discovery documents (MCP clients look there). */
+    discovery: (request: Request) =>
+      auth.discovery?.(request) ??
+      Promise.resolve(new Response(null, { status: 404 })),
+    close: () => connection.close(),
+  };
 }
 
 export type ServerApp = ReturnType<typeof createServerApp>;

@@ -64,6 +64,11 @@ const stack: { item: string; basis: string; value: number }[] = [
     value: 200,
   },
   {
+    item: "Works inside Claude through a read-only MCP server",
+    basis: "ask which clients leaked most, and why",
+    value: 0,
+  },
+  {
     item: "Founding price locked for as long as you stay",
     basis: "no price rises for the first 20 MSPs",
     value: 0,

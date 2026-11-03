@@ -1,3 +1,4 @@
+import { oauthProviderClient } from "@better-auth/oauth-provider/client";
 import { createAuthClient } from "better-auth/react";
 import { appOrigin } from "./http-origin";
 
@@ -5,4 +6,6 @@ import { appOrigin } from "./http-origin";
 export const authClient = createAuthClient({
   baseURL: appOrigin(),
   fetchOptions: { credentials: "include" },
+  // oauthProviderClient continues an MCP client's OAuth flow after sign-in.
+  plugins: [oauthProviderClient()],
 });

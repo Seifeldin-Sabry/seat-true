@@ -144,7 +144,7 @@ export const sitePages = {
     path: "/integrations",
     title: "SeatTrue integrations: Pax8, Partner Center and more",
     description:
-      "What SeatTrue reads today (Pax8 and Partner Center CSV imports) and what's coming: distributor APIs, PSA syncs and an MCP server.",
+      "What SeatTrue reads today (Pax8 and Partner Center CSV imports, plus a read-only MCP server for Claude) and what's coming: distributor APIs and PSA syncs.",
     eyebrow: "Integrations",
     headline: "Works with your existing tools",
     updatedAt: "2026-11-02",
